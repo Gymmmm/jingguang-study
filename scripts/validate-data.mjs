@@ -6,6 +6,7 @@ const readJson = async (path) => JSON.parse(await fs.readFile(new URL(path, ROOT
 const egwDoc = await readJson('data/egw-index.json');
 const relDoc = await readJson('data/bible-egw-relations.json');
 const schemaDoc = await readJson('data/sermon-project-schema.json');
+const crossrefDoc = await readJson('data/crossrefs-source.json');
 
 const errors = [];
 const warnings = [];
@@ -55,8 +56,16 @@ for (const f of ['id','title','status','audience','duration_minutes','core_bible
   if (!(f in project)) errors.push(`sermon project schema missing field: ${f}`);
 }
 
+for (const f of ['name','source','license','attribution','format','columns','runtime_url','loading']) {
+  if (!crossrefDoc?.[f]) errors.push(`crossrefs-source.json: missing ${f}`);
+}
+if (crossrefDoc?.license !== 'CC BY') warnings.push(`crossrefs-source.json: expected CC BY, got ${crossrefDoc?.license}`);
+if (!Array.isArray(crossrefDoc?.columns) || crossrefDoc.columns.join(',') !== 'from,to,votes') errors.push('crossrefs-source.json: columns must be from,to,votes');
+if (!/^https:\/\//.test(crossrefDoc?.runtime_url || '')) errors.push('crossrefs-source.json: runtime_url must be https');
+
 console.log(`EGW records: ${records.length}`);
 console.log(`Bible→EGW relations: ${relations.length}`);
+console.log(`Cross-reference source: ${crossrefDoc?.name || 'missing'} (${crossrefDoc?.rows || '?'} rows)`);
 console.log(`Warnings: ${warnings.length}`);
 for (const w of warnings) console.warn(`WARN: ${w}`);
 
