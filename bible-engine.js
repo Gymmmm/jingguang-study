@@ -5,5 +5,6 @@
     .then(()=>load('./sermon-workflow.js'))
     .then(()=>load('./study-workspace.js'))
     .then(()=>load('./mobile-polish.js'))
+    .then(()=>load('./egw-search-reader.js'))
     .catch(err=>console.error('经光研经增强模块加载失败',err));
 })();
