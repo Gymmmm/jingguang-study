@@ -1,11 +1,14 @@
-name: Jingguang Bible Import
+name: Jingguang Bible Source
 
 on:
   push:
     branches: [main]
     paths:
-      - 'scripts/import-bible.mjs'
+      - 'scripts/ensure-bible-engine.mjs'
+      - 'scripts/validate-bible.mjs'
       - 'bible-engine.js'
+      - 'data/bible-source.json'
+      - 'data/bible-books.json'
       - '.github/workflows/import-bible.yml'
   workflow_dispatch:
 
@@ -13,7 +16,7 @@ permissions:
   contents: write
 
 jobs:
-  import-bible:
+  bible-source:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,18 +25,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Import public-domain Chinese Union Version
-        run: node scripts/import-bible.mjs
-      - name: Validate generated Bible data
+      - name: Validate complete 66-book Chinese Bible source
         run: node scripts/validate-bible.mjs
-      - name: Commit generated Bible data and engine hook
+      - name: Ensure Bible engine is loaded by the app
+        run: node scripts/ensure-bible-engine.mjs
+      - name: Commit engine hook when needed
         run: |
-          if git diff --quiet -- data/bible-cuv-simplified.json data/bible-source.json index.html; then
-            echo "Bible data is already current."
+          if git diff --quiet -- index.html; then
+            echo "Bible engine hook is already installed."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/bible-cuv-simplified.json data/bible-source.json index.html
-          git commit -m "data: import complete public-domain Chinese Union Version"
+          git add index.html
+          git commit -m "feat: enable complete Chinese Bible engine"
           git push
