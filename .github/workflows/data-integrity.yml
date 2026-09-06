@@ -1,0 +1,28 @@
+name: Jingguang Data Integrity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'data/**'
+      - 'scripts/validate-data.mjs'
+      - '.github/workflows/data-integrity.yml'
+  pull_request:
+    paths:
+      - 'data/**'
+      - 'scripts/validate-data.mjs'
+      - '.github/workflows/data-integrity.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate Bible-EGW data integrity
+        run: node scripts/validate-data.mjs
