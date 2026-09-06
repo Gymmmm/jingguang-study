@@ -3,5 +3,6 @@
   load('./bible-engine-core.js')
     .then(()=>load('./sermon-workflow.js'))
     .then(()=>load('./study-workspace.js'))
+    .then(()=>load('./egw-browser.js'))
     .catch(err=>console.error('经光研经增强模块加载失败',err));
 })();
