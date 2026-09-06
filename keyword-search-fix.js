@@ -93,6 +93,55 @@
 
   const officialSearchUrl = q => `https://text.egwwritings.org/search.php?QUERY=${encodeURIComponent(q)}&lang=zh`;
   const oldSearch = search;
+  const parseChapter = text => {
+    const s=String(text||'');
+    return (s.match(/第\s*[0-9一二三四五六七八九十百零〇两]+\s*章[^。；，]{0,30}/)?.[0] || s.match(/\bchapter\s+\d+[^.]{0,30}/i)?.[0] || '').trim();
+  };
+  const highlight = (text,q) => {
+    const safe=esc(text||'');
+    const needle=String(q||'').trim();
+    if(!needle)return safe;
+    const re=new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+    return safe.replace(re,m=>`<mark class="egwHitMark">${m}</mark>`);
+  };
+  async function appendOfficialResults(host,q){
+    const loading=document.createElement('div');
+    loading.className='empty egwOfficialLoading';
+    loading.dataset.kind='egw';
+    loading.textContent=`正在搜索怀著全文：“${q}”…`;
+    host.appendChild(loading);
+    try{
+      const r=await fetch(`/api/egw-search?q=${encodeURIComponent(q)}`,{cache:'no-store'});
+      const j=await r.json();
+      loading.remove();
+      if(!r.ok||!j.ok)throw new Error(j.error||'search_failed');
+      const rows=Array.isArray(j.results)?j.results:[];
+      const localUrls=new Set([...host.querySelectorAll('[data-official-url],[data-egw-native-url]')].map(x=>x.dataset.officialUrl||x.dataset.egwNativeUrl).filter(Boolean));
+      const unique=rows.filter(x=>x?.url&&!localUrls.has(x.url));
+      const heading=document.createElement('h2');
+      heading.className='groupTitle egwNativeResultsTitle';
+      heading.dataset.kind='egw';
+      heading.textContent=`怀著 · ${rows.length} 条结果`;
+      host.appendChild(heading);
+      if(!rows.length){
+        const empty=document.createElement('div');empty.className='empty';empty.dataset.kind='egw';
+        empty.innerHTML=`没有找到“${esc(q)}”的怀著全文结果。 <button data-official-url="${esc(j.official_url||officialSearchUrl(q))}">打开官方搜索</button>`;
+        host.appendChild(empty);return;
+      }
+      rows.forEach((row,i)=>{
+        const chapter=parseChapter(`${row.title||''} ${row.snippet||''}`);
+        const card=document.createElement('article');
+        card.className='card egwNativeHit';card.dataset.kind='egw';card.dataset.egwNativeUrl=row.url;
+        card.innerHTML=`<div class="top"><span class="badge egw">怀著</span><span class="title">${esc(row.title||`怀著结果 ${i+1}`)}</span><span class="chevron">›</span></div>${chapter?`<div class="egwResultChapter">${esc(chapter)}</div>`:''}<div class="snippet">${highlight(row.snippet||'',q)}</div><div class="meta">点开阅读原文</div>`;
+        host.appendChild(card);
+      });
+    }catch(e){
+      loading.remove();
+      const card=document.createElement('article');card.className='card';card.dataset.kind='egw';card.dataset.egwOfficialSearch='1';
+      card.innerHTML=`<div class="top"><span class="badge egw">怀著全文</span><span class="title">搜索“${esc(q)}”</span></div><div class="snippet">全文搜索暂时未返回结果，可打开官方搜索。</div><div class="actions"><button class="primary" data-official-url="${esc(officialSearchUrl(q))}">打开官方搜索</button></div>`;
+      host.appendChild(card);
+    }
+  }
 
   search = async function keywordSearch(q) {
     const raw = String(q || '').trim();
@@ -102,17 +151,12 @@
     const host = document.getElementById('studyResults');
     if (!host) return;
     host.querySelector('[data-egw-official-search]')?.remove();
-    const card = document.createElement('article');
-    card.className = 'card';
-    card.dataset.kind = 'egw';
-    card.dataset.egwOfficialSearch = '1';
-    const hasLocal = !!host.querySelector('[data-egw]');
-    card.innerHTML = `<div class="top"><span class="badge egw">怀爱伦全文</span><span class="title">继续搜索“${esc(cleaned)}”</span></div><div class="snippet">${hasLocal?'上面先显示站内匹配结果；需要更多时再查官方全文。':'站内索引没有命中，可继续查官方中文全文。'}</div><div class="actions"><button class="primary" data-official-url="${esc(officialSearchUrl(cleaned))}">查看更多全文结果</button></div>`;
-    host.appendChild(card);
+    host.querySelectorAll('.egwNativeResultsTitle,.egwNativeHit,.egwOfficialLoading').forEach(x=>x.remove());
+    await appendOfficialResults(host,cleaned);
     filter();
   };
 
   const style=document.createElement('style');
-  style.textContent=`.fullChapterSearch{margin:12px 0 18px;padding:16px;border:2px solid #2e5578;border-radius:14px;background:#eef4f8}.fullChapterSearch>div:first-child{display:flex;flex-direction:column;gap:5px;margin-bottom:11px}.fullChapterSearch .badge{align-self:flex-start}.fullChapterSearch b{font-size:17px}.fullChapterSearch small{color:var(--muted)}.fullChapterSearchRow{display:grid;grid-template-columns:1fr auto;gap:8px}@media(max-width:560px){.fullChapterSearchRow{grid-template-columns:1fr}.fullChapterSearchRow button{min-height:44px}}`;
+  style.textContent=`.fullChapterSearch{margin:12px 0 18px;padding:16px;border:2px solid #2e5578;border-radius:14px;background:#eef4f8}.fullChapterSearch>div:first-child{display:flex;flex-direction:column;gap:5px;margin-bottom:11px}.fullChapterSearch .badge{align-self:flex-start}.fullChapterSearch b{font-size:17px}.fullChapterSearch small{color:var(--muted)}.fullChapterSearchRow{display:grid;grid-template-columns:1fr auto;gap:8px}.egwNativeHit{cursor:pointer}.egwNativeHit .top{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}.egwNativeHit .chevron{font-size:24px;color:var(--muted)}.egwResultChapter{margin:5px 0 6px;font-weight:700}.egwHitMark{background:rgba(72,123,145,.16);color:inherit;border-radius:4px;padding:0 2px}@media(max-width:560px){.fullChapterSearchRow{grid-template-columns:1fr}.fullChapterSearchRow button{min-height:44px}}`;
   document.head.appendChild(style);
 })();
