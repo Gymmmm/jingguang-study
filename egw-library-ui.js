@@ -12,7 +12,7 @@
 
   let books=[];
   let mode='books';
-  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const norm=s=>String(s||'').trim().toLowerCase().replace(/[\s《》〈〉“”"'，。！？；、·_]/g,'');
   const devotionalRx=/每日|灵修|晨钟|天父|从心出发|从心发出|高举主耶稣|举目向上|得胜的基督|奋斗与勇敢|今日|荣耀之光|彰显主基督|信仰的基础|与主同行|一同在天上/i;
   const collator=new Intl.Collator('zh-CN-u-co-pinyin');
@@ -26,26 +26,19 @@
     for(const [letter,ch] of anchors){if(collator.compare(first,ch)>=0)out=letter;else break}
     return out;
   }
-
   function setupShell(){
     if(shelfRoot.querySelector('.egwModeTabs'))return;
     const title=shelfRoot.querySelector('h2');
     if(title)title.innerHTML='预言之灵';
     const form=shelfRoot.querySelector('#egwAllChapterSearch');
-    if(form){
-      form.classList.add('egwAppSearch');
-      const badge=form.querySelector('.badge'); if(badge)badge.remove();
-      const b=form.querySelector('b'); if(b)b.textContent='全文搜索';
-      const small=form.querySelector('small'); if(small)small.textContent='搜索怀爱伦著作正文，结果直接在本站打开。';
-    }
+    if(form){form.classList.add('egwAppSearch');const badge=form.querySelector('.badge');if(badge)badge.remove();const b=form.querySelector('b');if(b)b.textContent='全文搜索';const small=form.querySelector('small');if(small)small.textContent='搜索怀爱伦著作正文，结果直接在本站打开。'}
     const tabs=document.createElement('div');
     tabs.className='egwModeTabs';
     tabs.innerHTML='<button data-egw-mode="devotional">每日灵修</button><button class="active" data-egw-mode="books">书籍资料</button>';
     const heading=[...shelfRoot.querySelectorAll('h2')].find(x=>x!==title&&x.textContent.includes('书籍'));
-    if(heading)heading.replaceWith(tabs); else shelf.before(tabs);
+    if(heading)heading.replaceWith(tabs);else shelf.before(tabs);
     if(input){input.placeholder='搜索书名';input.classList.add('egwBookSearchNative')}
   }
-
   function renderBooks(){
     setupShell();
     const q=norm(input?.value||'');
@@ -56,50 +49,41 @@
     for(const b of list){const key=initial(b.title_cn);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(b)}
     const letters=[...groups.keys()];
     shelf.className='egwNativeList';
-    shelf.innerHTML=letters.map(k=>`<section class="egwAlphaGroup" id="egw-alpha-${k}"><h3>${k}</h3>${groups.get(k).map(b=>`<button class="egwBookRow" data-egw-book-id="${esc(b.id)}"><span>${esc(b.title_cn)}</span><b>›</b></button>`).join('')}</section>`).join('')||'<div class="empty">没有匹配的书籍。</div>';
-    let rail=shelfRoot.querySelector('.egwAlphaRail');
-    if(!rail){rail=document.createElement('div');rail.className='egwAlphaRail';shelfRoot.appendChild(rail)}
+    shelf.innerHTML=letters.map(k=>`<section class="egwAlphaGroup" id="egw-alpha-${k}"><h3>${k}</h3>${groups.get(k).map(b=>`<button class="egwBookRow" data-egw-book-id="${esc(b.id)}" data-egw-toc-url="${esc(b.toc_url)}" data-egw-book-title="${esc(b.title_cn)}"><span>${esc(b.title_cn)}</span><b>›</b></button>`).join('')}</section>`).join('')||'<div class="empty">没有匹配的书籍。</div>';
+    let rail=shelfRoot.querySelector('.egwAlphaRail');if(!rail){rail=document.createElement('div');rail.className='egwAlphaRail';shelfRoot.appendChild(rail)}
     rail.innerHTML=q?'':letters.map(k=>`<a href="#egw-alpha-${k}">${k}</a>`).join('');
     shelfRoot.querySelectorAll('[data-egw-mode]').forEach(x=>x.classList.toggle('active',x.dataset.egwMode===mode));
   }
-
   function openDialog(){if(!detail.open)detail.showModal();detail.scrollTop=0}
-
-  async function openBook(id){
-    const b=books.find(x=>String(x.id)===String(id));if(!b)return;
+  async function openBook(id,fallbackUrl='',fallbackTitle=''){
+    const found=books.find(x=>String(x.id)===String(id));
+    const b=found||{id,title_cn:fallbackTitle||'怀爱伦著作',toc_url:fallbackUrl};
+    if(!b.toc_url){body.innerHTML='<div class="empty">这本书暂时没有目录地址。</div>';openDialog();return}
     type.textContent='预言之灵';
     body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button class="nativeSearchIcon" data-egw-back-search aria-label="搜索">⌕</button></div><div class="empty">正在读取章节目录…</div>`;
-    actions.innerHTML=`<button data-official-url="${esc(b.toc_url)}">查看官方目录</button>`;
-    openDialog();
+    actions.innerHTML=`<button data-official-url="${esc(b.toc_url)}">查看官方目录</button>`;openDialog();
     try{
-      const r=await fetch(`/api/egw-read?toc=1&url=${encodeURIComponent(b.toc_url)}`,{cache:'no-store'}),j=await r.json();
+      const r=await fetch(`/api/egw-read?toc=1&url=${encodeURIComponent(b.toc_url)}&_=${Date.now()}`,{cache:'no-store'}),j=await r.json();
       if(!r.ok||!j.ok)throw new Error(j.error||'toc_failed');
       const chapters=(j.chapters||[]).filter((x,i,a)=>x.url&&x.title&&a.findIndex(y=>y.url===x.url)===i);
-      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button class="nativeSearchIcon" data-egw-back-search aria-label="搜索">⌕</button></div>${chapters.length?`<div class="egwChapterList">${chapters.map(c=>`<button class="egwChapterRow" data-egw-native-url="${esc(c.url)}" data-egw-chapter-title="${esc(c.title)}" data-egw-book-title="${esc(b.title_cn)}"><span>${esc(c.title)}</span><b>›</b></button>`).join('')}</div>`:'<div class="empty">暂时没有读取到章节目录。</div>'}`;
-    }catch(_){
-      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1></div><div class="empty">章节目录暂时无法读取。可用下方按钮核对官方目录。</div>`;
+      if(!chapters.length)throw new Error('empty_toc');
+      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button class="nativeSearchIcon" data-egw-back-search aria-label="搜索">⌕</button></div><div class="egwChapterList">${chapters.map(c=>`<button class="egwChapterRow" data-egw-native-url="${esc(c.url)}" data-egw-chapter-title="${esc(c.title)}" data-egw-book-title="${esc(b.title_cn)}"><span>${esc(c.title)}</span><b>›</b></button>`).join('')}</div>`;
+    }catch(err){
+      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1></div><div class="empty">章节目录读取失败，请稍后重试。<br><small>${esc(err?.message||'toc_failed')}</small></div>`;
     }
   }
 
   fetch('./data/egw-official-books.json',{cache:'no-store'}).then(r=>r.json()).then(j=>{books=j.books||[];renderBooks()}).catch(()=>{});
   input?.addEventListener('input',renderBooks);
-
   document.addEventListener('click',e=>{
-    const modeBtn=e.target.closest('[data-egw-mode]');
-    if(modeBtn){e.preventDefault();mode=modeBtn.dataset.egwMode;renderBooks();return}
-    const book=e.target.closest('[data-egw-book-id]');
-    if(book){e.preventDefault();e.stopImmediatePropagation();openBook(book.dataset.egwBookId);return}
-    const legacy=e.target.closest('[data-official-id]');
-    if(legacy){e.preventDefault();e.stopImmediatePropagation();openBook(legacy.dataset.officialId);return}
-    const chapter=e.target.closest('[data-egw-chapter-title]');
-    if(chapter&&window.jgOpenNativeEgw){e.preventDefault();e.stopImmediatePropagation();window.jgOpenNativeEgw(chapter.dataset.egwNativeUrl,{title:`《${chapter.dataset.egwBookTitle||'怀爱伦著作'}》`,chapter:chapter.dataset.egwChapterTitle||''});return}
-    const search=e.target.closest('[data-egw-back-search]');
-    if(search){e.preventDefault();detail.close();input?.focus();input?.scrollIntoView({behavior:'smooth',block:'center'});return}
+    const modeBtn=e.target.closest('[data-egw-mode]');if(modeBtn){e.preventDefault();mode=modeBtn.dataset.egwMode;renderBooks();return}
+    const book=e.target.closest('[data-egw-book-id]');if(book){e.preventDefault();e.stopImmediatePropagation();openBook(book.dataset.egwBookId,book.dataset.egwTocUrl,book.dataset.egwBookTitle);return}
+    const legacy=e.target.closest('[data-official-id]');if(legacy){e.preventDefault();e.stopImmediatePropagation();const title=legacy.closest('button,article')?.querySelector('b,.title')?.textContent?.replace(/[《》]/g,'')||'';openBook(legacy.dataset.officialId,legacy.dataset.officialUrl,title);return}
+    const chapter=e.target.closest('[data-egw-chapter-title]');if(chapter){e.preventDefault();e.stopImmediatePropagation();if(window.jgOpenNativeEgw){window.jgOpenNativeEgw(chapter.dataset.egwNativeUrl,{title:`《${chapter.dataset.egwBookTitle||'怀爱伦著作'}》`,chapter:chapter.dataset.egwChapterTitle||''})}else{location.href=chapter.dataset.egwNativeUrl}return}
+    const search=e.target.closest('[data-egw-back-search]');if(search){e.preventDefault();detail.close();input?.focus();input?.scrollIntoView({behavior:'smooth',block:'center'});return}
   },true);
 
   const style=document.createElement('style');
-  style.textContent=`
-    #egwShelf{position:relative}.egwAppSearch{margin:8px 0 12px!important;padding:12px!important;border-radius:12px!important}.egwModeTabs{display:grid;grid-template-columns:1fr 1fr;margin:12px 0 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);position:sticky;bottom:0;z-index:7;background:var(--bg)}.egwModeTabs button{border:0;border-radius:0;background:transparent;padding:14px 6px;font-weight:700;font-size:16px}.egwModeTabs button.active{color:#a73a3a;background:rgba(71,100,120,.08)}.egwBookSearchNative{width:100%;margin:12px 0 4px}.egwNativeList{display:block!important;border-top:0!important;margin-top:0!important}.egwAlphaGroup{margin:0}.egwAlphaGroup h3{font-size:18px;margin:0;padding:10px 6px 4px}.egwBookRow,.egwChapterRow{width:100%;display:flex;align-items:center;justify-content:space-between;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:13px 6px;font:inherit;min-height:51px}.egwBookRow span,.egwChapterRow span{font-size:18px;font-weight:600;line-height:1.35}.egwBookRow b,.egwChapterRow b{font-size:29px;color:#aab0b5;font-weight:400}.egwAlphaRail{position:fixed;right:max(4px,env(safe-area-inset-right));top:29%;z-index:6;display:flex;flex-direction:column;align-items:center}.egwAlphaRail a{font-size:10px;font-weight:700;line-height:1.25;color:var(--muted);text-decoration:none;padding:0 2px}.nativeBookHead{display:flex;align-items:center;justify-content:center;position:sticky;top:0;background:var(--bg);z-index:3;padding:6px 42px 12px;border-bottom:1px solid var(--line)}.nativeBookHead h1{text-align:center;font-size:19px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nativeSearchIcon{position:absolute;right:0;border:0!important;background:transparent!important;font-size:28px!important;padding:0 8px!important}.egwChapterList{margin-top:0}@media(max-width:560px){#egwShelf>h2:first-child{font-size:22px}.egwBookRow,.egwChapterRow{padding:12px 4px}.egwBookRow span,.egwChapterRow span{font-size:18px}.egwAlphaRail{right:2px}.egwModeTabs{margin-bottom:0}}
-  `;
+  style.textContent=`#egwShelf{position:relative}.egwAppSearch{margin:8px 0 12px!important;padding:12px!important;border-radius:12px!important}.egwModeTabs{display:grid;grid-template-columns:1fr 1fr;margin:12px 0 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);position:sticky;bottom:0;z-index:7;background:var(--bg)}.egwModeTabs button{border:0;border-radius:0;background:transparent;padding:14px 6px;font-weight:700;font-size:16px}.egwModeTabs button.active{color:#a73a3a;background:rgba(71,100,120,.08)}.egwBookSearchNative{width:100%;margin:12px 0 4px}.egwNativeList{display:block!important;border-top:0!important;margin-top:0!important}.egwAlphaGroup{margin:0}.egwAlphaGroup h3{font-size:18px;margin:0;padding:10px 6px 4px}.egwBookRow,.egwChapterRow{width:100%;display:flex;align-items:center;justify-content:space-between;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:13px 6px;font:inherit;min-height:51px;cursor:pointer}.egwBookRow span,.egwChapterRow span{font-size:18px;font-weight:600;line-height:1.35}.egwBookRow b,.egwChapterRow b{font-size:29px;color:#aab0b5;font-weight:400}.egwAlphaRail{position:fixed;right:max(4px,env(safe-area-inset-right));top:29%;z-index:6;display:flex;flex-direction:column;align-items:center}.egwAlphaRail a{font-size:10px;font-weight:700;line-height:1.25;color:var(--muted);text-decoration:none;padding:0 2px}.nativeBookHead{display:flex;align-items:center;justify-content:center;position:sticky;top:0;background:var(--bg);z-index:3;padding:6px 42px 12px;border-bottom:1px solid var(--line)}.nativeBookHead h1{text-align:center;font-size:19px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nativeSearchIcon{position:absolute;right:0;border:0!important;background:transparent!important;font-size:28px!important;padding:0 8px!important}.egwChapterList{margin-top:0}@media(max-width:560px){#egwShelf>h2:first-child{font-size:22px}.egwBookRow,.egwChapterRow{padding:12px 4px}.egwBookRow span,.egwChapterRow span{font-size:18px}.egwAlphaRail{right:2px}.egwModeTabs{margin-bottom:0}}`;
   document.head.appendChild(style);
 })();
