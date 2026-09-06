@@ -9,6 +9,7 @@ on:
       - 'data/bible-source.json'
       - 'data/bible-books.json'
       - 'index.html'
+      - 'app.js'
       - '.github/workflows/import-bible.yml'
   pull_request:
     paths:
@@ -17,6 +18,7 @@ on:
       - 'data/bible-source.json'
       - 'data/bible-books.json'
       - 'index.html'
+      - 'app.js'
       - '.github/workflows/import-bible.yml'
   workflow_dispatch:
 
