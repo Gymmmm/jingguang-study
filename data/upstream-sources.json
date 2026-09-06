@@ -1,7 +1,16 @@
 {
-  "version": 1,
+  "version": 2,
+  "ui_language": "zh-CN",
+  "priority": [
+    "和合本简体正文",
+    "中文经文解析与全文搜索",
+    "相关经文",
+    "预言之灵原始资料",
+    "原文 / Strong"
+  ],
   "sources": {
     "chinese_bible": {
+      "role": "primary",
       "primary": {
         "name": "midvash/bible-data",
         "license": "public-domain/free-redistribution per translation metadata",
@@ -11,34 +20,46 @@
       "parser_reference": {
         "name": "xuan9/ChineseBibleSearchJS",
         "license": "MIT",
-        "repository": "https://github.com/xuan9/ChineseBibleSearchJS"
+        "repository": "https://github.com/xuan9/ChineseBibleSearchJS",
+        "role": "Chinese reference parsing and search index"
       }
     },
     "cross_references": {
+      "role": "secondary_study_layer",
+      "display_name": "相关经文",
+      "display_language": "zh-CN",
       "name": "NEUU bible-crossrefs-dataset",
       "license": "CC BY 4.0 consolidated; OpenBible CC BY; TSK public domain",
       "repository": "https://github.com/neuu-org/bible-crossrefs-dataset",
-      "per_verse_base": "https://raw.githubusercontent.com/neuu-org/bible-crossrefs-dataset/main/data/02_unified/verses/",
+      "media_base": "https://media.githubusercontent.com/media/neuu-org/bible-crossrefs-dataset/main/data/02_unified/verses/",
       "records": "1.1M+ unified edges; OpenBible component 343K+"
     },
     "concord": {
+      "role": "architecture_reference",
       "name": "kbennett2000/concord",
       "license": "MIT code; data licenses documented upstream",
       "repository": "https://github.com/kbennett2000/concord",
-      "capabilities": ["SQLite", "full-text search", "semantic search", "OpenBible cross-references", "SBLGNT", "OSHB", "Strong lexicons"]
+      "capabilities": ["SQLite", "全文搜索", "语义搜索", "OpenBible串珠", "SBLGNT", "OSHB", "Strong词典"]
     },
     "verbum": {
+      "role": "optional_original_language_layer",
+      "display_name": "原文 / Strong",
+      "default_collapsed": true,
       "name": "DavidKGBR/verbum",
       "license": "MIT code; verify each bundled dataset before redistribution",
       "repository": "https://github.com/DavidKGBR/verbum",
       "homepage": "https://verbum-app-bible.web.app",
-      "capabilities": ["multiple translations", "344K cross-references", "Greek/Hebrew interlinear", "AI-assisted analysis"]
+      "capabilities": ["多译本", "344K串珠", "希腊文/希伯来文逐字对照", "Strong", "AI辅助分析"]
     }
   },
   "policy": {
+    "chinese_first": true,
+    "simplified_chinese_default": true,
     "prefer_runtime_shards_over_monolithic_downloads": true,
     "preserve_attribution": true,
     "do_not_redistribute_restricted_translations": true,
-    "scripture_is_primary": true
+    "scripture_is_primary": true,
+    "egw_is_supporting_source": true,
+    "original_language_is_secondary": true
   }
 }
