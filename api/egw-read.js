@@ -17,18 +17,33 @@ const chinese=s=>(s.match(/[\u3400-\u9fff]/g)||[]).length;
 const junk=s=>/^(Loading|Search|Contents|Book Info|Copy|Print|Larger font|Smaller font|Main|Chinese|English|Show search|Hide search|Your mail sent|Error while)/i.test(s)||/Search Syntax Examples|All collections|Support our ministry|Go to Full App/i.test(s);
 const headers={'user-agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/151 Safari/537.36','accept-language':'zh-CN,zh;q=0.9,en;q=0.5'};
 
+function readableCandidate(t){
+  if(!t||t.length<12||t.length>3200||chinese(t)<6||junk(t))return false;
+  if(/Language:|Collection:|Section:|Search filters|怀爱伦著作.*圣经.*书籍|No results found|EGW Extras|Directory|Android App|iOS App/i.test(t))return false;
+  return true;
+}
 function paragraphs(html){
-  const cleaned=html.replace(/<script[\s\S]*?<\/script>/gi,'').replace(/<style[\s\S]*?<\/style>/gi,'').replace(/<svg[\s\S]*?<\/svg>/gi,'');
-  const out=[],seen=new Set();
-  const preferred=(cleaned.match(/<[^>]+id=["']r-pl["'][^>]*>([\s\S]*?)<\/[^>]+>/i)||[])[1]||cleaned;
-  const rx=/<(?:p|div)[^>]*>([\s\S]*?)<\/(?:p|div)>/gi;
+  const cleaned=html
+    .replace(/<script[\s\S]*?<\/script>/gi,'')
+    .replace(/<style[\s\S]*?<\/style>/gi,'')
+    .replace(/<svg[\s\S]*?<\/svg>/gi,'');
+  const strong=[],fallback=[],seen=new Set();
+  const refRx=/\b[A-Za-z]{1,12}[A-Z]?\s+\d+(?:\.\d+)+(?:\s|$)|〖\d+〗/g;
+  const rx=/<(?:p|div|span|li)\b[^>]*>([\s\S]*?)<\/(?:p|div|span|li)>/gi;
   let m;
-  while((m=rx.exec(preferred))){
+  while((m=rx.exec(cleaned))){
     const t=decode(m[1]);
-    if(t.length<18||t.length>2200||chinese(t)<8||junk(t)||seen.has(t))continue;
-    if(/Language:|Collection:|Section:|Search filters|怀爱伦著作.*圣经.*书籍/.test(t))continue;
-    seen.add(t);out.push(t);
+    if(!readableCandidate(t)||seen.has(t))continue;
+    const refs=(t.match(refRx)||[]).length;
+    // EGW 正文段落通常带定位码；聚合了很多段的外层容器直接丢弃。
+    if(refs>=1&&refs<=3){seen.add(t);strong.push(t);continue}
+    if(refs===0&&t.length<=900){seen.add(t);fallback.push(t)}
   }
+  let out=strong.length?strong:fallback;
+  // 去掉被更短正文完整包含的外层重复块。
+  out=out.filter((t,i,a)=>!a.some((u,j)=>j!==i&&u.length<t.length&&t.includes(u)&&t.length>u.length*1.6));
+  // 去掉章节目录标题，只保留真正可阅读的连续正文。
+  out=out.filter(t=>!/^第\s*[0-9０-９一二三四五六七八九十百零〇]+\s*章.{0,80}$/.test(t));
   return out.slice(0,180);
 }
 function title(html){
