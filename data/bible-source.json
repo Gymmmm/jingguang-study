@@ -1,6 +1,8 @@
 {
-  "version": 1,
+  "version": 2,
   "default_translation": "cuvs",
+  "ui_language": "zh-CN",
+  "primary_language": "zh-CN",
   "translations": {
     "cuvs": {
       "name": "和合本（简体）",
@@ -11,7 +13,8 @@
       "repository": "https://github.com/midvash/bible-data",
       "base_url": "https://raw.githubusercontent.com/midvash/bible-data/main/versions/zh/cuvs/books/",
       "format": "book-json",
-      "book_id_system": "OSIS"
+      "book_id_system": "OSIS",
+      "role": "primary"
     },
     "cuv": {
       "name": "和合本（繁体）",
@@ -22,12 +25,38 @@
       "repository": "https://github.com/midvash/bible-data",
       "base_url": "https://raw.githubusercontent.com/midvash/bible-data/main/versions/zh/cuv/books/",
       "format": "book-json",
-      "book_id_system": "OSIS"
+      "book_id_system": "OSIS",
+      "role": "compatibility"
+    }
+  },
+  "study_layers": {
+    "cross_references": {
+      "enabled": true,
+      "display_name": "相关经文",
+      "display_language": "zh-CN",
+      "adapter": "./js/crossrefs-adapter.js"
+    },
+    "original_languages": {
+      "enabled": true,
+      "display_name": "原文 / Strong",
+      "default_collapsed": true,
+      "role": "secondary_reference",
+      "preferred_explanation_language": "zh-CN"
+    },
+    "egw": {
+      "enabled": true,
+      "display_name": "预言之灵原始资料",
+      "display_language": "zh-CN",
+      "role": "supporting_verified_source"
     }
   },
   "policy": {
     "scripture_is_primary": true,
+    "chinese_first": true,
+    "simplified_chinese_default": true,
     "cache_books_in_browser": true,
-    "never_label_ai_text_as_scripture": true
+    "original_language_is_secondary": true,
+    "never_label_ai_text_as_scripture": true,
+    "never_label_ai_text_as_egw_quote": true
   }
 }
