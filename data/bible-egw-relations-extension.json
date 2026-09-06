@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "relations": [
+    {"bible_ref":"马太福音15:9","normalized":"Matt 15:9","themes":["圣经权威","真理","传统与圣经","顺从"],"related_bible":["提摩太后书3:16-17","使徒行传17:11","马可福音7:7-13"],"egw_ids":["FHC-025-BIBLE-AUTHORITY"]},
+    {"bible_ref":"约翰福音6:37","normalized":"John 6:37","themes":["上帝的爱","接纳","祷告","赦免","信靠"],"related_bible":["约翰福音10:27-29","希伯来书7:25","约翰一书2:1-2"],"egw_ids":["FHC-041-PRAYER-COMFORT","FHC-376-END-TIME-PREPARATION"]},
+    {"bible_ref":"腓立比书3:14","normalized":"Phil 3:14","themes":["信心","成圣","品格成长","目标"],"related_bible":["以弗所书2:8","希伯来书12:1-2","腓立比书1:6"],"egw_ids":["FHC-052-FAITH-VICTORY"]},
+    {"bible_ref":"希伯来书11:1","normalized":"Heb 11:1","themes":["信心","恩典","应许","因信称义"],"related_bible":["以弗所书2:8-9","罗马书5:1","约翰一书1:7"],"egw_ids":["FHC-066-WHAT-IS-FAITH"]},
+    {"bible_ref":"路加福音18:9-14","normalized":"Luke 18:9-14","themes":["谦卑","自义","祷告","称义"],"related_bible":["但以理书5:27","诗篇51:17","雅各书4:6"],"egw_ids":["FHC-132-PHARISEE-PUBLICAN"]},
+    {"bible_ref":"尼希米记8:6","normalized":"Neh 8:6","themes":["敬拜","赞美","祷告","感恩"],"related_bible":["诗篇50:23","申命记27:16","诗篇100篇"],"egw_ids":["FHC-144-PRAISE-WORSHIP"]},
+    {"bible_ref":"撒迦利亚书3:3-5","normalized":"Zech 3:3-5","themes":["末世预备","赦免","基督中保","洁净"],"related_bible":["希伯来书7:25","约翰一书2:1-2","马太福音24:24","帖撒罗尼迦后书2:10"],"egw_ids":["FHC-376-END-TIME-PREPARATION"]}
+  ]
+}
