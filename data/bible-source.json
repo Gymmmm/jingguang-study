@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "default_translation": "cuvs",
+  "translations": {
+    "cuvs": {
+      "name": "和合本（简体）",
+      "language": "zh-CN",
+      "year": 1919,
+      "license": "public-domain",
+      "provider": "midvash/bible-data",
+      "repository": "https://github.com/midvash/bible-data",
+      "base_url": "https://raw.githubusercontent.com/midvash/bible-data/main/versions/zh/cuvs/books/",
+      "format": "book-json",
+      "book_id_system": "OSIS"
+    },
+    "cuv": {
+      "name": "和合本（繁体）",
+      "language": "zh-TW",
+      "year": 1919,
+      "license": "public-domain",
+      "provider": "midvash/bible-data",
+      "repository": "https://github.com/midvash/bible-data",
+      "base_url": "https://raw.githubusercontent.com/midvash/bible-data/main/versions/zh/cuv/books/",
+      "format": "book-json",
+      "book_id_system": "OSIS"
+    }
+  },
+  "policy": {
+    "scripture_is_primary": true,
+    "cache_books_in_browser": true,
+    "never_label_ai_text_as_scripture": true
+  }
+}
