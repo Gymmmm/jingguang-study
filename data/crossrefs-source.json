@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "name": "OpenBible.info Cross References",
+  "source": "https://www.openbible.info/labs/cross-references/",
+  "license": "CC BY",
+  "attribution": "Cross-reference data courtesy of OpenBible.info, licensed under a Creative Commons Attribution (CC BY) license.",
+  "format": "tsv",
+  "columns": ["from", "to", "votes"],
+  "rows": 344799,
+  "runtime_url": "https://raw.githubusercontent.com/kbennett2000/concord/main/data/cross-references/cross_references.txt",
+  "loading": "on_demand",
+  "notes": "Loaded only when the user asks for cross references; not downloaded during initial page load."
+}
