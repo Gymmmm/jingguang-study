@@ -2,6 +2,10 @@
   const $=id=>document.getElementById(id);
   const safe=s=>esc(String(s??''));
   const norm=s=>String(s||'').toLowerCase().replace(/[\s《》〈〉“”"'，。；：:、·.\-_/]/g,'');
+  const getEGW=()=>{
+    try{if(typeof egw!=='undefined'&&Array.isArray(egw))return egw}catch(_e){}
+    return Array.isArray(window.egw)?window.egw:[];
+  };
   const score=(e,q)=>{
     const n=norm(q); if(!n)return 0;
     const fields=[
@@ -14,7 +18,7 @@
     q=String(q||'').trim();
     const host=$('libraryList')||$('egwList'); if(!host)return;
     if(!q){host.innerHTML='<div class="empty">输入关键词，例如：安息日、信心、祷告、圣所、复临。</div>';return}
-    const rows=(window.egw||[]).map(e=>({e,s:score(e,q)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,12);
+    const rows=getEGW().map(e=>({e,s:score(e,q)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,12);
     host.innerHTML=rows.length?rows.map(({e})=>`<button class="egw-hit" onclick="window.jgOpenEGWSource('${safe(e.id)}')"><div><b>${safe(e.title_cn||e.title||e.book_code)}</b><span>${safe(e.chapter||'')}</span><small>${safe(e.locator||'')}</small></div><span class="chev">›</span></button>`).join(''):`<div class="empty">没有找到“${safe(q)}”的本地核验出处。<div class="actions"><button onclick="window.open('https://text.egwwritings.org/search.php?lang=zh&query=${encodeURIComponent(q)}','_blank')">到官方继续搜索</button></div></div>`;
   }
   window.jgSearchEGW=search;
@@ -27,7 +31,7 @@
   }
 
   window.jgOpenEGWSource=id=>{
-    const e=(window.egw||[]).find(x=>x.id===id);if(!e)return;
+    const e=getEGW().find(x=>x.id===id);if(!e)return;
     current=e;
     rmeta.textContent='预言之灵 · 原始资料';
     rtitle.textContent=e.title_cn||e.title||e.book_code;
