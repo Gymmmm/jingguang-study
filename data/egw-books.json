@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "language": "zh",
+  "purpose": "中文预言之灵书目目录，用于经光的书名识别、筛选和检索提示。目录本身不存储受版权保护的全文。",
+  "books": [
+    {"code":"DA","title_cn":"历代愿望","title":"The Desire of Ages","category":"基督生平"},
+    {"code":"GC","title_cn":"善恶之争","title":"The Great Controversy","category":"救赎历史"},
+    {"code":"PP","title_cn":"先祖与先知","title":"Patriarchs and Prophets","category":"圣经历史"},
+    {"code":"PK","title_cn":"先知与君王","title":"Prophets and Kings","category":"圣经历史"},
+    {"code":"AA","title_cn":"使徒行述","title":"The Acts of the Apostles","category":"圣经历史"},
+    {"code":"SC","title_cn":"喜乐的泉源","title":"Steps to Christ","category":"灵修"},
+    {"code":"COL","title_cn":"基督比喻实训","title":"Christ's Object Lessons","category":"基督教训"},
+    {"code":"MB","title_cn":"福山宝训","title":"Thoughts From the Mount of Blessing","category":"基督教训"},
+    {"code":"Ed","title_cn":"教育论","title":"Education","category":"教育"},
+    {"code":"MH","title_cn":"服务真诠","title":"The Ministry of Healing","category":"健康与服务"},
+    {"code":"Ev","title_cn":"布道论","title":"Evangelism","category":"布道"},
+    {"code":"TM","title_cn":"给传道人的证言","title":"Testimonies to Ministers and Gospel Workers","category":"教会与传道"},
+    {"code":"CCh","title_cn":"给教会的勉言","title":"Counsels for the Church","category":"教会生活"},
+    {"code":"1T-9T","title_cn":"教会证言","title":"Testimonies for the Church","category":"教会证言"},
+    {"code":"EW","title_cn":"经历与目睹","title":"Early Writings","category":"早期著作"},
+    {"code":"CIHS","title_cn":"圣所的真理","title":"Christ in His Sanctuary","category":"圣所"},
+    {"code":"MR","title_cn":"文稿发布","title":"Manuscript Releases","category":"文稿"},
+    {"code":"RH","title_cn":"评论与通讯","title":"The Review and Herald","category":"期刊"},
+    {"code":"ST","title_cn":"时兆","title":"The Signs of the Times","category":"期刊"},
+    {"code":"YI","title_cn":"青年导报","title":"The Youth's Instructor","category":"期刊"},
+    {"code":"SAT","title_cn":"证道和演讲","title":"Sermons and Talks","category":"讲道"},
+    {"code":"Te","title_cn":"论节制","title":"Temperance","category":"健康与节制"},
+    {"code":"HP","title_cn":"一同在天上","title":"In Heavenly Places","category":"灵修"},
+    {"code":"UL","title_cn":"举目向上看","title":"The Upward Look","category":"灵修"}
+  ]
+}
