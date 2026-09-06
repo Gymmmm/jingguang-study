@@ -1,0 +1,16 @@
+{
+  "name": "Ellen G. White Writings 中文官方资料",
+  "language": "zh",
+  "homepage": "https://m.egwwritings.org/zh",
+  "search_home": "https://text.egwwritings.org/",
+  "advanced_search": "https://m.egwwritings.org/advsearch",
+  "storage_mode": "metadata_and_verified_locators",
+  "fulltext_policy": "Do not bulk mirror copyrighted Chinese full text without authorization.",
+  "search_policy": "Prefer local verified index first; when local coverage is insufficient, open the official Chinese EGW Writings search for manual verification.",
+  "source_priority": [
+    "m.egwwritings.org/zh",
+    "text.egwwritings.org"
+  ],
+  "ui_language": "中文",
+  "notes": "经光只把可核验的中文书名、章节、页/段定位、主题、相关经文、研究摘要和官方来源保存为正式索引。"
+}
