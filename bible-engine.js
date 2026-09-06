@@ -68,10 +68,10 @@
         box.innerHTML = '<div class="empty">这一节暂时没有找到串珠记录。</div>';
         return;
       }
-      box.innerHTML = `<div class="card"><div class="meta">圣经串珠</div><h3>相关经文 ${hits.length} 条</h3><div class="chips">${hits.map(h => {
+      box.innerHTML = `<div class="card"><div class="meta">圣经串珠 · OpenBible</div><h3>相关经文 ${hits.length} 条</h3><div class="chips">${hits.map(h => {
         const x = osisToChinese(h.to);
         return `<button class="chip" onclick="window.jgStudyCrossref('${esc(x.query)}')">${esc(x.label)}</button>`;
-      }).join('')}</div></div>`;
+      }).join('')}</div><p class="muted" style="margin-top:10px">按关联票数排序；点击经文继续研经。</p></div>`;
     } catch (e) {
       console.error(e);
       box.innerHTML = '<div class="empty">串珠资料读取失败；圣经正文和预言之灵检索不受影响。</div>';
@@ -99,6 +99,59 @@
     return String(s || '').toLowerCase().replace(/[\s《》〈〉“”"'，。！？；：、·\-–—_]/g, '');
   }
 
+  function refParts(s) {
+    const n = String(s || '').replace(/\s+/g, '').replace(/：/g, ':');
+    const m = n.match(/^(.+?)(\d+)(?::(\d+)(?:[-–](\d+))?)?)?$/);
+    if (!m) return null;
+    return { book: cnNorm(m[1]), chapter: m[2] ? Number(m[2]) : null, from: m[3] ? Number(m[3]) : null, to: m[4] ? Number(m[4]) : (m[3] ? Number(m[3]) : null) };
+  }
+
+  function rangesOverlap(a, b) {
+    if (!a || !b || a.book !== b.book) return false;
+    if (a.chapter && b.chapter && a.chapter !== b.chapter) return false;
+    if (!a.from || !b.from) return true;
+    return Math.max(a.from, b.from) <= Math.min(a.to || a.from, b.to || b.from);
+  }
+
+  function relationMatches(q) {
+    const n = cnNorm(q);
+    const parsed = refParts(q);
+    const scored = (relations || []).map(r => {
+      let score = 0;
+      const candidates = [r.bible_ref, r.normalized].filter(Boolean);
+      for (const c of candidates) {
+        const cn = cnNorm(c);
+        if (cn === n) score = Math.max(score, 120);
+        else if (cn.includes(n) || n.includes(cn)) score = Math.max(score, 80);
+        if (parsed && rangesOverlap(parsed, refParts(c))) score = Math.max(score, 105);
+      }
+      for (const t of r.themes || []) {
+        const tn = cnNorm(t);
+        if (tn === n) score = Math.max(score, 100);
+        else if (tn.includes(n) || n.includes(tn)) score = Math.max(score, 60);
+      }
+      return { r, score };
+    }).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
+    return scored.map(x => x.r);
+  }
+
+  function mergedRelation(q) {
+    const list = relationMatches(q);
+    if (!list.length) return null;
+    return {
+      bible_ref: list[0].bible_ref,
+      normalized: list[0].normalized,
+      themes: [...new Set(list.flatMap(x => x.themes || []))],
+      related_bible: [...new Set(list.flatMap(x => x.related_bible || []))],
+      egw_ids: [...new Set(list.flatMap(x => x.egw_ids || []))],
+      matches: list
+    };
+  }
+
+  relationFor = function(q) {
+    return mergedRelation(q);
+  };
+
   function egwScore(e, q, rel) {
     const n = cnNorm(q);
     if (!n) return 0;
@@ -118,7 +171,7 @@
     if (topics.some(x => x === n)) score += 80;
     else if (topics.some(x => x.includes(n) || n.includes(x))) score += 45;
     if (summary.includes(n)) score += 20;
-    if ((rel?.egw_ids || []).includes(e.id)) score += 120;
+    if ((rel?.egw_ids || []).includes(e.id)) score += 150;
     for (const theme of rel?.themes || []) {
       const t = cnNorm(theme);
       if (topics.includes(t)) score += 35;
@@ -127,8 +180,9 @@
   }
 
   function rankedEGW(q, rel) {
+    const merged = rel || mergedRelation(q);
     return (egw || [])
-      .map(e => ({ e, score: egwScore(e, q, rel) }))
+      .map(e => ({ e, score: egwScore(e, q, merged) }))
       .filter(x => x.score > 0)
       .sort((a, b) => b.score - a.score)
       .map(x => x.e);
@@ -144,7 +198,7 @@
 
   window.jgSearchEGWLibrary = function() {
     const q = document.getElementById('egwLibraryQ')?.value?.trim() || '';
-    const hits = q ? rankedEGW(q, relationFor(q)) : egw;
+    const hits = q ? rankedEGW(q, mergedRelation(q)) : egw;
     const host = document.getElementById('egwLibraryResults');
     if (!host) return;
     host.innerHTML = hits.length ? hits.map(egwCard).join('') : `<div class="empty">本地中文索引暂时没有结果。<div class="actions"><button onclick="window.jgOpenOfficialEGW()">到官方中文资料核对</button></div></div>`;
@@ -174,6 +228,14 @@
   };
   window.jgLoadCrossrefs = q => renderCrossrefs(q);
 
+  function renderRelationGraph(q) {
+    const rel = mergedRelation(q);
+    if (!rel) return '';
+    const themes = rel.themes || [];
+    const refs = rel.related_bible || [];
+    return `<div class="card" style="margin-top:14px"><div class="meta">圣经关系图 · 聚合 ${rel.matches?.length || 1} 个关系节点</div><h3>主题脉络</h3><div class="chips">${themes.map(t => `<button class="chip" onclick="window.jgStudyCrossref('${esc(t)}')">${esc(t)}</button>`).join('')}</div>${refs.length ? `<div class="source"><b>相关经文</b><br>${refs.map(r => `<button class="chip" style="margin-top:6px" onclick="window.jgStudyCrossref('${esc(r)}')">${esc(r)}</button>`).join(' ')}</div>` : ''}</div>`;
+  }
+
   const originalRunStudy = runStudy;
   runStudy = async function(id) {
     await originalRunStudy(id);
@@ -182,11 +244,14 @@
     const host = document.getElementById('studyResult');
     if (!host) return;
 
+    const graph = renderRelationGraph(q);
+    if (graph) host.insertAdjacentHTML('beforeend', graph);
+
     if (ref && ref.from && ref.from === ref.to) {
-      host.insertAdjacentHTML('beforeend', `<div class="section-head" style="margin-top:18px"><h2>圣经串珠</h2><span>相关经文</span></div><div id="crossrefsBox"><div class="card"><p>需要时再展开相关经文。</p><div class="actions"><button onclick="window.jgLoadCrossrefs('${esc(q)}')">展开相关经文</button></div></div></div>`);
+      host.insertAdjacentHTML('beforeend', `<div class="section-head" style="margin-top:18px"><h2>圣经串珠</h2><span>34万+ OpenBible 关系</span></div><div id="crossrefsBox"><div class="card"><p>需要时再展开，不影响页面首屏速度。</p><div class="actions"><button onclick="window.jgLoadCrossrefs('${esc(q)}')">展开相关经文</button></div></div></div>`);
     }
 
-    const rel = relationFor(q);
+    const rel = mergedRelation(q);
     const hits = rankedEGW(q, rel);
     if (!hits.length) {
       await loadEGWMeta();
