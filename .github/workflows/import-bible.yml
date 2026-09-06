@@ -1,0 +1,39 @@
+name: Jingguang Bible Import
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/import-bible.mjs'
+      - 'bible-engine.js'
+      - '.github/workflows/import-bible.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-bible:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Import public-domain Chinese Union Version
+        run: node scripts/import-bible.mjs
+      - name: Validate generated Bible data
+        run: node scripts/validate-bible.mjs
+      - name: Commit generated Bible data and engine hook
+        run: |
+          if git diff --quiet -- data/bible-cuv-simplified.json data/bible-source.json index.html; then
+            echo "Bible data is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/bible-cuv-simplified.json data/bible-source.json index.html
+          git commit -m "data: import complete public-domain Chinese Union Version"
+          git push
