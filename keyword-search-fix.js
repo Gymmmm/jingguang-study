@@ -94,6 +94,15 @@
   const officialSearchUrl = q => `https://text.egwwritings.org/search.php?lang=zh&query=${encodeURIComponent(q)}`;
   const oldSearch = search;
 
+  function fullChapterCard(q, hasLocal) {
+    const card = document.createElement('article');
+    card.className = 'card egwFullChapterSearch';
+    card.dataset.kind = 'egw';
+    card.dataset.egwOfficialSearch = '1';
+    card.innerHTML = `<div class="top"><span class="badge egw">全部章节</span><span class="title">在怀爱伦全部中文著作中搜索“${esc(q)}”</span></div><div class="snippet">覆盖官方中文书库的全部章节。先显示官方全文搜索结果，选择其中一条后直接阅读对应原文和上下文。${hasLocal?' 下方同时保留经光已经核验的出处。':''}</div><div class="actions"><button class="primary" data-official-url="${esc(officialSearchUrl(q))}">搜索全部章节</button></div>`;
+    return card;
+  }
+
   search = async function keywordSearch(q) {
     const raw = String(q || '').trim();
     if (!raw) return;
@@ -102,17 +111,43 @@
 
     const host = document.getElementById('studyResults');
     if (!host) return;
-
-    const existingOfficial = host.querySelector('[data-egw-official-search]');
-    if (existingOfficial) existingOfficial.remove();
-
-    const card = document.createElement('article');
-    card.className = 'card';
-    card.dataset.kind = 'egw';
-    card.dataset.egwOfficialSearch = '1';
+    host.querySelector('[data-egw-official-search]')?.remove();
     const hasLocal = !!host.querySelector('[data-egw]');
-    card.innerHTML = `<div class="top"><span class="badge egw">怀爱伦全文</span><span class="title">官方中文全文搜索“${esc(cleaned)}”</span></div><div class="snippet">${hasLocal?'上面是本地已核验资料；还可以继续检索怀爱伦官方中文全文。':'本地索引没有对应条目，直接继续检索怀爱伦官方中文全文。'}</div><div class="actions"><button class="primary" data-official-url="${esc(officialSearchUrl(cleaned))}">查看全文搜索结果</button></div>`;
-    host.appendChild(card);
+    const card = fullChapterCard(cleaned, hasLocal);
+    const firstEgw = [...host.children].find(x => x.dataset?.kind === 'egw');
+    if (firstEgw) host.insertBefore(card, firstEgw);
+    else host.appendChild(card);
     filter();
   };
+
+  function installFullChapterSearch(){
+    const shelf=document.getElementById('egwShelf');
+    if(!shelf||document.getElementById('egwAllChapterSearch'))return;
+    const box=document.createElement('form');
+    box.id='egwAllChapterSearch';
+    box.className='fullChapterSearch';
+    box.innerHTML=`<div><b>搜索全部章节</b><small>不是只搜书名；直接搜索怀爱伦官方中文全文。</small></div><div class="fullChapterSearchRow"><input name="q" placeholder="例如：安息日、信心、祷告、圣所"><button class="primary">搜索全文</button></div>`;
+    const title=shelf.querySelector('h2');
+    if(title)title.insertAdjacentElement('afterend',box);else shelf.prepend(box);
+    box.addEventListener('submit',e=>{
+      e.preventDefault();
+      const q=cleanKeyword(new FormData(box).get('q'));
+      if(!q)return;
+      const fake=document.createElement('button');
+      fake.dataset.officialUrl=officialSearchUrl(q);
+      fake.style.display='none';
+      document.body.appendChild(fake);
+      fake.click();
+      fake.remove();
+    });
+  }
+
+  const observer=new MutationObserver(()=>installFullChapterSearch());
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener('DOMContentLoaded',installFullChapterSearch);
+  setTimeout(installFullChapterSearch,0);
+
+  const style=document.createElement('style');
+  style.textContent=`.fullChapterSearch{margin:12px 0 18px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--card)}.fullChapterSearch>div:first-child{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}.fullChapterSearch small{color:var(--muted)}.fullChapterSearchRow{display:grid;grid-template-columns:1fr auto;gap:8px}.fullChapterSearchRow input{min-width:0}.egwFullChapterSearch{border-color:rgba(176,126,45,.35)}@media(max-width:560px){.fullChapterSearchRow{grid-template-columns:1fr}.fullChapterSearchRow button{min-height:44px}}`;
+  document.head.appendChild(style);
 })();
