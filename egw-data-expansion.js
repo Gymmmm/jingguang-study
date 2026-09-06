@@ -1,6 +1,11 @@
 (() => {
   const waitForBase=()=>new Promise(resolve=>{
-    const tick=()=>Array.isArray(window.egw)&&Array.isArray(window.relations)&&window.egw.length?resolve():setTimeout(tick,60);
+    const tick=()=>{
+      try{
+        if(typeof egw!=='undefined'&&typeof relations!=='undefined'&&Array.isArray(egw)&&Array.isArray(relations)&&egw.length)return resolve();
+      }catch(_e){}
+      setTimeout(tick,60);
+    };
     tick();
   });
   async function load(){
