@@ -1,263 +1,90 @@
 (() => {
-  let crossrefConfig = null;
-  let crossrefTextPromise = null;
-  let egwSource = null;
-  let egwBooks = [];
+  const state={egwSource:null,egwBooks:[],crossrefConfig:null,crossrefText:null};
+  const $=id=>document.getElementById(id);
+  const cn=s=>String(s||'').toLowerCase().replace(/[\s《》〈〉“”"'，。！？；：、·_]/g,'').replace(/[–—]/g,'-');
 
-  function crossrefKey(ref) {
-    if (!ref || !ref.from || ref.from !== ref.to) return null;
-    return `${ref.osis}.${ref.chapter}.${ref.from}`;
+  function parseParts(s){
+    const n=String(s||'').replace(/\s+/g,'').replace(/：/g,':');
+    const m=n.match(/^(.+?)(\d+)(?::(\d+)(?:[-–](\d+))?)?)?$/);
+    return m?{book:cn(m[1]),chapter:m[2]?+m[2]:null,from:m[3]?+m[3]:null,to:m[4]?+m[4]:(m[3]?+m[3]:null)}:null;
   }
+  function overlap(a,b){if(!a||!b||a.book!==b.book)return false;if(a.chapter&&b.chapter&&a.chapter!==b.chapter)return false;if(!a.from||!b.from)return true;return Math.max(a.from,b.from)<=Math.min(a.to||a.from,b.to||b.from)}
 
-  function osisToChinese(refText) {
-    const m = String(refText || '').match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)(?:-([1-3]?[A-Za-z]+)\.(\d+)\.(\d+))?$/);
-    if (!m) return { label: refText, query: refText };
-    const [, osis, chapter, verse, osis2, chapter2, verse2] = m;
-    const book = bibleBooks.find(x => x[0] === osis);
-    const name = book?.[2] || book?.[1] || osis;
-    if (!osis2) return { label: `${name}${chapter}:${verse}`, query: `${name}${chapter}:${verse}` };
-    const book2 = bibleBooks.find(x => x[0] === osis2);
-    const name2 = book2?.[2] || book2?.[1] || osis2;
-    const sameBook = osis === osis2;
-    const sameChapter = sameBook && chapter === chapter2;
-    const label = sameChapter ? `${name}${chapter}:${verse}-${verse2}` : `${name}${chapter}:${verse}-${name2}${chapter2}:${verse2}`;
-    return { label, query: label };
-  }
-
-  async function getCrossrefConfig() {
-    if (crossrefConfig) return crossrefConfig;
-    const r = await fetch('./data/crossrefs-source.json', { cache: 'no-store' });
-    if (!r.ok) throw new Error(`crossref config ${r.status}`);
-    crossrefConfig = await r.json();
-    return crossrefConfig;
-  }
-
-  async function getCrossrefText() {
-    if (!crossrefTextPromise) {
-      crossrefTextPromise = getCrossrefConfig().then(async cfg => {
-        const r = await fetch(cfg.runtime_url);
-        if (!r.ok) throw new Error(`crossref dataset ${r.status}`);
-        return r.text();
-      });
-    }
-    return crossrefTextPromise;
-  }
-
-  async function findCrossrefs(ref, limit = 16) {
-    const key = crossrefKey(ref);
-    if (!key) return [];
-    const text = await getCrossrefText();
-    const hits = [];
-    for (const line of text.split('\n')) {
-      if (!line || line[0] === '#') continue;
-      const parts = line.split('\t');
-      if (parts.length < 2 || parts[0] !== key) continue;
-      hits.push({ from: parts[0], to: parts[1], votes: Number(parts[2] || 0) });
-    }
-    return hits.sort((a, b) => b.votes - a.votes).slice(0, limit);
-  }
-
-  async function renderCrossrefs(q) {
-    const ref = parseBibleRef(q);
-    const box = document.getElementById('crossrefsBox');
-    if (!box || !ref) return;
-    box.innerHTML = '<div class="empty">正在加载串珠资料…</div>';
-    try {
-      const hits = await findCrossrefs(ref);
-      if (!hits.length) {
-        box.innerHTML = '<div class="empty">这一节暂时没有找到串珠记录。</div>';
-        return;
+  function relationMatches(q){
+    const n=cn(q),p=parseParts(q);
+    return (relations||[]).map(r=>{
+      let score=0;
+      for(const v of [r.bible_ref,r.normalized].filter(Boolean)){
+        const x=cn(v);if(x===n)score=Math.max(score,130);else if(x.includes(n)||n.includes(x))score=Math.max(score,80);if(p&&overlap(p,parseParts(v)))score=Math.max(score,110);
       }
-      box.innerHTML = `<div class="card"><div class="meta">圣经串珠 · OpenBible</div><h3>相关经文 ${hits.length} 条</h3><div class="chips">${hits.map(h => {
-        const x = osisToChinese(h.to);
-        return `<button class="chip" onclick="window.jgStudyCrossref('${esc(x.query)}')">${esc(x.label)}</button>`;
-      }).join('')}</div><p class="muted" style="margin-top:10px">按关联票数排序；点击经文继续研经。</p></div>`;
-    } catch (e) {
-      console.error(e);
-      box.innerHTML = '<div class="empty">串珠资料读取失败；圣经正文和预言之灵检索不受影响。</div>';
-    }
+      for(const t of r.themes||[]){const x=cn(t);if(x===n)score=Math.max(score,100);else if(x.includes(n)||n.includes(x))score=Math.max(score,60)}
+      return {r,score};
+    }).filter(x=>x.score).sort((a,b)=>b.score-a.score);
+  }
+  function mergedRelation(q){
+    const a=relationMatches(q);if(!a.length)return null;const rows=a.map(x=>x.r);
+    return {bible_ref:rows[0].bible_ref,themes:[...new Set(rows.flatMap(x=>x.themes||[]))],related_bible:[...new Set(rows.flatMap(x=>x.related_bible||[]))],egw_ids:[...new Set(rows.flatMap(x=>x.egw_ids||[]))],matches:rows};
+  }
+  relationFor=q=>mergedRelation(q);
+
+  function egwScore(e,q,rel){
+    const n=cn(q);let s=0;if(!n)return 0;
+    const vals=[e.title_cn,e.chapter,e.locator].map(cn),refs=(e.bible_refs||[]).map(cn),topics=(e.topics||[]).map(cn),sum=cn(e.summary);
+    if(vals[0]===n)s+=100;else if(vals[0].includes(n)||n.includes(vals[0]))s+=70;
+    if(vals[1].includes(n))s+=50;if(vals[2].includes(n))s+=45;
+    if(refs.some(x=>x===n))s+=100;else if(refs.some(x=>x.includes(n)||n.includes(x)))s+=60;
+    if(topics.some(x=>x===n))s+=85;else if(topics.some(x=>x.includes(n)||n.includes(x)))s+=45;
+    if(sum.includes(n))s+=20;if((rel?.egw_ids||[]).includes(e.id))s+=160;return s;
+  }
+  function rankedEGW(q,rel){return (egw||[]).map(e=>({e,s:egwScore(e,q,rel||mergedRelation(q))})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).map(x=>x.e)}
+  relatedEGW=(q,rel)=>rankedEGW(q,rel);
+
+  egwCard=e=>`<div class="result"><div class="meta">预言之灵 · 出处资料</div><h3>《${esc(e.title_cn||'未命名')}》${e.chapter?' · '+esc(e.chapter):''}</h3><div class="source"><b>${esc(e.locator||'出处待复核')}</b>${(e.bible_refs||[]).length?'<br>相关经文：'+e.bible_refs.map(esc).join(' · '):''}</div>${e.summary?`<p style="margin-top:9px"><b>研究提示：</b>${esc(String(e.summary).replace('研究摘要：',''))}</p>`:''}<div>${(e.topics||[]).map(t=>`<span class="badge">${esc(t)}</span>`).join('')}</div><div class="actions"><button class="primary" onclick="openEGW('${esc(e.id)}')">查看出处</button><button onclick="addBasket('${esc(e.id)}')">＋材料篮</button></div></div>`;
+
+  async function loadEGWMeta(){
+    if(state.egwSource)return;try{const [a,b]=await Promise.all([fetch('./data/egw-source.json',{cache:'no-store'}),fetch('./data/egw-books.json',{cache:'no-store'})]);if(a.ok)state.egwSource=await a.json();if(b.ok)state.egwBooks=(await b.json()).books||[]}catch(e){console.warn(e)}
+  }
+  window.jgOpenOfficialEGW=async()=>{await loadEGWMeta();window.open(state.egwSource?.homepage||'https://m.egwwritings.org/zh','_blank')};
+  window.jgSearchEGWLibrary=()=>{const q=$('egwLibraryQ')?.value.trim()||'',hits=q?rankedEGW(q,mergedRelation(q)):egw,host=$('egwLibraryResults');if(host)host.innerHTML=hits.length?hits.map(egwCard).join(''):'<div class="empty">本地中文索引暂时没有结果。可到官方中文资料继续核对。</div>'};
+  window.jgPickEGWBook=t=>{if($('egwLibraryQ'))$('egwLibraryQ').value=t;window.jgSearchEGWLibrary()};
+  renderLibrary=async()=>{await loadEGWMeta();libraryCount.textContent=`${egw.length} 条出处索引 · ${state.egwBooks.length} 本中文书目`;libraryList.innerHTML=`<div class="card"><div class="field"><label>查预言之灵</label><input id="egwLibraryQ" placeholder="输入主题、书名或经文，例如：安息日" onkeydown="if(event.key==='Enter')window.jgSearchEGWLibrary()"></div><div class="actions"><button class="primary" onclick="window.jgSearchEGWLibrary()">搜索</button><button onclick="window.jgOpenOfficialEGW()">官方中文资料</button></div><div class="chips">${state.egwBooks.slice(0,12).map(b=>`<button class="chip" onclick="window.jgPickEGWBook('${esc(b.title_cn)}')">${esc(b.title_cn)}</button>`).join('')}</div></div><div id="egwLibraryResults">${egw.map(egwCard).join('')}</div>`};
+
+  function osisCN(s){
+    const m=String(s||'').match(/^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)(?:-([1-3]?[A-Za-z]+)\.(\d+)\.(\d+))?$/);if(!m)return {label:s,query:s};
+    const b=bibleBooks.find(x=>x[0].toLowerCase()===m[1].toLowerCase()),n=b?.[2]||b?.[1]||m[1];
+    if(!m[4])return {label:`${n}${m[2]}:${m[3]}`,query:`${n}${m[2]}:${m[3]}`};
+    const b2=bibleBooks.find(x=>x[0].toLowerCase()===m[4].toLowerCase()),n2=b2?.[2]||b2?.[1]||m[4];
+    const label=m[1]===m[4]&&m[2]===m[5]?`${n}${m[2]}:${m[3]}-${m[6]}`:`${n}${m[2]}:${m[3]}-${n2}${m[5]}:${m[6]}`;return {label,query:label};
+  }
+  async function crossrefText(){if(state.crossrefText)return state.crossrefText;const c=await fetch('./data/crossrefs-source.json',{cache:'no-store'});if(!c.ok)throw Error('串珠配置读取失败');state.crossrefConfig=await c.json();const r=await fetch(state.crossrefConfig.runtime_url);if(!r.ok)throw Error('串珠资料读取失败');return state.crossrefText=await r.text()}
+  async function findCrossrefs(ref,limit=18){if(!ref?.from||ref.from!==ref.to)return[];const key=`${ref.osis}.${ref.chapter}.${ref.from}`,txt=await crossrefText(),out=[];for(const line of txt.split('\n')){if(!line||line[0]==='#')continue;const p=line.split('\t');if(p[0]===key)out.push({to:p[1],votes:+(p[2]||0)})}return out.sort((a,b)=>b.votes-a.votes).slice(0,limit)}
+  window.jgStudyCrossref=q=>{if($('studyQ'))$('studyQ').value=q;runStudy('studyQ')};
+  window.jgLoadCrossrefs=async q=>{const box=$('crossrefsBox');if(!box)return;box.innerHTML='<div class="empty">正在查相关经文…</div>';try{const hits=await findCrossrefs(parseBibleRef(q));box.innerHTML=hits.length?`<div class="card"><div class="meta">相关经文</div><div class="chips">${hits.map(h=>{const x=osisCN(h.to);return `<button class="chip" onclick="window.jgStudyCrossref('${esc(x.query)}')">${esc(x.label)}</button>`}).join('')}</div></div>`:'<div class="empty">暂未找到相关经文。</div>'}catch(e){box.innerHTML='<div class="empty">相关经文暂时读取失败，不影响正文和预言之灵。</div>'}};
+
+  function graph(q){const r=mergedRelation(q);if(!r)return'';return `<div class="card" style="margin-top:14px"><div class="meta">研经脉络</div>${r.themes.length?`<h3>主题</h3><div class="chips">${r.themes.map(t=>`<button class="chip" onclick="window.jgStudyCrossref('${esc(t)}')">${esc(t)}</button>`).join('')}</div>`:''}${r.related_bible.length?`<div class="source"><b>建议继续查</b><div class="chips">${r.related_bible.map(x=>`<button class="chip" onclick="window.jgStudyCrossref('${esc(x)}')">${esc(x)}</button>`).join('')}</div></div>`:''}</div>`}
+
+  function installUX(){
+    const style=document.createElement('style');style.textContent=`
+      body{background:#08111d}.app{max-width:860px}.top{position:sticky;top:0;z-index:20;padding:10px 2px;background:rgba(8,17,29,.92);backdrop-filter:blur(16px)}
+      .hero{padding:22px 18px}.hero h1{font-size:24px;line-height:1.35}.hero p{margin:6px 0 0}.search input{font-size:16px}.search button{min-width:64px}
+      .quick-start{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.quick-start button{border:1px solid var(--line);background:#101d31;color:#fff;border-radius:13px;padding:12px 7px;font-size:12px}.quick-start b{display:block;color:var(--gold);font-size:15px;margin-bottom:3px}
+      .result,.card{box-shadow:0 10px 28px rgba(0,0,0,.12)}.verse-text{font-size:19px;line-height:1.95}.bottom button{font-size:12px}.source{line-height:1.75}
+      @media(max-width:560px){.app{padding:10px 12px 100px}.logo{font-size:24px}.ver{display:none}.status{font-size:10px}.hero{border-radius:19px}.hero h1{font-size:21px}.search{position:relative}.search input{padding-right:68px}.search button{position:absolute;right:4px;top:4px;bottom:4px}.quick-start{grid-template-columns:repeat(3,1fr)}.bottom{bottom:8px;width:96%;padding:5px}.bottom button{padding:10px 1px}.reader-inner{padding:10px 14px 70px}}
+    `;document.head.appendChild(style);
+    const homeHero=document.querySelector('#home .hero');if(homeHero&&!homeHero.querySelector('.quick-start'))homeHero.insertAdjacentHTML('beforeend',`<div class="quick-start"><button onclick="quick('约3:16')"><b>查经文</b>正文与上下文</button><button onclick="quick('安息日')"><b>查主题</b>圣经＋怀著</button><button onclick="go('projects')"><b>备讲章</b>整理材料</button></div>`);
+    const homeTitle=document.querySelector('#home .hero h1');if(homeTitle)homeTitle.textContent='输入经文或主题，开始研经';
+    const homeP=document.querySelector('#home .hero p');if(homeP)homeP.textContent='先读中文圣经，再看相关经文和预言之灵出处。';
+    const studyTitle=document.querySelector('#study .hero h1');if(studyTitle)studyTitle.textContent='查经文 · 查预言之灵';
+    const studyP=document.querySelector('#study .hero p');if(studyP)studyP.textContent='输入一节经文或一个主题，资料按来源分层显示。';
+    document.querySelector('[data-p="study"]')&&(document.querySelector('[data-p="study"]').textContent='研经');
+    document.querySelector('[data-p="library"]')&&(document.querySelector('[data-p="library"]').textContent='怀著');
+    document.querySelector('[data-p="projects"]')&&(document.querySelector('[data-p="projects"]').textContent='讲章');
+    document.querySelector('[data-p="basket"]')&&(document.querySelector('[data-p="basket"]').textContent='材料');
+    ['homeQ','studyQ'].forEach(id=>{const el=$(id);if(el)el.setAttribute('autocomplete','off')});
   }
 
-  async function loadEGWMeta() {
-    if (egwSource && egwBooks.length) return;
-    try {
-      const [s, b] = await Promise.all([
-        fetch('./data/egw-source.json', { cache: 'no-store' }),
-        fetch('./data/egw-books.json', { cache: 'no-store' })
-      ]);
-      if (s.ok) egwSource = await s.json();
-      if (b.ok) {
-        const j = await b.json();
-        egwBooks = j.books || [];
-      }
-    } catch (e) {
-      console.error('EGW metadata load failed', e);
-    }
-  }
+  const baseRun=runStudy;
+  runStudy=async function(id){await baseRun(id);const q=$(id)?.value.trim()||'',ref=parseBibleRef(q),host=$('studyResult');if(!host)return;const g=graph(q);if(g)host.insertAdjacentHTML('beforeend',g);if(ref?.from&&ref.from===ref.to)host.insertAdjacentHTML('beforeend',`<div class="section-head" style="margin-top:18px"><h2>相关经文</h2><span>需要时展开</span></div><div id="crossrefsBox"><div class="card"><p>查看与这节经文关系最强的串珠经文。</p><div class="actions"><button class="primary" onclick="window.jgLoadCrossrefs('${esc(q)}')">展开相关经文</button></div></div></div>`);const hits=rankedEGW(q,mergedRelation(q));if(!hits.length)host.insertAdjacentHTML('beforeend',`<div class="card" style="margin-top:14px"><div class="meta">预言之灵</div><p>本地出处索引暂时没有命中。不会用 AI 猜测怀爱伦原文。</p><div class="actions"><button onclick="window.jgOpenOfficialEGW()">到官方中文资料核对</button></div></div>`)};
 
-  function cnNorm(s) {
-    return String(s || '').toLowerCase().replace(/[\s《》〈〉“”"'，。！？；：、·\-–—_]/g, '');
-  }
-
-  function refParts(s) {
-    const n = String(s || '').replace(/\s+/g, '').replace(/：/g, ':');
-    const m = n.match(/^(.+?)(\d+)(?::(\d+)(?:[-–](\d+))?)?)?$/);
-    if (!m) return null;
-    return { book: cnNorm(m[1]), chapter: m[2] ? Number(m[2]) : null, from: m[3] ? Number(m[3]) : null, to: m[4] ? Number(m[4]) : (m[3] ? Number(m[3]) : null) };
-  }
-
-  function rangesOverlap(a, b) {
-    if (!a || !b || a.book !== b.book) return false;
-    if (a.chapter && b.chapter && a.chapter !== b.chapter) return false;
-    if (!a.from || !b.from) return true;
-    return Math.max(a.from, b.from) <= Math.min(a.to || a.from, b.to || b.from);
-  }
-
-  function relationMatches(q) {
-    const n = cnNorm(q);
-    const parsed = refParts(q);
-    const scored = (relations || []).map(r => {
-      let score = 0;
-      const candidates = [r.bible_ref, r.normalized].filter(Boolean);
-      for (const c of candidates) {
-        const cn = cnNorm(c);
-        if (cn === n) score = Math.max(score, 120);
-        else if (cn.includes(n) || n.includes(cn)) score = Math.max(score, 80);
-        if (parsed && rangesOverlap(parsed, refParts(c))) score = Math.max(score, 105);
-      }
-      for (const t of r.themes || []) {
-        const tn = cnNorm(t);
-        if (tn === n) score = Math.max(score, 100);
-        else if (tn.includes(n) || n.includes(tn)) score = Math.max(score, 60);
-      }
-      return { r, score };
-    }).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
-    return scored.map(x => x.r);
-  }
-
-  function mergedRelation(q) {
-    const list = relationMatches(q);
-    if (!list.length) return null;
-    return {
-      bible_ref: list[0].bible_ref,
-      normalized: list[0].normalized,
-      themes: [...new Set(list.flatMap(x => x.themes || []))],
-      related_bible: [...new Set(list.flatMap(x => x.related_bible || []))],
-      egw_ids: [...new Set(list.flatMap(x => x.egw_ids || []))],
-      matches: list
-    };
-  }
-
-  relationFor = function(q) {
-    return mergedRelation(q);
-  };
-
-  function egwScore(e, q, rel) {
-    const n = cnNorm(q);
-    if (!n) return 0;
-    let score = 0;
-    const title = cnNorm(e.title_cn);
-    const chapter = cnNorm(e.chapter);
-    const locator = cnNorm(e.locator);
-    const refs = (e.bible_refs || []).map(cnNorm);
-    const topics = (e.topics || []).map(cnNorm);
-    const summary = cnNorm(e.summary);
-    if (title === n) score += 100;
-    else if (title.includes(n) || n.includes(title)) score += 70;
-    if (chapter.includes(n)) score += 55;
-    if (locator.includes(n)) score += 50;
-    if (refs.some(x => x === n)) score += 95;
-    else if (refs.some(x => x.includes(n) || n.includes(x))) score += 60;
-    if (topics.some(x => x === n)) score += 80;
-    else if (topics.some(x => x.includes(n) || n.includes(x))) score += 45;
-    if (summary.includes(n)) score += 20;
-    if ((rel?.egw_ids || []).includes(e.id)) score += 150;
-    for (const theme of rel?.themes || []) {
-      const t = cnNorm(theme);
-      if (topics.includes(t)) score += 35;
-    }
-    return score;
-  }
-
-  function rankedEGW(q, rel) {
-    const merged = rel || mergedRelation(q);
-    return (egw || [])
-      .map(e => ({ e, score: egwScore(e, q, merged) }))
-      .filter(x => x.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .map(x => x.e);
-  }
-
-  relatedEGW = function(q, rel) {
-    return rankedEGW(q, rel);
-  };
-
-  egwCard = function(e) {
-    return `<div class="result"><div class="meta">第二层 · 预言之灵 · 可核验出处</div><h3>《${esc(e.title_cn || '未命名')}》 · ${esc(e.chapter || '')}</h3><div class="source"><b>出处：${esc(e.locator || '待补')}</b><br>相关经文：${(e.bible_refs || []).map(esc).join(' · ') || '暂无'}</div><p style="margin-top:9px"><b>研究摘要：</b>${esc(String(e.summary || '').replace('研究摘要：', ''))}</p><div>${(e.topics || []).map(t => `<span class="badge">${esc(t)}</span>`).join('')}</div><div class="actions"><button class="primary" onclick="openEGW('${esc(e.id)}')">核对原始出处</button><button onclick="addBasket('${esc(e.id)}')">＋材料篮</button></div></div>`;
-  };
-
-  window.jgSearchEGWLibrary = function() {
-    const q = document.getElementById('egwLibraryQ')?.value?.trim() || '';
-    const hits = q ? rankedEGW(q, mergedRelation(q)) : egw;
-    const host = document.getElementById('egwLibraryResults');
-    if (!host) return;
-    host.innerHTML = hits.length ? hits.map(egwCard).join('') : `<div class="empty">本地中文索引暂时没有结果。<div class="actions"><button onclick="window.jgOpenOfficialEGW()">到官方中文资料核对</button></div></div>`;
-  };
-
-  window.jgPickEGWBook = function(title) {
-    const input = document.getElementById('egwLibraryQ');
-    if (input) input.value = title;
-    window.jgSearchEGWLibrary();
-  };
-
-  window.jgOpenOfficialEGW = async function() {
-    await loadEGWMeta();
-    window.open(egwSource?.homepage || 'https://m.egwwritings.org/zh', '_blank');
-  };
-
-  renderLibrary = async function() {
-    await loadEGWMeta();
-    libraryCount.textContent = `${egw.length} 条已核验索引 · ${egwBooks.length} 本中文书目`;
-    libraryList.innerHTML = `<div class="card"><div class="field"><label>查中文预言之灵</label><input id="egwLibraryQ" placeholder="安息日 / 圣所 / 历代愿望 / 但以理书8:14" onkeydown="if(event.key==='Enter')window.jgSearchEGWLibrary()"></div><div class="actions"><button class="primary" onclick="window.jgSearchEGWLibrary()">检索</button><button onclick="window.jgOpenOfficialEGW()">官方中文资料</button></div><div class="chips">${egwBooks.slice(0, 16).map(b => `<button class="chip" onclick="window.jgPickEGWBook('${esc(b.title_cn)}')">${esc(b.title_cn)}</button>`).join('')}</div></div><div id="egwLibraryResults">${egw.map(egwCard).join('')}</div>`;
-  };
-
-  window.jgStudyCrossref = q => {
-    const input = document.getElementById('studyQ');
-    if (input) input.value = q;
-    runStudy('studyQ');
-  };
-  window.jgLoadCrossrefs = q => renderCrossrefs(q);
-
-  function renderRelationGraph(q) {
-    const rel = mergedRelation(q);
-    if (!rel) return '';
-    const themes = rel.themes || [];
-    const refs = rel.related_bible || [];
-    return `<div class="card" style="margin-top:14px"><div class="meta">圣经关系图 · 聚合 ${rel.matches?.length || 1} 个关系节点</div><h3>主题脉络</h3><div class="chips">${themes.map(t => `<button class="chip" onclick="window.jgStudyCrossref('${esc(t)}')">${esc(t)}</button>`).join('')}</div>${refs.length ? `<div class="source"><b>相关经文</b><br>${refs.map(r => `<button class="chip" style="margin-top:6px" onclick="window.jgStudyCrossref('${esc(r)}')">${esc(r)}</button>`).join(' ')}</div>` : ''}</div>`;
-  }
-
-  const originalRunStudy = runStudy;
-  runStudy = async function(id) {
-    await originalRunStudy(id);
-    const q = document.getElementById(id)?.value?.trim() || '';
-    const ref = parseBibleRef(q);
-    const host = document.getElementById('studyResult');
-    if (!host) return;
-
-    const graph = renderRelationGraph(q);
-    if (graph) host.insertAdjacentHTML('beforeend', graph);
-
-    if (ref && ref.from && ref.from === ref.to) {
-      host.insertAdjacentHTML('beforeend', `<div class="section-head" style="margin-top:18px"><h2>圣经串珠</h2><span>34万+ OpenBible 关系</span></div><div id="crossrefsBox"><div class="card"><p>需要时再展开，不影响页面首屏速度。</p><div class="actions"><button onclick="window.jgLoadCrossrefs('${esc(q)}')">展开相关经文</button></div></div></div>`);
-    }
-
-    const rel = mergedRelation(q);
-    const hits = rankedEGW(q, rel);
-    if (!hits.length) {
-      await loadEGWMeta();
-      host.insertAdjacentHTML('beforeend', `<div class="card" style="margin-top:14px"><div class="meta">预言之灵中文资料</div><p>本地已核验索引暂时没有命中。经光不会用 AI 猜测原文。</p><div class="actions"><button onclick="window.jgOpenOfficialEGW()">打开官方中文资料核对</button></div></div>`);
-    }
-  };
-
-  loadEGWMeta();
+  installUX();loadEGWMeta();
 })();
