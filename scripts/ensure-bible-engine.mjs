@@ -1,15 +1,18 @@
 import fs from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
-const file = new URL('index.html', root);
-let html = await fs.readFile(file, 'utf8');
-const hook = '<script src="./bible-engine.js"></script>';
-
-if (!html.includes(hook)) {
-  if (!html.includes('</body>')) throw new Error('index.html has no </body> marker');
-  html = html.replace('</body>', `${hook}</body>`);
-  await fs.writeFile(file, html);
-  console.log('Installed bible-engine.js hook into index.html');
-} else {
-  console.log('Bible engine hook already present');
+const html = await fs.readFile(new URL('index.html', root), 'utf8');
+const required = [
+  "./data/bible-source.json",
+  "./data/bible-books.json",
+  "function parseBibleRef",
+  "async function loadBibleBook",
+  "async function biblePassage",
+  "async function openBible"
+];
+const missing = required.filter(x => !html.includes(x));
+if (missing.length) {
+  for (const item of missing) console.error(`Missing native Bible integration marker: ${item}`);
+  process.exit(1);
 }
+console.log('Native 66-book Bible integration is present in index.html.');
