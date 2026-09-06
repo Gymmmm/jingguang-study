@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "project": {
+    "id": "string",
+    "title": "string",
+    "status": "researching|outlining|ready|archived",
+    "audience": "string",
+    "duration_minutes": "number",
+    "core_bible_refs": ["string"],
+    "materials": [
+      {
+        "id": "string",
+        "type": "bible|egw|note|ai",
+        "source_id": "string|null",
+        "label": "string",
+        "locator": "string|null",
+        "verified": "boolean",
+        "note": "string"
+      }
+    ],
+    "outline": [
+      {"heading":"string","body":"string","material_ids":["string"]}
+    ],
+    "application": "string",
+    "appeal": "string",
+    "research_notes": "string",
+    "created_at": "ISO-8601",
+    "updated_at": "ISO-8601"
+  },
+  "source_hierarchy": [
+    {"level":1,"type":"bible","label":"圣经","rule":"primary"},
+    {"level":2,"type":"egw","label":"预言之灵原始资料","rule":"supporting_verified_source"},
+    {"level":3,"type":"note","label":"我的研究","rule":"user_authored"},
+    {"level":4,"type":"ai","label":"AI整理","rule":"derived_only_never_quote_as_source"}
+  ]
+}
