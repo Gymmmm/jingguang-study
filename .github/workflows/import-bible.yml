@@ -6,37 +6,32 @@ on:
     paths:
       - 'scripts/ensure-bible-engine.mjs'
       - 'scripts/validate-bible.mjs'
-      - 'bible-engine.js'
       - 'data/bible-source.json'
       - 'data/bible-books.json'
+      - 'index.html'
+      - '.github/workflows/import-bible.yml'
+  pull_request:
+    paths:
+      - 'scripts/ensure-bible-engine.mjs'
+      - 'scripts/validate-bible.mjs'
+      - 'data/bible-source.json'
+      - 'data/bible-books.json'
+      - 'index.html'
       - '.github/workflows/import-bible.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   bible-source:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
       - name: Validate complete 66-book Chinese Bible source
         run: node scripts/validate-bible.mjs
-      - name: Ensure Bible engine is loaded by the app
+      - name: Verify native Bible integration
         run: node scripts/ensure-bible-engine.mjs
-      - name: Commit engine hook when needed
-        run: |
-          if git diff --quiet -- index.html; then
-            echo "Bible engine hook is already installed."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
-          git commit -m "feat: enable complete Chinese Bible engine"
-          git push
