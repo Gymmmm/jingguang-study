@@ -31,9 +31,7 @@
 
   egwSearch=function strictEgwSearch(q){
     const cleaned=cleanKeyword(q)||q,ref=parse(cleaned)||parse(q),needles=needlesFor(cleaned);
-    if(ref){
-      return S.egw.filter(e=>(e.bible_refs||[]).some(v=>overlap(ref,parseAny(v))));
-    }
+    if(ref)return S.egw.filter(e=>(e.bible_refs||[]).some(v=>overlap(ref,parseAny(v))));
     return S.egw.map(e=>{
       let s=0;
       if(hit(e.title_cn,needles))s+=140;
@@ -54,10 +52,23 @@
   const officialSearchUrl=q=>`https://text.egwwritings.org/search.php?lang=zh&query=${encodeURIComponent(q)}`;
   const oldSearch=search;
 
+  function openOfficialKeywordSearch(q){
+    const url=officialSearchUrl(q);
+    S.currentOfficial=null;
+    const title=document.getElementById('officialTitle');
+    const fav=document.getElementById('officialFavorite');
+    const frame=document.getElementById('officialFrame');
+    const dlg=document.getElementById('officialReader');
+    if(title)title.textContent=`怀爱伦全文搜索：${q}`;
+    if(fav)fav.hidden=true;
+    if(frame)frame.src=url;
+    if(dlg&&!dlg.open)dlg.showModal();
+  }
+
   function fullChapterCard(q,hasLocal){
     const card=document.createElement('article');
     card.className='card egwFullChapterSearch';card.dataset.kind='egw';card.dataset.egwOfficialSearch='1';
-    card.innerHTML=`<div class="top"><span class="badge egw">全文搜索</span><span class="title">搜索怀爱伦全部中文章节：${esc(q)}</span></div><div class="snippet">这里不是本地索引。点击后直接进入官方中文全文结果，选一条即可看对应原文和上下文。${hasLocal?' 下方只保留真正命中的本地出处。':''}</div><div class="actions"><button class="primary" data-official-url="${esc(officialSearchUrl(q))}">搜索全部章节</button></div>`;
+    card.innerHTML=`<div class="top"><span class="badge egw">全文搜索</span><span class="title">搜索怀爱伦全部中文章节：${esc(q)}</span></div><div class="snippet">点击后直接进入官方中文全文结果，选择一条即可阅读对应原文和上下文。${hasLocal?' 下方只保留真正命中的本地出处。':''}</div><div class="actions"><button class="primary" data-egw-fulltext="${esc(q)}">搜索全部章节</button></div>`;
     return card;
   }
 
@@ -74,17 +85,35 @@
     filter();
   };
 
+  function bindFullChapterSearch(){
+    const box=document.getElementById('egwAllChapterSearch');if(!box||box.dataset.bound==='1')return;
+    box.dataset.bound='1';
+    box.addEventListener('submit',e=>{
+      e.preventDefault();
+      const q=cleanKeyword(new FormData(box).get('q'));
+      if(!q)return;
+      openOfficialKeywordSearch(q);
+    });
+  }
+
   function installFullChapterSearch(){
     const shelf=document.getElementById('egwShelf');if(!shelf)return;
     let box=document.getElementById('egwAllChapterSearch');
     if(!box){
       box=document.createElement('form');box.id='egwAllChapterSearch';box.className='fullChapterSearch';
-      box.innerHTML=`<div><span class="badge egw">全文搜索</span><b>搜索怀爱伦全部章节</b><small>下面的“书名搜索”只找书；这里才是搜所有著作正文。</small></div><div class="fullChapterSearchRow"><input name="q" placeholder="输入关键词，例如：安息日、信心、祷告、圣所"><button class="primary">搜索全部章节</button></div>`;
+      box.innerHTML=`<div><span class="badge egw">关键词搜索</span><b>搜索怀爱伦全部章节</b><small>输入主题或词语，搜索全部中文怀著正文，不是只搜书名。</small></div><div class="fullChapterSearchRow"><input name="q" placeholder="例如：安息日、信心、祷告、圣所"><button class="primary">搜索怀著</button></div>`;
       const title=shelf.querySelector('h2');if(title)title.insertAdjacentElement('afterend',box);else shelf.prepend(box);
-      box.addEventListener('submit',e=>{e.preventDefault();const q=cleanKeyword(new FormData(box).get('q'));if(!q)return;const btn=document.createElement('button');btn.dataset.officialUrl=officialSearchUrl(q);btn.hidden=true;document.body.appendChild(btn);btn.click();btn.remove()});
     }
+    bindFullChapterSearch();
     const bookInput=document.getElementById('egwBookSearch');if(bookInput)bookInput.placeholder='这里只搜书名，例如：历代愿望、善恶之争';
   }
+
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('[data-egw-fulltext]');
+    if(!b)return;
+    e.preventDefault();e.stopPropagation();
+    openOfficialKeywordSearch(b.dataset.egwFulltext);
+  },true);
 
   const observer=new MutationObserver(installFullChapterSearch);observer.observe(document.documentElement,{childList:true,subtree:true});
   document.addEventListener('DOMContentLoaded',installFullChapterSearch);setTimeout(installFullChapterSearch,0);
