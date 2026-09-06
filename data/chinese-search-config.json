@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "language": "zh-CN",
+  "default_translation": "cuvs",
+  "search": {
+    "mode": "chinese-first",
+    "exact_reference_priority": true,
+    "full_text_enabled": true,
+    "topic_fallback_enabled": true,
+    "egw_relation_after_scripture": true
+  },
+  "reference_examples": ["约3:16","但8:14","启14:6-12","出20:8-11","诗119:105"],
+  "display_order": [
+    "圣经正文",
+    "相关经文",
+    "预言之灵原始资料",
+    "原文 / Strong",
+    "我的研究",
+    "AI整理"
+  ],
+  "original_language": {
+    "default_collapsed": true,
+    "show_only_on_request": true,
+    "chinese_explanation_required": true
+  },
+  "search_sources": [
+    {
+      "id": "cuvs",
+      "label": "和合本（简体）",
+      "role": "primary"
+    },
+    {
+      "id": "chinese-bible-search-js",
+      "label": "中文圣经索引",
+      "role": "reference_parser_and_search_index"
+    },
+    {
+      "id": "jingguang-egw",
+      "label": "经光预言之灵索引",
+      "role": "supporting_verified_source"
+    }
+  ]
+}
