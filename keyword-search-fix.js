@@ -9,12 +9,33 @@
     return q.replace(/\s+/g,' ').trim();
   };
 
+  const synonymMap = {
+    '复临':['基督复临','第二次降临','再来','主再来'],
+    '再来':['基督复临','第二次降临','复临'],
+    '圣所':['天上圣所','查案审判','审判','1844','二千三百日'],
+    '审判':['查案审判','圣所','1844','二千三百日'],
+    '安息日':['第七日','守安息日','创造记念'],
+    '祷告':['祈祷','祈求','代祷'],
+    '信心':['信仰','因信称义','信靠'],
+    '救赎':['救恩','救赎史','基督救赎'],
+    '三天使':['三天使信息','启示录14章'],
+    '健康':['健康改革','节制','医疗布道']
+  };
+
   const partsFor = value => {
     const cleaned = cleanKeyword(value);
-    const parts = cleaned.split(/[\s,，。；;、/]+/).map(norm).filter(Boolean);
+    const rawParts = cleaned.split(/[\s,，。；;、/]+/).map(norm).filter(Boolean);
     const full = norm(cleaned);
-    if (full && !parts.includes(full)) parts.unshift(full);
-    return [...new Set(parts)];
+    if (full && !rawParts.includes(full)) rawParts.unshift(full);
+    const expanded = [...rawParts];
+    for (const part of rawParts) {
+      for (const [key, list] of Object.entries(synonymMap)) {
+        if (part === norm(key) || part.includes(norm(key)) || norm(key).includes(part)) {
+          expanded.push(norm(key), ...list.map(norm));
+        }
+      }
+    }
+    return [...new Set(expanded.filter(Boolean))];
   };
 
   const fieldScore = (field, needles, exactWeight, containsWeight) => {
@@ -25,7 +46,7 @@
       if (!n) continue;
       if (text === n) score += exactWeight;
       else if (text.includes(n)) score += containsWeight;
-      else if (n.length >= 4 && n.includes(text)) score += Math.round(containsWeight * 0.55);
+      else if (n.length >= 2 && n.includes(text)) score += Math.round(containsWeight * 0.55);
     }
     return score;
   };
@@ -36,15 +57,13 @@
     return S.egw.map(e => {
       let score = rel?.ids?.includes(e.id) ? 220 : 0;
       if (ref && (e.bible_refs || []).some(v => overlap(ref, parseAny(v)))) score = Math.max(score, 160);
-
       score += fieldScore(e.title_cn, needles, 160, 90);
       score += fieldScore(e.title, needles, 120, 70);
-      score += fieldScore(e.chapter, needles, 100, 60);
+      score += fieldScore(e.chapter, needles, 110, 65);
       score += fieldScore(e.locator, needles, 70, 35);
-      for (const t of e.topics || []) score += fieldScore(t, needles, 150, 85);
-      for (const b of e.bible_refs || []) score += fieldScore(b, needles, 90, 45);
-      score += fieldScore(e.summary, needles, 90, 35);
-
+      for (const t of e.topics || []) score += fieldScore(t, needles, 160, 95);
+      for (const b of e.bible_refs || []) score += fieldScore(b, needles, 95, 50);
+      score += fieldScore(e.summary, needles, 100, 45);
       return { e, s: score };
     }).filter(x => x.s > 0).sort((a,b) => b.s - a.s).map(x => x.e);
   };
@@ -53,21 +72,16 @@
     const raw = norm(q);
     const generic = ['怀爱伦','怀著','怀师母','预言之灵','ellenwhite'].some(x => raw === norm(x));
     if (!raw || generic) return [...S.egwBooks];
-
     const needles = partsFor(q);
     const direct = S.egwBooks.filter(b => needles.some(n => {
       const t = norm(b.title_cn);
-      return t === n || t.includes(n) || (n.length >= 4 && n.includes(t));
+      return t === n || t.includes(n) || (n.length >= 2 && n.includes(t));
     }));
-
-    const matchingIndexedTitles = new Set(
-      egwSearch(q).map(e => norm(e.title_cn)).filter(Boolean)
-    );
+    const matchingIndexedTitles = new Set(egwSearch(q).map(e => norm(e.title_cn)).filter(Boolean));
     const derived = S.egwBooks.filter(b => {
       const title = norm(b.title_cn);
       return [...matchingIndexedTitles].some(t => title === t || title.includes(t) || t.includes(title));
     });
-
     const seen = new Set();
     return [...direct, ...derived].filter(b => {
       const id = String(b.id);
@@ -77,23 +91,28 @@
     });
   };
 
+  const officialSearchUrl = q => `https://text.egwwritings.org/search.php?lang=zh&query=${encodeURIComponent(q)}`;
   const oldSearch = search;
+
   search = async function keywordSearch(q) {
     const raw = String(q || '').trim();
     if (!raw) return;
-    const cleaned = cleanKeyword(raw);
-    await oldSearch(cleaned || raw);
+    const cleaned = cleanKeyword(raw) || raw;
+    await oldSearch(cleaned);
 
     const host = document.getElementById('studyResults');
     if (!host) return;
-    const hasEgw = !!host.querySelector('[data-kind="egw"]');
-    if (!hasEgw && !parse(cleaned || raw)) {
-      const card = document.createElement('article');
-      card.className = 'card';
-      card.dataset.kind = 'egw';
-      card.innerHTML = `<div class="top"><span class="badge egw">怀爱伦著作</span><span class="title">继续搜索“${esc(cleaned || raw)}”</span></div><div class="snippet">本地已核验索引暂时没有命中。可继续到怀爱伦官方中文全文检索，不在这里编造结果。</div><div class="actions"><button class="primary" data-official-url="https://m.egwwritings.org/advsearch">打开官方中文全文搜索</button></div>`;
-      host.appendChild(card);
-      filter();
-    }
+
+    const existingOfficial = host.querySelector('[data-egw-official-search]');
+    if (existingOfficial) existingOfficial.remove();
+
+    const card = document.createElement('article');
+    card.className = 'card';
+    card.dataset.kind = 'egw';
+    card.dataset.egwOfficialSearch = '1';
+    const hasLocal = !!host.querySelector('[data-egw]');
+    card.innerHTML = `<div class="top"><span class="badge egw">怀爱伦全文</span><span class="title">官方中文全文搜索“${esc(cleaned)}”</span></div><div class="snippet">${hasLocal?'上面是本地已核验资料；还可以继续检索怀爱伦官方中文全文。':'本地索引没有对应条目，直接继续检索怀爱伦官方中文全文。'}</div><div class="actions"><button class="primary" data-official-url="${esc(officialSearchUrl(cleaned))}">查看全文搜索结果</button></div>`;
+    host.appendChild(card);
+    filter();
   };
 })();
