@@ -161,7 +161,7 @@ export default async function handler(req,res){
     let url=input;
     const mobile=input.match(/\/zh\/book\/(\d+)\.(\d+)/i);
     if(mobile)url=`https://text.egwwritings.org/read/${mobile[1]}.${mobile[2]}`;
-    const html=await fetchHtml(url),pageTitle=title(html),structured=blocks(html),parts=paragraphs(html),nav=adjacentChapters(html,url),chapterTitle=nav.current?.title||pageTitle;
+    const html=await fetchHtml(url),pageTitle=title(html),structured=blocks(html),parts=paragraphs(html),tocData=await getToc(url),nav=adjacentChapters(tocData.html,url),chapterTitle=nav.current?.title||pageTitle;
     if(!parts.length)return res.status(422).json({ok:false,error:'no_readable_text',official_url:input,title:chapterTitle});
     res.setHeader('Cache-Control','private, no-store');
     return res.status(200).json({ok:true,title:chapterTitle,blocks:structured,paragraphs:parts,prev:nav.prev,next:nav.next,official_url:input,source_url:url});

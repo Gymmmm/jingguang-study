@@ -122,7 +122,8 @@
     const re=new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
     return safe.replace(re,m=>`<mark class="egwHitMark">${m}</mark>`);
   };
-  async function appendOfficialResults(host,q){
+  let officialSearchSeq=0;
+  async function appendOfficialResults(host,q,requestId){
     const loading=document.createElement('div');
     loading.className='empty egwOfficialLoading';
     loading.dataset.kind='egw';
@@ -131,6 +132,7 @@
     try{
       const r=await fetch(`/api/egw-search?q=${encodeURIComponent(q)}`,{cache:'no-store'});
       const j=await r.json();
+      if(requestId!==officialSearchSeq||!host.isConnected){loading.remove();return}
       loading.remove();
       if(!r.ok||!j.ok)throw new Error(j.error||'search_failed');
       const rows=Array.isArray(j.results)?j.results:[];
@@ -139,14 +141,14 @@
       const heading=document.createElement('h2');
       heading.className='groupTitle egwNativeResultsTitle';
       heading.dataset.kind='egw';
-      heading.textContent=`怀著 · ${rows.length} 条结果`;
+      heading.textContent=`怀著 · ${unique.length} 条结果`;
       host.appendChild(heading);
-      if(!rows.length){
+      if(!unique.length){
         const empty=document.createElement('div');empty.className='empty';empty.dataset.kind='egw';
         empty.textContent=`没有找到“${q}”的怀爱伦著作正文结果。`;
         host.appendChild(empty);return;
       }
-      rows.forEach((row,i)=>{
+      unique.forEach((row,i)=>{
         const title=chineseResultText(row.title)||`怀爱伦著作结果 ${i+1}`,snippet=resultExcerpt(row.snippet,q),chapter=parseChapter(`${title} ${snippet}`);
         const card=document.createElement('article');
         card.className='card egwNativeHit';card.dataset.kind='egw';card.dataset.egwNativeUrl=row.url;
@@ -155,6 +157,7 @@
       });
     }catch(e){
       loading.remove();
+      if(requestId!==officialSearchSeq||!host.isConnected)return;
       const card=document.createElement('article');card.className='empty';card.dataset.kind='egw';card.dataset.egwOfficialSearch='1';
       card.textContent='怀爱伦著作正文暂时无法读取，请稍后在本站重试。';
       host.appendChild(card);
@@ -164,13 +167,16 @@
   search = async function keywordSearch(q) {
     const raw = String(q || '').trim();
     if (!raw) return;
+    const requestId=++officialSearchSeq;
     const cleaned = cleanKeyword(raw) || raw;
     await oldSearch(cleaned);
+    if(requestId!==officialSearchSeq)return;
     const host = document.getElementById('studyResults');
     if (!host) return;
     host.querySelector('[data-egw-official-search]')?.remove();
     host.querySelectorAll('.egwNativeResultsTitle,.egwNativeHit,.egwOfficialLoading').forEach(x=>x.remove());
-    await appendOfficialResults(host,cleaned);
+    await appendOfficialResults(host,cleaned,requestId);
+    if(requestId!==officialSearchSeq)return;
     filter();
   };
 

@@ -10,7 +10,8 @@
   const allowed=url=>/^https?:\/\/(?:m\.|text\.)?egwwritings\.org\/(?:read\/|zh\/book\/)/i.test(String(url||''));
   const read=(key,fallback=[])=>{try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch(_){return fallback}};
   const write=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value))}catch(_){}};
-  const itemId=item=>`egw-native:${String(item?.native_url||'').replace(/[?#].*$/,'')}`;
+  const canonicalUrl=url=>typeof window.jgCanonicalEgwUrl==='function'?window.jgCanonicalEgwUrl(url):String(url||'').trim().replace(/[?#].*$/,'').replace(/\/$/,'').replace(/^https?:\/\/(?:m\.|text\.)?egwwritings\.org\/zh\/book\/(\d+)\.(\d+)$/i,'https://text.egwwritings.org/read/$1.$2').replace(/^https?:\/\/(?:m\.|text\.)?egwwritings\.org\/read\/(\d+)\.(\d+)$/i,'https://text.egwwritings.org/read/$1.$2');
+  const itemId=item=>`egw-native:${canonicalUrl(item?.native_url||'')}`;
   const bookIdFromUrl=url=>(String(url||'').match(/\/(?:read|zh\/book)\/(\d+)/i)||[])[1]||'';
   const bookById=id=>books.find(x=>String(x.id)===String(id));
   const formatParagraph=text=>String(text??'').split(/(\([A-Za-z]{1,12}\.?\s*\d+(?:\.\d+)*\)|\{[A-Za-z]{1,12}\s+\d+(?:\.\d+)+\}|〖\d+〗|\b[A-Za-z]{1,12}[A-Z]?\s+\d+(?:\.\d+)+)/g).map(part=>/^(?:\(|\{|〖|[A-Za-z])/.test(part)?`<small class="egwSourceRef">${esc(part)}</small>`:esc(part)).join('');
@@ -42,8 +43,7 @@
     const snap=positionSnapshot();if(!snap)return;
     const positions=read(POSITION_KEY,{});positions[itemId(current)]=snap;write(POSITION_KEY,positions);
   }
-  function restorePosition(){
-    const saved=read(POSITION_KEY,{})[itemId(current)];
+  function restoreSnapshot(saved){
     requestAnimationFrame(()=>{
       if(saved&&typeof saved==='object'&&Number.isFinite(+saved.paragraph)){
         const paras=[...body.querySelectorAll('.egwParagraph')],i=Math.max(0,Math.min(paras.length-1,+saved.paragraph||0)),p=paras[i];
@@ -52,6 +52,7 @@
       detail.scrollTop=Number.isFinite(+saved)?Math.max(0,+saved):0;
     });
   }
+  function restorePosition(){restoreSnapshot(read(POSITION_KEY,{})[itemId(current)])}
   function showLoading(title='怀爱伦著作'){
     detail.dataset.readerKind='egw-reader';
     detail.dataset.readingKey='';
@@ -80,6 +81,7 @@
     return {bookId,tocUrl,bookTitle};
   }
   async function openUrl(url,meta={}){
+    url=canonicalUrl(url);
     if(!allowed(url))return false;
     const requestId=++openSeq;
     const previous=current;
@@ -129,6 +131,11 @@
     }
   },true);
   detail.addEventListener('scroll',()=>{clearTimeout(scrollTimer);scrollTimer=setTimeout(savePosition,220)},{passive:true});
+  document.querySelector('.fontTools')?.addEventListener('click',event=>{
+    if(detail.dataset.readerKind!=='egw-reader'||!event.target.closest('[data-font]'))return;
+    const saved=positionSnapshot();
+    if(saved)requestAnimationFrame(()=>restoreSnapshot(saved));
+  },true);
   detail.addEventListener('cancel',savePosition);
   detail.addEventListener('close',()=>{openSeq+=1;savePosition();if(detail.dataset.readerKind==='egw-reader')delete detail.dataset.readerKind});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')savePosition()});

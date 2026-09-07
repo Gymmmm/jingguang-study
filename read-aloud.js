@@ -49,7 +49,7 @@
   }
 
   function readablePage() {
-    return !!body.querySelector('.reading .verse span, .egwReading .egwParagraph, .reading p');
+    return detail.dataset.readerKind === 'bible-reader' || detail.dataset.readerKind === 'egw-reader';
   }
 
   function syncToolbarVisibility() {
