@@ -57,18 +57,24 @@ function paragraphCandidates(cleaned,tagRx){
   }
   return out;
 }
+function bodyRangeParagraphs(pCandidates){
+  const located=pCandidates.filter(x=>x.locator);
+  if(located.length<2)return pCandidates;
+  const first=located[0].pos,last=located[located.length-1].pos;
+  const inside=pCandidates.filter(x=>x.pos>=first&&x.pos<=last);
+  return inside.length>=located.length?inside:located;
+}
 function blocks(html){
   const cleaned=cleanHtml(html);
   const pCandidates=paragraphCandidates(cleaned,/<p\b[^>]*>([\s\S]*?)<\/p>/gi);
-  const locatedP=pCandidates.filter(x=>x.locator);
-  let paragraphs=locatedP.length>=2?locatedP:pCandidates;
+  let paragraphs=bodyRangeParagraphs(pCandidates);
 
   // 个别 EGW 页面不用 p 包正文；只有在 p 不足时，才从 div/span 中补“带真实定位码”的正文，避免把目录和页面导航抓进来。
   if(paragraphs.length<2){
     const fallback=paragraphCandidates(cleaned,/<(?:div|span)\b[^>]*>([\s\S]*?)<\/(?:div|span)>/gi).filter(x=>x.locator);
     paragraphs=paragraphs.concat(fallback);
   }
-  paragraphs=dedupeParagraphs(paragraphs).slice(0,180);
+  paragraphs=dedupeParagraphs(paragraphs).slice(0,220);
   if(!paragraphs.length)return [];
 
   const first=Math.min(...paragraphs.map(x=>x.pos)),last=Math.max(...paragraphs.map(x=>x.pos));
