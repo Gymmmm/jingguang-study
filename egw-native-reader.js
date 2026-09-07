@@ -38,16 +38,22 @@
     const p=paras[i],height=Math.max(1,p.offsetHeight),offset=Math.max(0,Math.min(1,(y-p.offsetTop)/height));
     return {paragraph:i,offset:+offset.toFixed(3)};
   }
+  function markParagraph(saved){
+    body.querySelectorAll('.readingMark').forEach(x=>x.classList.remove('readingMark'));
+    if(!saved||typeof saved!=='object'||!Number.isFinite(+saved.paragraph))return;
+    const paras=[...body.querySelectorAll('.egwParagraph')],p=paras[Math.max(0,Math.min(paras.length-1,+saved.paragraph||0))];
+    p?.closest('.egwParagraphWrap')?.classList.add('readingMark');
+  }
   function savePosition(){
     if(!current||!detail.open)return;
     const snap=positionSnapshot();if(!snap)return;
-    const positions=read(POSITION_KEY,{});positions[itemId(current)]=snap;write(POSITION_KEY,positions);
+    const positions=read(POSITION_KEY,{});positions[itemId(current)]=snap;write(POSITION_KEY,positions);markParagraph(snap);
   }
   function restoreSnapshot(saved){
     requestAnimationFrame(()=>{
       if(saved&&typeof saved==='object'&&Number.isFinite(+saved.paragraph)){
         const paras=[...body.querySelectorAll('.egwParagraph')],i=Math.max(0,Math.min(paras.length-1,+saved.paragraph||0)),p=paras[i];
-        if(p){const offset=Math.max(0,Math.min(1,+saved.offset||0));detail.scrollTop=Math.max(0,p.offsetTop+p.offsetHeight*offset-Math.min(140,Math.max(72,detail.clientHeight*.18)));return}
+        if(p){const offset=Math.max(0,Math.min(1,+saved.offset||0));detail.scrollTop=Math.max(0,p.offsetTop+p.offsetHeight*offset-Math.min(140,Math.max(72,detail.clientHeight*.18)));markParagraph(saved);return}
       }
       detail.scrollTop=Number.isFinite(+saved)?Math.max(0,+saved):0;
     });
