@@ -1,0 +1,148 @@
+/* EGW chapter directory polish: scoped to the native TOC only. */
+#detail[data-reader-kind="egw-toc"]>header{
+  grid-template-columns:auto minmax(0,1fr) auto;
+  gap:8px;
+  padding:11px 14px;
+  border-bottom:1px solid color-mix(in srgb,var(--line) 82%,transparent);
+  background:color-mix(in srgb,var(--surface) 96%,transparent);
+  backdrop-filter:blur(14px);
+}
+#detail[data-reader-kind="egw-toc"]>header>#back{
+  min-width:58px;
+  min-height:40px;
+  padding:0 4px 0 0;
+  font-size:13px;
+  font-weight:650;
+}
+#detail[data-reader-kind="egw-toc"]>header>#detailType{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--text);
+  font-size:14px;
+  font-weight:750;
+  line-height:1.25;
+}
+#detail[data-reader-kind="egw-toc"]>header>.fontTools{
+  width:58px;
+  visibility:hidden;
+  pointer-events:none;
+}
+#detail[data-reader-kind="egw-toc"] #detailBody{
+  max-width:700px;
+  margin:0 auto;
+  padding:0 16px calc(62px + env(safe-area-inset-bottom));
+}
+#detail[data-reader-kind="egw-toc"] .nativeBookHead{
+  position:static;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:42px;
+  padding:8px 2px 5px;
+  border-bottom:0;
+  background:transparent;
+}
+#detail[data-reader-kind="egw-toc"] .nativeBookHead::before{
+  content:'目录';
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.04em;
+}
+#detail[data-reader-kind="egw-toc"] .nativeBookHead h1{
+  display:none;
+}
+#detail[data-reader-kind="egw-toc"] .nativeSearchIcon{
+  position:static;
+  width:36px;
+  min-width:36px;
+  height:34px;
+  padding:0!important;
+  border:0!important;
+  border-radius:9px!important;
+  background:transparent!important;
+  color:var(--accent)!important;
+  font-size:22px!important;
+  font-weight:500!important;
+  line-height:1!important;
+}
+#detail[data-reader-kind="egw-toc"] .egwChapterList{
+  margin:0;
+  border-top:1px solid var(--line);
+}
+#detail[data-reader-kind="egw-toc"] .egwChapterRow{
+  min-height:46px;
+  gap:10px;
+  padding:10px 4px;
+  border-bottom:1px solid color-mix(in srgb,var(--line) 84%,transparent);
+  background:transparent;
+}
+#detail[data-reader-kind="egw-toc"] .egwChapterRow>span{
+  font-size:16px;
+  font-weight:520;
+  line-height:1.4;
+  letter-spacing:.002em;
+}
+#detail[data-reader-kind="egw-toc"] .egwChapterRow>b{
+  align-self:center;
+  color:color-mix(in srgb,var(--muted) 72%,transparent);
+  font-size:22px;
+  font-weight:400;
+  line-height:1;
+}
+#detail[data-reader-kind="egw-toc"] .egwChapterRow.currentReading{
+  background:color-mix(in srgb,var(--soft) 52%,transparent);
+  box-shadow:inset 2px 0 0 var(--accent);
+}
+#detail[data-reader-kind="egw-toc"] .currentReadingLabel{
+  margin-top:2px;
+  color:var(--accent);
+  font-size:9.5px;
+  font-weight:650;
+  line-height:1.3;
+  opacity:.86;
+}
+#detail[data-reader-kind="egw-toc"] .empty{
+  margin:10px 0;
+  padding:18px 6px;
+  border:0;
+  background:transparent;
+  text-align:center;
+}
+#detail[data-reader-kind="egw-toc"]>footer{
+  justify-content:center;
+  padding:6px 12px calc(7px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 96%,transparent);
+  backdrop-filter:blur(14px);
+}
+#detail[data-reader-kind="egw-toc"]>footer>*{
+  flex:0 1 auto;
+  min-height:34px;
+  padding:4px 10px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:600;
+  box-shadow:none;
+}
+@media(max-width:560px){
+  #detail[data-reader-kind="egw-toc"]>header{padding:9px 10px}
+  #detail[data-reader-kind="egw-toc"]>header>#back{min-width:52px;font-size:12px}
+  #detail[data-reader-kind="egw-toc"]>header>.fontTools{width:52px}
+  #detail[data-reader-kind="egw-toc"]>header>#detailType{font-size:13px}
+  #detail[data-reader-kind="egw-toc"] #detailBody{padding-left:13px;padding-right:13px}
+  #detail[data-reader-kind="egw-toc"] .nativeBookHead{min-height:38px;padding-top:6px}
+  #detail[data-reader-kind="egw-toc"] .egwChapterRow{min-height:44px;padding:9px 3px}
+  #detail[data-reader-kind="egw-toc"] .egwChapterRow>span{font-size:15.5px;line-height:1.38}
+  #detail[data-reader-kind="egw-toc"] .egwChapterRow>b{font-size:20px}
+}
+@media(max-width:390px){
+  #detail[data-reader-kind="egw-toc"] #detailBody{padding-left:11px;padding-right:11px}
+  #detail[data-reader-kind="egw-toc"] .egwChapterRow>span{font-size:15px}
+  #detail[data-reader-kind="egw-toc"] .currentReadingLabel{font-size:9px}
+}
