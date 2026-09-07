@@ -10,7 +10,7 @@
   const read=(key,fallback=[])=>{try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch(_){return fallback}};
   const write=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value))}catch(_){}};
   const itemId=item=>`egw-native:${String(item?.native_url||'').replace(/[?#].*$/,'')}`;
-  const formatParagraph=text=>String(text??'').split(/(\([A-Za-z]{1,12}\.?\s*\d+(?:\.\d+)*\)|\{[A-Za-z]{1,12}\s+\d+(?:\.\d+)+\})/g).map(part=>/^(?:\(|\{)/.test(part)?`<small class="egwSourceRef">${esc(part)}</small>`:esc(part)).join('');
+  const formatParagraph=text=>String(text??'').split(/(\([A-Za-z]{1,12}\.?\s*\d+(?:\.\d+)*\)|\{[A-Za-z]{1,12}\s+\d+(?:\.\d+)+\}|〖\d+〗)/g).map(part=>/^(?:\(|\{|〖)/.test(part)?`<small class="egwSourceRef">${esc(part)}</small>`:esc(part)).join('');
   function remember(item){const id=itemId(item),items=read(READING_KEY).filter(x=>itemId(x)!==id);items.unshift({...item,at:Date.now()});write(READING_KEY,items.slice(0,12))}
   function isFavorite(item){const id=itemId(item);return read(FAVORITES_KEY).some(x=>itemId(x)===id)}
   function renderActions(){if(current)actions.innerHTML=`<button data-egw-native-favorite>${isFavorite(current)?'★ 已收藏':'☆ 收藏本章'}</button><button data-official-source="${esc(current.native_url)}">核验官方原始出处</button>`}
@@ -47,7 +47,7 @@
   function sourceById(id){return index.find(x=>String(x.id)===String(id))}
   document.addEventListener('click',e=>{
     const nav=e.target.closest('[data-egw-native-url]');
-    if(nav){e.preventDefault();e.stopImmediatePropagation();openUrl(nav.dataset.egwNativeUrl,{title:nav.dataset.egwTitle||current?.title||'',chapter:nav.dataset.egwChapter||''});return}
+    if(nav){e.preventDefault();e.stopImmediatePropagation();openUrl(nav.dataset.egwNativeUrl,{title:nav.dataset.egwTitle||nav.dataset.egwBookTitle&&`《${nav.dataset.egwBookTitle}》`||current?.title||'',chapter:nav.dataset.egwChapter||nav.dataset.egwChapterTitle||''});return}
     if(e.target.closest('[data-egw-native-favorite]')){e.preventDefault();e.stopImmediatePropagation();toggleFavorite();return}
     const source=e.target.closest('[data-official-source]');
     if(source){e.preventDefault();e.stopImmediatePropagation();window.open(source.dataset.officialSource,'_blank','noopener');return}
