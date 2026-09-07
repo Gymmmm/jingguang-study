@@ -2,7 +2,7 @@
   'use strict';
   const detail=document.getElementById('detail'),body=document.getElementById('detailBody'),type=document.getElementById('detailType'),actions=document.getElementById('detailActions');
   if(!detail||!body||!type||!actions)return;
-  let index=[],books=[],current=null,scrollTimer=0;
+  let index=[],books=[],current=null,scrollTimer=0,openSeq=0;
   const READING_KEY='jg_v10_reading',FAVORITES_KEY='jg_v10_favorites',POSITION_KEY='jg_v10_egw_position';
   fetch('./data/egw-index.json',{cache:'no-store'}).then(r=>r.json()).then(j=>{index=j.records||[]}).catch(()=>{});
   const booksReady=fetch('./data/egw-official-books.json',{cache:'no-store'}).then(r=>r.json()).then(j=>{books=j.books||[];return books}).catch(()=>books);
@@ -63,6 +63,7 @@
   }
   function returnToToc(){
     if(!current?.bookId||!current?.tocUrl||typeof window.jgOpenEgwBook!=='function')return false;
+    openSeq+=1;
     savePosition();
     const title=String(current.title||'').replace(/^[《]|[》]$/g,'');
     window.jgOpenEgwBook(current.bookId,current.tocUrl,title);
@@ -80,14 +81,19 @@
   }
   async function openUrl(url,meta={}){
     if(!allowed(url))return false;
+    const requestId=++openSeq;
     const previous=current;
     savePosition();
     showLoading(meta.title||previous?.title||'怀爱伦著作');
     try{
-      const r=await fetch(`/api/egw-read?url=${encodeURIComponent(url)}`,{cache:'no-store'}),j=await r.json();
+      const r=await fetch(`/api/egw-read?url=${encodeURIComponent(url)}`,{cache:'no-store'});
+      if(requestId!==openSeq)return false;
+      const j=await r.json();
+      if(requestId!==openSeq)return false;
       if(!r.ok||!j.ok)throw new Error(j.error||'read_failed');
       const chapterTitle=meta.chapter||j.title||'预言之灵阅读';
       const {bookId,tocUrl,bookTitle}=await resolveBookContext(url,meta,previous);
+      if(requestId!==openSeq)return false;
       type.textContent=chapterTitle;
       const navMeta=`data-egw-title="${esc(bookTitle)}" data-egw-book-id="${esc(bookId)}" data-egw-toc-url="${esc(tocUrl)}"`;
       const bottomNav=(j.prev||j.next)?`<nav class="egwChapterPager" aria-label="章节导航">${j.prev?`<button data-egw-native-url="${esc(j.prev.url)}" ${navMeta} data-egw-chapter="${esc(j.prev.title||'')}"><small>上一章</small><span>‹ ${esc(j.prev.title)}</span></button>`:'<span></span>'}${j.next?`<button data-egw-native-url="${esc(j.next.url)}" ${navMeta} data-egw-chapter="${esc(j.next.title||'')}"><small>下一章</small><span>${esc(j.next.title)} ›</span></button>`:'<span></span>'}</nav>`:'';
@@ -97,9 +103,10 @@
       try{localStorage.setItem('jg_last_egw_native',JSON.stringify({url,title:bookTitle,chapter:chapterTitle,bookId,tocUrl,at:Date.now()}))}catch(_){}
       return true;
     }catch(e){
+      if(requestId!==openSeq)return false;
       console.warn('EGW native reader failed',e);
       current=previous;
-      body.innerHTML=`<div class="empty">这一页暂时无法在站内读取。<div class="actions"><button data-official-url="${esc(url)}">打开官方原文</button></div></div>`;
+      body.innerHTML=`<div class="empty">这一页暂时无法在站内读取。<div class="actions"><button data-official-source="${esc(url)}">打开官方原文</button></div></div>`;
       window.jgRefreshReadAloud?.();
       return false;
     }
@@ -123,7 +130,7 @@
   },true);
   detail.addEventListener('scroll',()=>{clearTimeout(scrollTimer);scrollTimer=setTimeout(savePosition,220)},{passive:true});
   detail.addEventListener('cancel',savePosition);
-  detail.addEventListener('close',()=>{savePosition();if(detail.dataset.readerKind==='egw-reader')delete detail.dataset.readerKind});
+  detail.addEventListener('close',()=>{openSeq+=1;savePosition();if(detail.dataset.readerKind==='egw-reader')delete detail.dataset.readerKind});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')savePosition()});
   window.addEventListener('pagehide',savePosition);
   const style=document.createElement('style');style.textContent=`
