@@ -230,7 +230,7 @@
     .readAloudBar{position:sticky;top:52px;z-index:6;display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--card) 94%,transparent);backdrop-filter:blur(12px)}
     .readAloudBar button,.readAloudBar select{min-height:38px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font:inherit}
     .readAloudBar button{padding:0 12px}.readAloudBar .ttsMain{font-weight:800}.readAloudBar label{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}.readAloudBar select{padding:0 8px}
-    .ttsSpeaking{border-radius:6px;background:rgba(72,123,145,.16)!important;box-shadow:0 0 0 3px rgba(72,123,145,.08);transition:background .18s ease}
+    .ttsSpeaking{border-left:3px solid var(--accent)!important;background:transparent!important;box-shadow:none!important;transition:border-color .18s ease}
     @media(max-width:560px){.readAloudBar{top:48px;grid-template-columns:1fr 1.4fr 1fr}.readAloudBar label{grid-column:1/-1;justify-content:flex-end}.readAloudBar button{padding:0 8px;font-size:13px}}
   `;
   document.head.appendChild(style);
