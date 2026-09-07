@@ -59,13 +59,45 @@
     return show;
   }
 
+  function ensureChapterQuickNav() {
+    let nav = detail.querySelector('.readChapterQuickNav');
+    if (nav) return nav;
+    nav = document.createElement('div');
+    nav.className = 'readChapterQuickNav';
+    nav.hidden = true;
+    ensureToolbar().insertAdjacentElement('afterend', nav);
+    return nav;
+  }
+
+  function syncChapterQuickNav() {
+    const nav = ensureChapterQuickNav();
+    if (!detail.open || detail.dataset.readerKind !== 'egw-reader') {
+      nav.replaceChildren();
+      nav.hidden = true;
+      return;
+    }
+    const source = body.querySelector('.egwChapterPager');
+    const buttons = source ? [...source.querySelectorAll('button')] : [];
+    nav.replaceChildren();
+    for (const button of buttons) {
+      const clone = button.cloneNode(true);
+      clone.classList.add('readChapterQuickButton');
+      const text = cleanText(clone.textContent);
+      clone.textContent = /上一章/.test(text) ? '‹ 上一章' : '下一章 ›';
+      nav.appendChild(clone);
+    }
+    nav.hidden = !buttons.length;
+  }
+
   function collectUnits() {
     const candidates = [
       ...body.querySelectorAll('.reading .verse span, .egwReading .egwParagraph, .egw-original p, .detailSection p')
     ];
     const seen = new Set();
-    units = candidates.map(el => ({ el, text: cleanText(el.textContent) }))
-      .filter(x => x.text.length > 1 && !seen.has(x.text) && seen.add(x.text));
+    units = candidates
+      .filter(el => !seen.has(el) && seen.add(el))
+      .map(el => ({ el, text: cleanText(el.textContent) }))
+      .filter(x => x.text.length > 1);
     if (!units.length && readablePage()) {
       const reading = body.querySelector('.reading, .egw-original');
       const text = cleanText(reading?.textContent);
@@ -74,6 +106,7 @@
     activeKey = units.length ? titleKey() : '';
     index = units.length ? restorePosition(activeKey) : 0;
     syncToolbarVisibility();
+    syncChapterQuickNav();
     updateToolbar();
   }
 
@@ -208,9 +241,9 @@
     bar.className = 'readAloudBar';
     bar.hidden = true;
     bar.innerHTML = `
-      <button type="button" data-tts="prev" aria-label="上一段">‹</button>
+      <button type="button" class="ttsSkip" data-tts="prev" aria-label="上一段">上一段</button>
       <button type="button" class="ttsMain" data-tts="toggle">朗读</button>
-      <button type="button" data-tts="next" aria-label="下一段">›</button>
+      <button type="button" class="ttsSkip" data-tts="next" aria-label="下一段">下一段</button>
       <label aria-label="朗读语速">
         <select data-tts-rate aria-label="朗读语速">
           <option value="0.8">0.8×</option>
@@ -253,6 +286,9 @@
     units = [];
     activeKey = '';
     ensureToolbar().hidden = true;
+    const nav = ensureChapterQuickNav();
+    nav.replaceChildren();
+    nav.hidden = true;
   });
   detail.addEventListener('cancel', () => stop(false));
 
@@ -260,13 +296,20 @@
 
   const style = document.createElement('style');
   style.textContent = `
-    .readAloudBar[hidden]{display:none!important}
-    .readAloudBar{position:sticky;top:52px;z-index:6;display:flex;justify-content:center;align-items:center;gap:4px;padding:6px 10px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(12px)}
-    .readAloudBar button,.readAloudBar select{min-height:34px;border:0;border-radius:0;background:transparent;color:var(--text);font:inherit;box-shadow:none}
-    .readAloudBar button{min-width:38px;padding:0 8px}.readAloudBar .ttsMain{min-width:68px;color:var(--accent);font-weight:800}.readAloudBar label{display:flex;align-items:center}.readAloudBar select{padding:0 5px;color:var(--muted);font-size:12px}
+    .readAloudBar[hidden],.readChapterQuickNav[hidden]{display:none!important}
+    .readAloudBar{position:sticky;top:52px;z-index:7;display:flex;justify-content:center;align-items:center;gap:6px;padding:7px 10px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--surface) 96%,transparent);backdrop-filter:blur(12px)}
+    .readAloudBar button,.readAloudBar select{min-height:36px;font:inherit;box-shadow:none}
+    .readAloudBar button{padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--accent);font-size:12px;font-weight:700}
+    .readAloudBar .ttsMain{min-width:68px;border-color:var(--accent);background:var(--accent);color:#fff;font-weight:800}
+    .readAloudBar .ttsSkip{min-width:58px}
+    .readAloudBar label{display:flex;align-items:center}.readAloudBar select{padding:0 7px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--muted);font-size:12px}
+    .readChapterQuickNav{position:sticky;top:99px;z-index:6;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--surface) 96%,transparent);backdrop-filter:blur(12px)}
+    .readChapterQuickNav button{min-height:38px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--accent);font-size:12px;font-weight:700}
+    .readChapterQuickNav button:last-child{text-align:right}.readChapterQuickNav button:first-child{text-align:left}
     .ttsSpeaking{border-left:3px solid var(--accent)!important;background:transparent!important;box-shadow:none!important;transition:border-color .18s ease}
-    @media(max-width:560px){.readAloudBar{top:48px;padding:5px 8px}.readAloudBar button{min-width:34px;padding:0 6px;font-size:12px}.readAloudBar .ttsMain{min-width:60px}.readAloudBar select{font-size:11px}}
+    @media(max-width:560px){.readAloudBar{top:48px;justify-content:space-between;gap:4px;padding:6px}.readAloudBar button{padding:0 7px;font-size:11px}.readAloudBar .ttsSkip{min-width:52px}.readAloudBar .ttsMain{min-width:58px}.readAloudBar select{max-width:58px;padding:0 4px;font-size:11px}.readChapterQuickNav{top:94px;padding:5px 7px}.readChapterQuickNav button{min-height:36px;font-size:11px}}
   `;
   document.head.appendChild(style);
   ensureToolbar();
+  ensureChapterQuickNav();
 })();
