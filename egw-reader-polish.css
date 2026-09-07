@@ -1,0 +1,120 @@
+/* EGW reader visual polish: scoped to the native reading page only. */
+#detail[data-reader-kind="egw-reader"] #detailBody{
+  padding:0 0 calc(66px + env(safe-area-inset-bottom));
+}
+#detail[data-reader-kind="egw-reader"] .egwReaderArticle{
+  width:min(100%,720px);
+  margin:0 auto;
+  padding:10px 20px 30px;
+}
+#detail[data-reader-kind="egw-reader"] .egwReaderIntro{
+  padding:8px 0 16px;
+  border-bottom:0;
+  text-align:center;
+}
+#detail[data-reader-kind="egw-reader"] .egwReaderIntro .egwBookName{
+  margin:0 0 5px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.35;
+  letter-spacing:.02em;
+}
+#detail[data-reader-kind="egw-reader"] .egwReaderIntro h1{
+  margin:0 auto;
+  max-width:620px;
+  font-family:"Songti SC","STSong","Noto Serif SC",serif;
+  font-size:23px;
+  line-height:1.42;
+  font-weight:700;
+  color:var(--text);
+}
+#detail[data-reader-kind="egw-reader"] .egwReading{
+  max-width:660px;
+  margin:0 auto;
+  padding:12px 0 0;
+  border:0;
+  background:transparent!important;
+}
+#detail[data-reader-kind="egw-reader"] .egwParagraphWrap{
+  margin:0 0 1.12em;
+}
+#detail[data-reader-kind="egw-reader"] .egwReading .egwParagraph{
+  margin:0;
+  padding:0;
+  color:var(--text);
+  font-size:var(--reader-font,19px);
+  line-height:1.92;
+  letter-spacing:.005em;
+  text-align:left;
+  word-break:normal;
+  overflow-wrap:break-word;
+}
+#detail[data-reader-kind="egw-reader"] .egwLocator{
+  margin:2px 0 0;
+  color:var(--muted);
+  opacity:.68;
+  font-size:calc(var(--reader-font,19px)*.64);
+  line-height:1.35;
+  letter-spacing:.015em;
+}
+#detail[data-reader-kind="egw-reader"] .egwSectionHeading{
+  margin:1.55em 0 .58em;
+  font-size:calc(var(--reader-font,19px)*1.02);
+  line-height:1.5;
+}
+#detail[data-reader-kind="egw-reader"] .egwChapterPager{
+  margin:28px 0 2px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+}
+#detail[data-reader-kind="egw-reader"] .egwChapterPager button{
+  padding:8px 0;
+}
+#detail[data-reader-kind="egw-reader"] .egwChapterPager small{
+  opacity:.82;
+}
+#detail[data-reader-kind="egw-reader"]>footer{
+  gap:0;
+  padding:7px 10px calc(7px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 96%,transparent);
+  backdrop-filter:blur(14px);
+}
+#detail[data-reader-kind="egw-reader"]>footer button{
+  min-height:36px;
+  padding:5px 8px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:650;
+  box-shadow:none;
+}
+#detail[data-reader-kind="egw-reader"]>footer button:first-child{
+  color:var(--accent);
+}
+#detail[data-reader-kind="egw-reader"] .readAloudBar{
+  border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent);
+  background:color-mix(in srgb,var(--surface) 97%,transparent);
+}
+#detail[data-reader-kind="egw-reader"] .ttsSpeaking{
+  border-left:2px solid var(--accent)!important;
+  padding-left:8px!important;
+}
+@media(max-width:560px){
+  #detail[data-reader-kind="egw-reader"] .egwReaderArticle{padding:7px 16px 26px}
+  #detail[data-reader-kind="egw-reader"] .egwReaderIntro{padding:6px 0 13px}
+  #detail[data-reader-kind="egw-reader"] .egwReaderIntro h1{font-size:20px;line-height:1.4}
+  #detail[data-reader-kind="egw-reader"] .egwReading{padding-top:8px}
+  #detail[data-reader-kind="egw-reader"] .egwReading .egwParagraph{line-height:1.88}
+  #detail[data-reader-kind="egw-reader"] .egwParagraphWrap{margin-bottom:1.05em}
+  #detail[data-reader-kind="egw-reader"] .egwChapterPager{margin-top:24px}
+}
+@media(max-width:390px){
+  #detail[data-reader-kind="egw-reader"] .egwReaderArticle{padding-left:13px;padding-right:13px}
+  #detail[data-reader-kind="egw-reader"] .egwReaderIntro .egwBookName{font-size:10.5px}
+  #detail[data-reader-kind="egw-reader"] .egwReaderIntro h1{font-size:19px}
+  #detail[data-reader-kind="egw-reader"]>footer button{font-size:11px;padding-left:4px;padding-right:4px}
+  #detail[data-reader-kind="egw-reader"] .readAloudBar{padding-left:6px;padding-right:6px}
+}
