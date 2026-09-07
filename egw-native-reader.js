@@ -50,40 +50,53 @@
     });
   }
   function showLoading(title='怀爱伦著作'){
-    current=null;
+    detail.dataset.readerKind='egw-reader';
     detail.dataset.readingKey='';
     type.textContent='预言之灵阅读';
     body.innerHTML=`<span class="badge egw">怀著</span><h1>${esc(title)}</h1><div class="empty">正在读取原文章节…</div>`;
     actions.innerHTML='';
     if(!detail.open)detail.showModal();
   }
+  function returnToToc(){
+    if(!current?.bookId||!current?.tocUrl||typeof window.jgOpenEgwBook!=='function')return false;
+    savePosition();
+    const title=String(current.title||'').replace(/^[《]|[》]$/g,'');
+    window.jgOpenEgwBook(current.bookId,current.tocUrl,title);
+    return true;
+  }
   async function openUrl(url,meta={}){
     if(!allowed(url))return false;
+    const previous=current;
     savePosition();
-    showLoading(meta.title||'怀爱伦著作');
+    showLoading(meta.title||previous?.title||'怀爱伦著作');
     try{
       const r=await fetch(`/api/egw-read?url=${encodeURIComponent(url)}`,{cache:'no-store'}),j=await r.json();
       if(!r.ok||!j.ok)throw new Error(j.error||'read_failed');
       const chapterTitle=meta.chapter||j.title||'预言之灵阅读';
       type.textContent=chapterTitle;
-      const bookTitle=meta.title||current?.title||'';
-      const nav=`<div class="readerNav egwReaderNav">${j.prev?`<button data-egw-native-url="${esc(j.prev.url)}" data-egw-title="${esc(bookTitle)}" data-egw-chapter="${esc(j.prev.title||'')}">‹ ${esc(j.prev.title)}</button>`:'<span></span>'}${j.next?`<button data-egw-native-url="${esc(j.next.url)}" data-egw-title="${esc(bookTitle)}" data-egw-chapter="${esc(j.next.title||'')}">${esc(j.next.title)} ›</button>`:'<span></span>'}</div>`;
-      const title=meta.title||j.title||'怀爱伦著作';
-      body.innerHTML=`${nav}<span class="badge egw">怀著原文</span><h1>${esc(title)}</h1>${chapterTitle?`<h2 class="egwChapterTitle">${esc(chapterTitle)}</h2>`:''}<div class="meta">${meta.locator?esc(meta.locator)+' · ':''}怀爱伦著作中文原文</div><div class="reading egwReading">${renderBlocks(j)}</div>`;
-      current={type:'egw',native_url:url,title,chapter:chapterTitle,locator:meta.locator||''};
+      const bookTitle=meta.title||previous?.title||j.title||'怀爱伦著作';
+      const bookId=meta.bookId||previous?.bookId||'';
+      const tocUrl=meta.tocUrl||previous?.tocUrl||'';
+      const navMeta=`data-egw-title="${esc(bookTitle)}" data-egw-book-id="${esc(bookId)}" data-egw-toc-url="${esc(tocUrl)}"`;
+      const nav=`<div class="readerNav egwReaderNav">${j.prev?`<button data-egw-native-url="${esc(j.prev.url)}" ${navMeta} data-egw-chapter="${esc(j.prev.title||'')}">‹ ${esc(j.prev.title)}</button>`:'<span></span>'}${j.next?`<button data-egw-native-url="${esc(j.next.url)}" ${navMeta} data-egw-chapter="${esc(j.next.title||'')}">${esc(j.next.title)} ›</button>`:'<span></span>'}</div>`;
+      body.innerHTML=`${nav}<span class="badge egw">怀著原文</span><h1>${esc(bookTitle)}</h1>${chapterTitle?`<h2 class="egwChapterTitle">${esc(chapterTitle)}</h2>`:''}<div class="meta">${meta.locator?esc(meta.locator)+' · ':''}怀爱伦著作中文原文</div><div class="reading egwReading">${renderBlocks(j)}</div>`;
+      current={type:'egw',native_url:url,title:bookTitle,chapter:chapterTitle,locator:meta.locator||previous?.locator||'',bookId,tocUrl};
       remember(current);renderActions();restorePosition();
-      try{localStorage.setItem('jg_last_egw_native',JSON.stringify({url,title,chapter:chapterTitle,at:Date.now()}))}catch(_){}
+      try{localStorage.setItem('jg_last_egw_native',JSON.stringify({url,title:bookTitle,chapter:chapterTitle,bookId,tocUrl,at:Date.now()}))}catch(_){}
       return true;
     }catch(e){
       console.warn('EGW native reader failed',e);
-      body.innerHTML=`<span class="badge egw">怀著</span><h1>${esc(meta.title||'怀爱伦著作')}</h1><div class="empty">这一页暂时无法在站内读取。<div class="actions"><button data-official-url="${esc(url)}">打开官方原文</button></div></div>`;
+      current=previous;
+      body.innerHTML=`<span class="badge egw">怀著</span><h1>${esc(meta.title||previous?.title||'怀爱伦著作')}</h1><div class="empty">这一页暂时无法在站内读取。<div class="actions"><button data-official-url="${esc(url)}">打开官方原文</button></div></div>`;
       return false;
     }
   }
   function sourceById(id){return index.find(x=>String(x.id)===String(id))}
   document.addEventListener('click',e=>{
+    const back=e.target.closest('#back');
+    if(back&&detail.dataset.readerKind==='egw-reader'&&returnToToc()){e.preventDefault();e.stopImmediatePropagation();return}
     const nav=e.target.closest('[data-egw-native-url]');
-    if(nav){e.preventDefault();e.stopImmediatePropagation();openUrl(nav.dataset.egwNativeUrl,{title:nav.dataset.egwTitle||nav.dataset.egwBookTitle&&`《${nav.dataset.egwBookTitle}》`||current?.title||'',chapter:nav.dataset.egwChapter||nav.dataset.egwChapterTitle||''});return}
+    if(nav){e.preventDefault();e.stopImmediatePropagation();openUrl(nav.dataset.egwNativeUrl,{title:nav.dataset.egwTitle||nav.dataset.egwBookTitle&&`《${nav.dataset.egwBookTitle}》`||current?.title||'',chapter:nav.dataset.egwChapter||nav.dataset.egwChapterTitle||'',bookId:nav.dataset.egwBookId||current?.bookId||'',tocUrl:nav.dataset.egwTocUrl||current?.tocUrl||''});return}
     if(e.target.closest('[data-egw-native-favorite]')){e.preventDefault();e.stopImmediatePropagation();toggleFavorite();return}
     const source=e.target.closest('[data-official-source]');
     if(source){e.preventDefault();e.stopImmediatePropagation();window.open(source.dataset.officialSource,'_blank','noopener');return}
@@ -97,9 +110,9 @@
   },true);
   detail.addEventListener('scroll',()=>{clearTimeout(scrollTimer);scrollTimer=setTimeout(savePosition,220)},{passive:true});
   detail.addEventListener('cancel',savePosition);
-  detail.addEventListener('close',savePosition);
+  detail.addEventListener('close',()=>{savePosition();if(detail.dataset.readerKind==='egw-reader')delete detail.dataset.readerKind});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')savePosition()});
   window.addEventListener('pagehide',savePosition);
-  const style=document.createElement('style');style.textContent=`.egwReading{max-width:720px}.egwParagraphWrap{margin:0 0 13px}.egwReading .egwParagraph{margin:0;padding:0 5px;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:var(--reader-font,19px);line-height:2.05}.egwLocator{margin:3px 5px 0;color:var(--muted);font-size:calc(var(--reader-font,19px)*.72);line-height:1.5;letter-spacing:.01em}.egwSectionHeading{margin:28px 5px 11px;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:1.04em;line-height:1.5;color:var(--text);font-weight:700}.egwSourceRef{display:inline;color:var(--muted);font-size:.76em;line-height:1.5}.egwChapterTitle{font-size:16px;color:var(--muted);font-weight:600;margin-top:-4px}.egwReaderNav button{white-space:normal;line-height:1.4}.egwReaderNav span{min-width:0}@media(max-width:560px){.egwReading .egwParagraph{padding:0;line-height:1.95}.egwLocator,.egwSectionHeading{margin-left:0;margin-right:0}.egwReaderNav{gap:10px}.egwReaderNav button{font-size:12px;padding:8px 7px}}`;document.head.appendChild(style);
+  const style=document.createElement('style');style.textContent=`.egwReading{max-width:720px}.egwParagraphWrap{margin:0 0 13px}.egwReading .egwParagraph{margin:0;padding:0 5px;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:var(--reader-font,19px);line-height:2.05}.egwLocator{margin:3px 5px 0;color:var(--muted);font-size:calc(var(--reader-font,19px)*.72);line-height:1.5;letter-spacing:.01em}.egwSectionHeading{margin:28px 5px 11px;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:1.04em;line-height:1.5;color:var(--text);font-weight:700}.egwSourceRef{display:inline;color:var(--muted);font-size:.76em;line-height:1.5}.egwChapterTitle{font-size:16px;color:var(--muted);font-weight:600;margin-top:-4px}.egwReaderNav button{white-space:normal;line-height:1.4}.egwReaderNav span{min-width:0}#detail[data-reader-kind="egw-reader"]>header{grid-template-columns:auto minmax(0,1fr) auto}#detail[data-reader-kind="egw-reader"]>header>#back{white-space:nowrap}#detail[data-reader-kind="egw-reader"]>header>#detailType{min-width:0;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;line-height:1.25}#detail[data-reader-kind="egw-reader"]>header>.fontTools{flex-wrap:nowrap;white-space:nowrap}@media(max-width:560px){.egwReading .egwParagraph{padding:0;line-height:1.95}.egwLocator,.egwSectionHeading{margin-left:0;margin-right:0}.egwReaderNav{gap:10px}.egwReaderNav button{font-size:12px;padding:8px 7px}#detail[data-reader-kind="egw-reader"]>header{gap:5px;padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right))}#detail[data-reader-kind="egw-reader"]>header>#back{min-width:58px;padding-left:0;padding-right:4px}#detail[data-reader-kind="egw-reader"]>header>#detailType{font-size:12px}#detail[data-reader-kind="egw-reader"]>header>.fontTools{gap:0}#detail[data-reader-kind="egw-reader"]>header>.fontTools button{min-width:42px;font-size:12px}}@media(max-width:390px){#detail[data-reader-kind="egw-reader"]>header>#back{min-width:52px;font-size:12px}#detail[data-reader-kind="egw-reader"]>header>.fontTools button{min-width:38px;font-size:11px}#detail[data-reader-kind="egw-reader"]>header>#detailType{font-size:11.5px}}`;document.head.appendChild(style);
   window.jgOpenNativeEgw=openUrl;
 })();
