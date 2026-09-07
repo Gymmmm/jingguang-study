@@ -166,8 +166,8 @@
 
   search = async function keywordSearch(q) {
     const raw = String(q || '').trim();
-    if (!raw) return;
     const requestId=++officialSearchSeq;
+    if (!raw) return;
     const cleaned = cleanKeyword(raw) || raw;
     await oldSearch(cleaned);
     if(requestId!==officialSearchSeq)return;
