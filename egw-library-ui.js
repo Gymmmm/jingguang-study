@@ -20,7 +20,10 @@
   const anchors=[['A','阿'],['B','芭'],['C','擦'],['D','搭'],['E','蛾'],['F','发'],['G','噶'],['H','哈'],['J','击'],['K','喀'],['L','垃'],['M','妈'],['N','拿'],['O','哦'],['P','啪'],['Q','期'],['R','然'],['S','撒'],['T','塌'],['W','挖'],['X','昔'],['Y','压'],['Z','匝']];
 
   function initial(title){
-    const s=String(title||'').replace(/^\s*[0-9０-９]+\s*/,'').trim();
+    const s=String(title||'')
+      .replace(/^\s*[0-9０-９]+\s*/,'')
+      .replace(/^[\s《》〈〉“”"'「」『』【】（）()]+/,'')
+      .trim();
     const first=s[0]||'#';
     if(/[A-Za-z]/.test(first))return first.toUpperCase();
     let out='A';
@@ -92,7 +95,8 @@
       if(!chapters.length)throw new Error('empty_toc');
       body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button class="nativeSearchIcon" data-egw-back-search aria-label="搜索">⌕</button></div><div class="egwChapterList">${chapters.map(c=>`<button class="egwChapterRow" data-egw-native-url="${esc(c.url)}" data-egw-chapter-title="${esc(c.title)}" data-egw-book-title="${esc(b.title_cn)}"><span>${esc(c.title)}</span><b>›</b></button>`).join('')}</div>`;
     }catch(err){
-      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1></div><div class="empty">章节目录读取失败，请稍后重试。<br><small>${esc(err?.message||'toc_failed')}</small></div>`;
+      console.warn('EGW TOC read failed',err);
+      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1></div><div class="empty">暂时无法读取目录，请稍后重试。</div>`;
     }
   }
 
