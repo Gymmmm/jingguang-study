@@ -18,6 +18,7 @@
   function savePosition(){if(!current||!detail.open)return;const positions=read(POSITION_KEY,{});positions[itemId(current)]=Math.max(0,detail.scrollTop||0);write(POSITION_KEY,positions)}
   function restorePosition(){const saved=read(POSITION_KEY,{})[itemId(current)];requestAnimationFrame(()=>{detail.scrollTop=Number.isFinite(+saved)?Math.max(0,+saved):0})}
   function showLoading(title='怀爱伦著作'){
+    current=null;
     detail.dataset.readingKey='';
     type.textContent='预言之灵阅读';
     body.innerHTML=`<span class="badge egw">怀著</span><h1>${esc(title)}</h1><div class="empty">正在读取原文章节…</div>`;
