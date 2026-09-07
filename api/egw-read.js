@@ -37,29 +37,28 @@ function cleanHtml(html){
     .replace(/<svg[\s\S]*?<\/svg>/gi,'');
 }
 function blocks(html){
-  const cleaned=cleanHtml(html),out=[],seen=new Set();
-  const rx=/<(h[2-6]|p|div|span|li)\b[^>]*>([\s\S]*?)<\/\1>/gi;let m;
+  const cleaned=cleanHtml(html),candidates=[],rx=/<(h[2-6]|p|div|span|li)\b[^>]*>([\s\S]*?)<\/\1>/gi;let m;
   while((m=rx.exec(cleaned))){
     const tag=m[1].toLowerCase(),raw=decode(m[2]);
-    if(!raw||junk(raw)||seen.has(raw))continue;
+    if(!raw||junk(raw))continue;
     if(/^h[2-6]$/.test(tag)){
-      if(chinese(raw)>=2&&raw.length<=160&&!/^第\s*[0-9０-９一二三四五六七八九十百零〇]+\s*章/.test(raw)){
-        seen.add(raw);out.push({type:'heading',text:raw});
-      }
+      if(chinese(raw)>=2&&raw.length<=160&&!/^第\s*[0-9０-９一二三四五六七八九十百零〇]+\s*章/.test(raw))candidates.push({type:'heading',text:raw,pos:m.index});
       continue;
     }
     if(!readableCandidate(raw))continue;
-    const {text,locator}=splitLocator(raw);
-    if(!text||seen.has(text))continue;
-    seen.add(raw);seen.add(text);out.push({type:'paragraph',text,locator});
+    const {text,locator}=splitLocator(raw);if(text)candidates.push({type:'paragraph',text,locator,pos:m.index});
   }
-  const paras=out.filter(x=>x.type==='paragraph');
-  const filtered=out.filter((item,i,a)=>{
-    if(item.type!=='paragraph')return true;
-    return !a.some((other,j)=>j!==i&&other.type==='paragraph'&&other.text.length<item.text.length&&item.text.includes(other.text)&&item.text.length>other.text.length*1.6);
-  });
-  if(paras.length)return filtered.slice(0,220);
-  return [];
+  const located=candidates.filter(x=>x.type==='paragraph'&&x.locator);
+  const paragraphPool=located.length>=3?located:candidates.filter(x=>x.type==='paragraph'&&x.text.length<=900);
+  const unique=[] ,seen=new Set();
+  for(const item of paragraphPool){
+    const key=item.text+'\u0000'+item.locator;if(seen.has(key))continue;seen.add(key);unique.push(item);
+  }
+  const paragraphs=unique.filter((item,i,a)=>!a.some((other,j)=>j!==i&&other.text.length<item.text.length&&item.text.includes(other.text)&&item.text.length>other.text.length*1.6));
+  if(!paragraphs.length)return [];
+  const first=Math.min(...paragraphs.map(x=>x.pos)),last=Math.max(...paragraphs.map(x=>x.pos));
+  const headings=candidates.filter(x=>x.type==='heading'&&x.pos>=first&&x.pos<=last);
+  return [...paragraphs,...headings].sort((a,b)=>a.pos-b.pos).slice(0,220).map(({pos,...item})=>item);
 }
 function paragraphs(html){
   const structured=blocks(html).filter(x=>x.type==='paragraph');
