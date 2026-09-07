@@ -1,4 +1,5 @@
 /* EGW chapter directory polish: scoped to the native TOC only. */
+.tocSearchButton{display:none!important}
 #detail[data-reader-kind="egw-toc"]>header{
   grid-template-columns:auto minmax(0,1fr) auto;
   gap:8px;
