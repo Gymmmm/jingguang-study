@@ -39,16 +39,12 @@
     return out;
   }
   function setupShell(){
-    if(shelfRoot.querySelector('.egwModeTabs'))return;
-    const title=shelfRoot.querySelector('h2');
-    if(title)title.innerHTML='预言之灵';
-    const form=shelfRoot.querySelector('#egwAllChapterSearch');
-    if(form){form.classList.add('egwAppSearch');const badge=form.querySelector('.badge');if(badge)badge.remove();const b=form.querySelector('b');if(b)b.textContent='全文搜索';const small=form.querySelector('small');if(small)small.textContent='搜索怀爱伦著作正文，结果直接在本站打开。'}
-    const tabs=document.createElement('div');
-    tabs.className='egwModeTabs';
-    tabs.innerHTML='<button data-egw-mode="devotional">每日灵修</button><button class="active" data-egw-mode="books">书籍资料</button>';
-    const heading=[...shelfRoot.querySelectorAll('h2')].find(x=>x!==title&&x.textContent.includes('书籍'));
-    if(heading)heading.replaceWith(tabs);else shelf.before(tabs);
+    if(!shelfRoot.querySelector('.egwModeTabs')){
+      const tabs=document.createElement('div');
+      tabs.className='egwModeTabs';
+      tabs.innerHTML='<button data-egw-mode="devotional">每日灵修</button><button class="active" data-egw-mode="books">书籍资料</button>';
+      shelfRoot.insertBefore(tabs,input||shelf);
+    }
     if(input){input.placeholder='搜索书名';input.classList.add('egwBookSearchNative')}
   }
   function jumpToLetter(letter){
@@ -81,7 +77,7 @@
     for(const b of list){const key=initial(b.title_cn);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(b)}
     const letters=[...groups.keys()].sort((a,b)=>alphabet.indexOf(a)-alphabet.indexOf(b));
     shelf.className='egwNativeList';
-    shelf.innerHTML=letters.map(k=>`<section class="egwAlphaGroup" id="egw-alpha-${k}" data-letter="${k}"><h3>${k}</h3>${groups.get(k).map(b=>`<button class="egwBookRow" data-egw-book-id="${esc(b.id)}" data-egw-toc-url="${esc(b.toc_url)}" data-egw-book-title="${esc(b.title_cn)}"><span>${esc(b.title_cn)}</span><b>›</b></button>`).join('')}</section>`).join('')||'<div class="empty">没有匹配的书籍。</div>';
+    shelf.innerHTML=letters.map(k=>`<section class="egwAlphaGroup" id="egw-alpha-${k}" data-letter="${k}"><h3>${k}</h3>${groups.get(k).map(b=>`<button class="egwBookRow" data-egw-book-id="${esc(b.id)}" data-egw-toc-url="${esc(b.toc_url)}" data-egw-book-title="${esc(b.title_cn)}"><span>${esc(b.title_cn)}</span><b>›</b></button>`).join('')}</section>`).join('')||(mode==='devotional'?'<div class="empty">每日灵修书单正在核验整理，请先使用书籍资料阅读。</div>':'<div class="empty">没有匹配的书籍。</div>');
     let rail=shelfRoot.querySelector('.egwAlphaRail');if(!rail){rail=document.createElement('div');rail.className='egwAlphaRail';shelfRoot.appendChild(rail)}
     const available=new Set(letters);
     rail.innerHTML=alphabet.map(k=>`<button type="button" data-egw-letter="${k}" aria-label="跳到 ${k}" aria-disabled="${available.has(k)?'false':'true'}" class="${available.has(k)?'':'empty'}">${k}</button>`).join('');
