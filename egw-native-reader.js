@@ -11,6 +11,16 @@
   const write=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value))}catch(_){}};
   const itemId=item=>`egw-native:${String(item?.native_url||'').replace(/[?#].*$/,'')}`;
   const formatParagraph=text=>String(text??'').split(/(\([A-Za-z]{1,12}\.?\s*\d+(?:\.\d+)*\)|\{[A-Za-z]{1,12}\s+\d+(?:\.\d+)+\}|〖\d+〗|\b[A-Za-z]{1,12}[A-Z]?\s+\d+(?:\.\d+)+)/g).map(part=>/^(?:\(|\{|〖|[A-Za-z])/.test(part)?`<small class="egwSourceRef">${esc(part)}</small>`:esc(part)).join('');
+  const renderLocator=locator=>locator?`<div class="egwLocator" aria-label="原文定位">${esc(locator)}</div>`:'';
+  function renderBlocks(j){
+    const blocks=Array.isArray(j.blocks)?j.blocks:[];
+    if(blocks.length)return blocks.map((block,i)=>{
+      if(block?.type==='heading')return `<h3 class="egwSectionHeading">${esc(block.text||'')}</h3>`;
+      if(block?.type==='paragraph')return `<div class="egwParagraphWrap" data-egw-wrap="${i}"><p class="egwParagraph" data-egw-paragraph="${i}">${esc(block.text||'')}</p>${renderLocator(block.locator||'')}</div>`;
+      return '';
+    }).join('');
+    return (j.paragraphs||[]).map((p,i)=>`<div class="egwParagraphWrap"><p class="egwParagraph" data-egw-paragraph="${i}">${formatParagraph(p)}</p></div>`).join('');
+  }
   function remember(item){const id=itemId(item),items=read(READING_KEY).filter(x=>itemId(x)!==id);items.unshift({...item,at:Date.now()});write(READING_KEY,items.slice(0,12))}
   function isFavorite(item){const id=itemId(item);return read(FAVORITES_KEY).some(x=>itemId(x)===id)}
   function renderActions(){if(current)actions.innerHTML=`<button data-egw-native-favorite>${isFavorite(current)?'★ 已收藏':'☆ 收藏本章'}</button><button data-official-source="${esc(current.native_url)}">核验官方原始出处</button>`}
@@ -36,7 +46,6 @@
         const paras=[...body.querySelectorAll('.egwParagraph')],i=Math.max(0,Math.min(paras.length-1,+saved.paragraph||0)),p=paras[i];
         if(p){const offset=Math.max(0,Math.min(1,+saved.offset||0));detail.scrollTop=Math.max(0,p.offsetTop+p.offsetHeight*offset-Math.min(140,Math.max(72,detail.clientHeight*.18)));return}
       }
-      // 兼容旧版按像素保存的数据，读取一次后后续滚动会自动迁移为段落位置。
       detail.scrollTop=Number.isFinite(+saved)?Math.max(0,+saved):0;
     });
   }
@@ -55,13 +64,15 @@
     try{
       const r=await fetch(`/api/egw-read?url=${encodeURIComponent(url)}`,{cache:'no-store'}),j=await r.json();
       if(!r.ok||!j.ok)throw new Error(j.error||'read_failed');
-      type.textContent=meta.chapter||j.title||'预言之灵阅读';
-      const nav=`<div class="readerNav">${j.prev?`<button data-egw-native-url="${esc(j.prev.url)}" data-egw-chapter="${esc(j.prev.title||'')}">‹ ${esc(j.prev.title)}</button>`:'<span></span>'}${j.next?`<button data-egw-native-url="${esc(j.next.url)}" data-egw-chapter="${esc(j.next.title||'')}">${esc(j.next.title)} ›</button>`:'<span></span>'}</div>`;
+      const chapterTitle=meta.chapter||j.title||'预言之灵阅读';
+      type.textContent=chapterTitle;
+      const bookTitle=meta.title||current?.title||'';
+      const nav=`<div class="readerNav egwReaderNav">${j.prev?`<button data-egw-native-url="${esc(j.prev.url)}" data-egw-title="${esc(bookTitle)}" data-egw-chapter="${esc(j.prev.title||'')}">‹ ${esc(j.prev.title)}</button>`:'<span></span>'}${j.next?`<button data-egw-native-url="${esc(j.next.url)}" data-egw-title="${esc(bookTitle)}" data-egw-chapter="${esc(j.next.title||'')}">${esc(j.next.title)} ›</button>`:'<span></span>'}</div>`;
       const title=meta.title||j.title||'怀爱伦著作';
-      body.innerHTML=`${nav}<span class="badge egw">怀著原文</span><h1>${esc(title)}</h1>${meta.chapter?`<h2 class="egwChapterTitle">${esc(meta.chapter)}</h2>`:''}<div class="meta">${meta.locator?esc(meta.locator)+' · ':''}怀爱伦著作中文原文</div><div class="reading egwReading">${(j.paragraphs||[]).map((p,i)=>`<p class="egwParagraph" data-egw-paragraph="${i}">${formatParagraph(p)}</p>`).join('')}</div>`;
-      current={type:'egw',native_url:url,title,chapter:meta.chapter||j.title||'',locator:meta.locator||''};
+      body.innerHTML=`${nav}<span class="badge egw">怀著原文</span><h1>${esc(title)}</h1>${chapterTitle?`<h2 class="egwChapterTitle">${esc(chapterTitle)}</h2>`:''}<div class="meta">${meta.locator?esc(meta.locator)+' · ':''}怀爱伦著作中文原文</div><div class="reading egwReading">${renderBlocks(j)}</div>`;
+      current={type:'egw',native_url:url,title,chapter:chapterTitle,locator:meta.locator||''};
       remember(current);renderActions();restorePosition();
-      try{localStorage.setItem('jg_last_egw_native',JSON.stringify({url,title:meta.title||j.title,chapter:meta.chapter||j.title||'',at:Date.now()}))}catch(_){}
+      try{localStorage.setItem('jg_last_egw_native',JSON.stringify({url,title,chapter:chapterTitle,at:Date.now()}))}catch(_){}
       return true;
     }catch(e){
       console.warn('EGW native reader failed',e);
@@ -89,6 +100,6 @@
   detail.addEventListener('close',savePosition);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')savePosition()});
   window.addEventListener('pagehide',savePosition);
-  const style=document.createElement('style');style.textContent=`.egwReading{max-width:720px}.egwReading .egwParagraph{margin:0;padding:10px 12px;border-radius:7px;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:var(--reader-font,19px);line-height:2.05}.egwReading .egwParagraph+ .egwParagraph{margin-top:2px}.egwSourceRef{display:inline;color:var(--muted);font-size:.76em;line-height:1.5}.egwChapterTitle{font-size:16px;color:var(--muted);font-weight:600;margin-top:-4px}@media(max-width:560px){.egwReading .egwParagraph{padding:9px 5px;line-height:1.95}}`;document.head.appendChild(style);
+  const style=document.createElement('style');style.textContent=`.egwReading{max-width:720px}.egwParagraphWrap{margin:0 0 13px}.egwReading .egwParagraph{margin:0;padding:0 5px;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:var(--reader-font,19px);line-height:2.05}.egwLocator{margin:3px 5px 0;color:var(--muted);font-size:calc(var(--reader-font,19px)*.72);line-height:1.5;letter-spacing:.01em}.egwSectionHeading{margin:28px 5px 11px;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:1.04em;line-height:1.5;color:var(--text);font-weight:700}.egwSourceRef{display:inline;color:var(--muted);font-size:.76em;line-height:1.5}.egwChapterTitle{font-size:16px;color:var(--muted);font-weight:600;margin-top:-4px}.egwReaderNav button{white-space:normal;line-height:1.4}.egwReaderNav span{min-width:0}@media(max-width:560px){.egwReading .egwParagraph{padding:0;line-height:1.95}.egwLocator,.egwSectionHeading{margin-left:0;margin-right:0}.egwReaderNav{gap:10px}.egwReaderNav button{font-size:12px;padding:8px 7px}}`;document.head.appendChild(style);
   window.jgOpenNativeEgw=openUrl;
 })();
