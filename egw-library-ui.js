@@ -19,6 +19,7 @@
     const read=s.match(/\/(?:read|zh\/book)\/(\d+)\.(\d+)/i);
     return read?`https://text.egwwritings.org/read/${read[1]}.${read[2]}`:s.replace(/[?#].*$/,'');
   };
+  const officialTocAllowed=url=>/^https?:\/\/(?:m\.|text\.)?egwwritings\.org\/(?:book\/b|zh\/book\/)/i.test(String(url||''));
   const lastReading=()=>{try{return JSON.parse(localStorage.getItem('jg_last_egw_native')||'null')}catch(_){return null}};
   const devotionalRx=/每日|灵修|晨钟|天父|从心出发|从心发出|高举主耶稣|举目向上|得胜的基督|奋斗与勇敢|今日|荣耀之光|彰显主基督|信仰的基础|与主同行|一同在天上/i;
   const collator=new Intl.Collator('zh-CN-u-co-pinyin');
@@ -86,7 +87,11 @@
     setupRail(rail);
     shelfRoot.querySelectorAll('[data-egw-mode]').forEach(x=>x.classList.toggle('active',x.dataset.egwMode===mode));
   }
-  function openDialog(){if(!detail.open)detail.showModal();detail.scrollTop=0}
+  function openDialog(){
+    detail.dataset.readingKey='';
+    if(!detail.open)detail.showModal();
+    detail.scrollTop=0;
+  }
   function restoreChapterInToc(bookId){
     const last=lastReading();
     if(!last||String(last.bookId||'')!==String(bookId||''))return;
@@ -95,30 +100,48 @@
     const row=[...body.querySelectorAll('.egwChapterRow')].find(x=>canonicalUrl(x.dataset.egwNativeUrl)===target);
     if(!row)return;
     row.classList.add('currentReading');
+    row.setAttribute('aria-current','location');
     const label=document.createElement('small');
     label.className='currentReadingLabel';
     label.textContent='上次读到这里';
     row.querySelector('span')?.appendChild(label);
     requestAnimationFrame(()=>row.scrollIntoView({block:'center',behavior:'auto'}));
   }
+  function showEgwShelfSearch(){
+    if(detail.open)detail.close();
+    const nav=document.querySelector('[data-open-shelf="egw"]');
+    if(nav)nav.click();
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      input?.focus();
+      input?.scrollIntoView({behavior:'smooth',block:'center'});
+    }));
+  }
   async function openBook(id,fallbackUrl='',fallbackTitle=''){
     const found=books.find(x=>String(x.id)===String(id));
     const b=found||{id,title_cn:fallbackTitle||'怀爱伦著作',toc_url:fallbackUrl};
     detail.dataset.readerKind='egw-toc';
-    if(!b.toc_url){body.innerHTML='<div class="empty">这本书暂时没有目录地址。</div>';openDialog();return}
+    detail.dataset.readingKey='';
     type.textContent=b.title_cn||'预言之灵';
-    body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button class="nativeSearchIcon" data-egw-back-search aria-label="搜索">⌕</button></div><div class="empty">正在读取章节目录…</div>`;
-    actions.innerHTML=`<button data-official-url="${esc(b.toc_url)}">查看官方目录</button>`;openDialog();
+    if(!b.toc_url){
+      actions.innerHTML='';
+      body.innerHTML='<div class="empty">这本书暂时没有目录地址。</div>';
+      openDialog();
+      return;
+    }
+    const officialAction=officialTocAllowed(b.toc_url)?`<button type="button" data-egw-official-toc="${esc(b.toc_url)}">查看官方目录</button>`:'';
+    actions.innerHTML=officialAction;
+    body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名">⌕</button></div><div class="empty">正在读取章节目录…</div>`;
+    openDialog();
     try{
       const r=await fetch(`/api/egw-read?toc=1&url=${encodeURIComponent(b.toc_url)}&_=${Date.now()}`,{cache:'no-store'}),j=await r.json();
       if(!r.ok||!j.ok)throw new Error(j.error||'toc_failed');
-      const chapters=(j.chapters||[]).filter((x,i,a)=>x.url&&x.title&&a.findIndex(y=>y.url===x.url)===i);
+      const chapters=(j.chapters||[]).filter((x,i,a)=>x.url&&x.title&&a.findIndex(y=>canonicalUrl(y.url)===canonicalUrl(x.url))===i);
       if(!chapters.length)throw new Error('empty_toc');
-      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button class="nativeSearchIcon" data-egw-back-search aria-label="搜索">⌕</button></div><div class="egwChapterList">${chapters.map(c=>`<button class="egwChapterRow" data-egw-native-url="${esc(c.url)}" data-egw-chapter-title="${esc(c.title)}" data-egw-book-title="${esc(b.title_cn)}" data-egw-book-id="${esc(b.id)}" data-egw-toc-url="${esc(b.toc_url)}"><span>${esc(c.title)}</span><b>›</b></button>`).join('')}</div>`;
+      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名">⌕</button></div><div class="egwChapterList">${chapters.map(c=>`<button type="button" class="egwChapterRow" data-egw-native-url="${esc(c.url)}" data-egw-chapter-title="${esc(c.title)}" data-egw-book-title="${esc(b.title_cn)}" data-egw-book-id="${esc(b.id)}" data-egw-toc-url="${esc(b.toc_url)}"><span>${esc(c.title)}</span><b aria-hidden="true">›</b></button>`).join('')}</div>`;
       restoreChapterInToc(b.id);
     }catch(err){
       console.warn('EGW TOC read failed',err);
-      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1></div><div class="empty">暂时无法读取目录，请稍后重试。</div>`;
+      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名">⌕</button></div><div class="empty">暂时无法读取目录，请稍后重试。</div>`;
     }
   }
 
@@ -129,7 +152,8 @@
     const book=e.target.closest('[data-egw-book-id]:not([data-egw-chapter-title])');if(book){e.preventDefault();e.stopImmediatePropagation();openBook(book.dataset.egwBookId,book.dataset.egwTocUrl,book.dataset.egwBookTitle);return}
     const legacy=e.target.closest('[data-official-id]');if(legacy){e.preventDefault();e.stopImmediatePropagation();const title=legacy.closest('button,article')?.querySelector('b,.title')?.textContent?.replace(/[《》]/g,'')||'';openBook(legacy.dataset.officialId,legacy.dataset.officialUrl,title);return}
     const chapter=e.target.closest('[data-egw-chapter-title]');if(chapter){e.preventDefault();e.stopImmediatePropagation();if(window.jgOpenNativeEgw){window.jgOpenNativeEgw(chapter.dataset.egwNativeUrl,{title:`《${chapter.dataset.egwBookTitle||'怀爱伦著作'}》`,chapter:chapter.dataset.egwChapterTitle||'',bookId:chapter.dataset.egwBookId||'',tocUrl:chapter.dataset.egwTocUrl||''})}else{location.href=chapter.dataset.egwNativeUrl}return}
-    const search=e.target.closest('[data-egw-back-search]');if(search){e.preventDefault();detail.close();input?.focus();input?.scrollIntoView({behavior:'smooth',block:'center'});return}
+    const officialToc=e.target.closest('[data-egw-official-toc]');if(officialToc){e.preventDefault();e.stopImmediatePropagation();if(officialTocAllowed(officialToc.dataset.egwOfficialToc))window.open(officialToc.dataset.egwOfficialToc,'_blank','noopener');return}
+    const search=e.target.closest('[data-egw-back-search]');if(search){e.preventDefault();e.stopImmediatePropagation();showEgwShelfSearch();return}
   },true);
 
   const style=document.createElement('style');
