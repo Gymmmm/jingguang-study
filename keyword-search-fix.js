@@ -91,11 +91,29 @@
     });
   };
 
-  const officialSearchUrl = q => `https://text.egwwritings.org/search.php?QUERY=${encodeURIComponent(q)}&lang=zh`;
   const oldSearch = search;
+  const chineseResultText=value=>String(value||'')
+    .replace(/<[^>]*>/g,' ')
+    .replace(/\s*\(Ellen\s+Gould(?:\s+White|\s+Wh)?\)?/gi,'')
+    .replace(/,\s*p\.\s*([0-9.]+)/gi,' · 原版位置 $1')
+    .replace(/,?\s*p\.?\s*(?=$|…)/gi,' ')
+    .replace(/[?&]?t?ype=basic(?:&amp;|&)limit=\d+["'>]*/gi,' ')
+    .replace(/(?:>\s*){2,}/g,' ')
+    .replace(/https?:\/\/\S+/gi,' ')
+    .replace(/\S*(?:%[0-9A-F]{2}){2,}\S*/gi,' ')
+    .replace(/\s+/g,' ').trim();
+  const resultExcerpt=(value,q)=>{
+    const text=chineseResultText(value)
+      .replace(/(?:^|\s)\d{1,3}\s+[\u4e00-\u9fff][^·]{0,32}·\s*原版位置\s*[0-9.]+/g,' ')
+      .replace(/\s+/g,' ').trim();
+    if(text.length<=280)return text;
+    const at=text.indexOf(String(q||'').trim());
+    const start=at>90?at-90:0,end=Math.min(text.length,start+280);
+    return `${start?'…':''}${text.slice(start,end)}${end<text.length?'…':''}`;
+  };
   const parseChapter = text => {
     const s=String(text||'');
-    return (s.match(/第\s*[0-9一二三四五六七八九十百零〇两]+\s*章[^。；，]{0,30}/)?.[0] || s.match(/\bchapter\s+\d+[^.]{0,30}/i)?.[0] || '').trim();
+    return (s.match(/第\s*[0-9一二三四五六七八九十百零〇两]+\s*章[^。；，]{0,30}/)?.[0] || '').trim();
   };
   const highlight = (text,q) => {
     const safe=esc(text||'');
@@ -125,20 +143,20 @@
       host.appendChild(heading);
       if(!rows.length){
         const empty=document.createElement('div');empty.className='empty';empty.dataset.kind='egw';
-        empty.innerHTML=`没有找到“${esc(q)}”的怀著全文结果。 <button data-official-url="${esc(j.official_url||officialSearchUrl(q))}">打开官方搜索</button>`;
+        empty.textContent=`没有找到“${q}”的怀爱伦著作正文结果。`;
         host.appendChild(empty);return;
       }
       rows.forEach((row,i)=>{
-        const chapter=parseChapter(`${row.title||''} ${row.snippet||''}`);
+        const title=chineseResultText(row.title)||`怀爱伦著作结果 ${i+1}`,snippet=resultExcerpt(row.snippet,q),chapter=parseChapter(`${title} ${snippet}`);
         const card=document.createElement('article');
         card.className='card egwNativeHit';card.dataset.kind='egw';card.dataset.egwNativeUrl=row.url;
-        card.innerHTML=`<div class="top"><span class="badge egw">怀著</span><span class="title">${esc(row.title||`怀著结果 ${i+1}`)}</span><span class="chevron">›</span></div>${chapter?`<div class="egwResultChapter">${esc(chapter)}</div>`:''}<div class="snippet">${highlight(row.snippet||'',q)}</div><div class="meta">点开阅读原文</div>`;
+        card.innerHTML=`<div class="top"><span class="badge egw">怀著</span><span class="title">${esc(title)}</span><span class="chevron">›</span></div>${chapter?`<div class="egwResultChapter">${esc(chapter)}</div>`:''}<div class="snippet">${highlight(snippet,q)}</div><div class="meta">点开阅读原文</div>`;
         host.appendChild(card);
       });
     }catch(e){
       loading.remove();
-      const card=document.createElement('article');card.className='card';card.dataset.kind='egw';card.dataset.egwOfficialSearch='1';
-      card.innerHTML=`<div class="top"><span class="badge egw">怀著全文</span><span class="title">搜索“${esc(q)}”</span></div><div class="snippet">全文搜索暂时未返回结果，可打开官方搜索。</div><div class="actions"><button class="primary" data-official-url="${esc(officialSearchUrl(q))}">打开官方搜索</button></div>`;
+      const card=document.createElement('article');card.className='empty';card.dataset.kind='egw';card.dataset.egwOfficialSearch='1';
+      card.textContent='怀爱伦著作正文暂时无法读取，请稍后在本站重试。';
       host.appendChild(card);
     }
   }
@@ -157,6 +175,6 @@
   };
 
   const style=document.createElement('style');
-  style.textContent=`.fullChapterSearch{margin:12px 0 18px;padding:16px;border:2px solid #2e5578;border-radius:14px;background:#eef4f8}.fullChapterSearch>div:first-child{display:flex;flex-direction:column;gap:5px;margin-bottom:11px}.fullChapterSearch .badge{align-self:flex-start}.fullChapterSearch b{font-size:17px}.fullChapterSearch small{color:var(--muted)}.fullChapterSearchRow{display:grid;grid-template-columns:1fr auto;gap:8px}.egwNativeHit{cursor:pointer}.egwNativeHit .top{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}.egwNativeHit .chevron{font-size:24px;color:var(--muted)}.egwResultChapter{margin:5px 0 6px;font-weight:700}.egwHitMark{background:rgba(72,123,145,.16);color:inherit;border-radius:4px;padding:0 2px}@media(max-width:560px){.fullChapterSearchRow{grid-template-columns:1fr}.fullChapterSearchRow button{min-height:44px}}`;
+  style.textContent=`.fullChapterSearch{margin:12px 0 18px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--soft)}.fullChapterSearch>div:first-child{display:flex;flex-direction:column;gap:5px;margin-bottom:11px}.fullChapterSearch .badge{align-self:flex-start}.fullChapterSearch b{font-size:17px}.fullChapterSearch small{color:var(--muted)}.fullChapterSearchRow{display:grid;grid-template-columns:1fr auto;gap:8px}.egwNativeHit{cursor:pointer}.egwNativeHit .top{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}.egwNativeHit .chevron{font-size:24px;color:var(--muted)}.egwResultChapter{margin:5px 0 6px;font-weight:700}.egwHitMark{background:transparent;color:var(--accent);border-bottom:1px solid var(--accent);padding:0;font-weight:750}@media(max-width:560px){.fullChapterSearchRow{grid-template-columns:1fr}.fullChapterSearchRow button{min-height:44px}}`;
   document.head.appendChild(style);
 })();

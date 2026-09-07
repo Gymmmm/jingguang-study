@@ -64,6 +64,6 @@
   };
 
   const style=document.createElement('style');
-  style.textContent=`mark.search-hit{background:#dceaf2;color:#234f68;border-radius:4px;padding:0 .12em;font-weight:750;box-shadow:inset 0 -1px 0 #86aebf}html[data-theme="dark"] mark.search-hit{background:#294755;color:#dceef5;box-shadow:inset 0 -1px 0 #6d9aac}`;
+  style.textContent=`mark.search-hit{background:transparent;color:var(--accent);border-radius:0;padding:0;font-weight:800;box-shadow:inset 0 -1px 0 var(--accent)}html[data-theme="dark"] mark.search-hit{background:transparent;color:var(--accent);box-shadow:inset 0 -1px 0 var(--accent)}`;
   document.head.appendChild(style);
 })();
