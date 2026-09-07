@@ -2,14 +2,17 @@
   'use strict';
   const detail=document.getElementById('detail'),body=document.getElementById('detailBody'),type=document.getElementById('detailType'),actions=document.getElementById('detailActions');
   if(!detail||!body||!type||!actions)return;
-  let index=[],current=null,scrollTimer=0;
+  let index=[],books=[],current=null,scrollTimer=0;
   const READING_KEY='jg_v10_reading',FAVORITES_KEY='jg_v10_favorites',POSITION_KEY='jg_v10_egw_position';
   fetch('./data/egw-index.json',{cache:'no-store'}).then(r=>r.json()).then(j=>{index=j.records||[]}).catch(()=>{});
+  const booksReady=fetch('./data/egw-official-books.json',{cache:'no-store'}).then(r=>r.json()).then(j=>{books=j.books||[];return books}).catch(()=>books);
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const allowed=url=>/^https?:\/\/(?:m\.|text\.)?egwwritings\.org\/(?:read\/|zh\/book\/)/i.test(String(url||''));
   const read=(key,fallback=[])=>{try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch(_){return fallback}};
   const write=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value))}catch(_){}};
   const itemId=item=>`egw-native:${String(item?.native_url||'').replace(/[?#].*$/,'')}`;
+  const bookIdFromUrl=url=>(String(url||'').match(/\/(?:read|zh\/book)\/(\d+)/i)||[])[1]||'';
+  const bookById=id=>books.find(x=>String(x.id)===String(id));
   const formatParagraph=text=>String(text??'').split(/(\([A-Za-z]{1,12}\.?\s*\d+(?:\.\d+)*\)|\{[A-Za-z]{1,12}\s+\d+(?:\.\d+)+\}|〖\d+〗|\b[A-Za-z]{1,12}[A-Z]?\s+\d+(?:\.\d+)+)/g).map(part=>/^(?:\(|\{|〖|[A-Za-z])/.test(part)?`<small class="egwSourceRef">${esc(part)}</small>`:esc(part)).join('');
   const renderLocator=locator=>locator?`<div class="egwLocator" aria-label="原文定位">${esc(locator)}</div>`:'';
   function renderBlocks(j){
@@ -64,6 +67,16 @@
     window.jgOpenEgwBook(current.bookId,current.tocUrl,title);
     return true;
   }
+  async function resolveBookContext(url,meta,previous){
+    const urlBookId=bookIdFromUrl(url);
+    let bookId=String(meta.bookId||urlBookId||previous?.bookId||'');
+    if(bookId&&!bookById(bookId))await booksReady;
+    const book=bookById(bookId);
+    const previousMatches=!bookId||String(previous?.bookId||'')===bookId;
+    const bookTitle=meta.title||(book?.title_cn?`《${book.title_cn}》`:'')||(previousMatches?previous?.title:'')||'怀爱伦著作';
+    const tocUrl=meta.tocUrl||book?.toc_url||(previousMatches?previous?.tocUrl:'')||'';
+    return {bookId,tocUrl,bookTitle};
+  }
   async function openUrl(url,meta={}){
     if(!allowed(url))return false;
     const previous=current;
@@ -73,9 +86,7 @@
       const r=await fetch(`/api/egw-read?url=${encodeURIComponent(url)}`,{cache:'no-store'}),j=await r.json();
       if(!r.ok||!j.ok)throw new Error(j.error||'read_failed');
       const chapterTitle=meta.chapter||j.title||'预言之灵阅读';
-      const bookTitle=meta.title||previous?.title||'怀爱伦著作';
-      const bookId=meta.bookId||previous?.bookId||'';
-      const tocUrl=meta.tocUrl||previous?.tocUrl||'';
+      const {bookId,tocUrl,bookTitle}=await resolveBookContext(url,meta,previous);
       type.textContent=chapterTitle;
       const navMeta=`data-egw-title="${esc(bookTitle)}" data-egw-book-id="${esc(bookId)}" data-egw-toc-url="${esc(tocUrl)}"`;
       const bottomNav=(j.prev||j.next)?`<nav class="egwChapterPager" aria-label="章节导航">${j.prev?`<button data-egw-native-url="${esc(j.prev.url)}" ${navMeta} data-egw-chapter="${esc(j.prev.title||'')}"><small>上一章</small><span>‹ ${esc(j.prev.title)}</span></button>`:'<span></span>'}${j.next?`<button data-egw-native-url="${esc(j.next.url)}" ${navMeta} data-egw-chapter="${esc(j.next.title||'')}"><small>下一章</small><span>${esc(j.next.title)} ›</span></button>`:'<span></span>'}</nav>`:'';
@@ -96,7 +107,7 @@
     const back=e.target.closest('#back');
     if(back&&detail.dataset.readerKind==='egw-reader'&&returnToToc()){e.preventDefault();e.stopImmediatePropagation();return}
     const nav=e.target.closest('[data-egw-native-url]');
-    if(nav){e.preventDefault();e.stopImmediatePropagation();openUrl(nav.dataset.egwNativeUrl,{title:nav.dataset.egwTitle||nav.dataset.egwBookTitle&&`《${nav.dataset.egwBookTitle}》`||current?.title||'',chapter:nav.dataset.egwChapter||nav.dataset.egwChapterTitle||'',bookId:nav.dataset.egwBookId||current?.bookId||'',tocUrl:nav.dataset.egwTocUrl||current?.tocUrl||''});return}
+    if(nav){e.preventDefault();e.stopImmediatePropagation();openUrl(nav.dataset.egwNativeUrl,{title:nav.dataset.egwTitle||nav.dataset.egwBookTitle&&`《${nav.dataset.egwBookTitle}》`||'',chapter:nav.dataset.egwChapter||nav.dataset.egwChapterTitle||'',bookId:nav.dataset.egwBookId||'',tocUrl:nav.dataset.egwTocUrl||''});return}
     if(e.target.closest('[data-egw-native-favorite]')){e.preventDefault();e.stopImmediatePropagation();toggleFavorite();return}
     const source=e.target.closest('[data-official-source]');
     if(source){e.preventDefault();e.stopImmediatePropagation();window.open(source.dataset.officialSource,'_blank','noopener');return}
