@@ -16,35 +16,62 @@ const decode=s=>String(s||'')
 const chinese=s=>(s.match(/[\u3400-\u9fff]/g)||[]).length;
 const junk=s=>/^(Loading|Search|Contents|Book Info|Copy|Print|Larger font|Smaller font|Main|Chinese|English|Show search|Hide search|Your mail sent|Error while)/i.test(s)||/Search Syntax Examples|All collections|Support our ministry|Go to Full App/i.test(s);
 const headers={'user-agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/151 Safari/537.36','accept-language':'zh-CN,zh;q=0.9,en;q=0.5'};
+const LOCATOR_TAIL=/(?:\s*(?:〖\d+〗|\([A-Za-z]{1,12}\.?\s*\d+(?:\.\d+)*\)|\{[A-Za-z]{1,12}\s+\d+(?:\.\d+)+\}|[A-Za-z]{1,12}[A-Z]?\s+\d+(?:\.\d+)+))+\s*$/;
+const LOCATOR_PART=/(〖\d+〗|\([A-Za-z]{1,12}\.?\s*\d+(?:\.\d+)*\)|\{[A-Za-z]{1,12}\s+\d+(?:\.\d+)+\}|[A-Za-z]{1,12}[A-Z]?\s+\d+(?:\.\d+)+)/g;
 
 function readableCandidate(t){
   if(!t||t.length<12||t.length>3200||chinese(t)<6||junk(t))return false;
   if(/Language:|Collection:|Section:|Search filters|怀爱伦著作.*圣经.*书籍|No results found|EGW Extras|Directory|Android App|iOS App/i.test(t))return false;
   return true;
 }
-function paragraphs(html){
-  const cleaned=html
+function splitLocator(text){
+  const value=String(text||'').trim(),m=value.match(LOCATOR_TAIL);
+  if(!m)return {text:value,locator:''};
+  const locator=(m[0].match(LOCATOR_PART)||[]).join(' '),body=value.slice(0,m.index).trim();
+  return body?{text:body,locator}:{text:value,locator:''};
+}
+function cleanHtml(html){
+  return html
     .replace(/<script[\s\S]*?<\/script>/gi,'')
     .replace(/<style[\s\S]*?<\/style>/gi,'')
     .replace(/<svg[\s\S]*?<\/svg>/gi,'');
-  const strong=[],fallback=[],seen=new Set();
-  const refRx=/\b[A-Za-z]{1,12}[A-Z]?\s+\d+(?:\.\d+)+(?:\s|$)|〖\d+〗/g;
-  const rx=/<(?:p|div|span|li)\b[^>]*>([\s\S]*?)<\/(?:p|div|span|li)>/gi;
-  let m;
+}
+function blocks(html){
+  const cleaned=cleanHtml(html),out=[],seen=new Set();
+  const rx=/<(h[2-6]|p|div|span|li)\b[^>]*>([\s\S]*?)<\/\1>/gi;let m;
+  while((m=rx.exec(cleaned))){
+    const tag=m[1].toLowerCase(),raw=decode(m[2]);
+    if(!raw||junk(raw)||seen.has(raw))continue;
+    if(/^h[2-6]$/.test(tag)){
+      if(chinese(raw)>=2&&raw.length<=160&&!/^第\s*[0-9０-９一二三四五六七八九十百零〇]+\s*章/.test(raw)){
+        seen.add(raw);out.push({type:'heading',text:raw});
+      }
+      continue;
+    }
+    if(!readableCandidate(raw))continue;
+    const {text,locator}=splitLocator(raw);
+    if(!text||seen.has(text))continue;
+    seen.add(raw);seen.add(text);out.push({type:'paragraph',text,locator});
+  }
+  const paras=out.filter(x=>x.type==='paragraph');
+  const filtered=out.filter((item,i,a)=>{
+    if(item.type!=='paragraph')return true;
+    return !a.some((other,j)=>j!==i&&other.type==='paragraph'&&other.text.length<item.text.length&&item.text.includes(other.text)&&item.text.length>other.text.length*1.6);
+  });
+  if(paras.length)return filtered.slice(0,220);
+  return [];
+}
+function paragraphs(html){
+  const structured=blocks(html).filter(x=>x.type==='paragraph');
+  if(structured.length)return structured.map(x=>x.text+(x.locator?' '+x.locator:''));
+  const cleaned=cleanHtml(html),fallback=[],seen=new Set();
+  const rx=/<(?:p|div|span|li)\b[^>]*>([\s\S]*?)<\/(?:p|div|span|li)>/gi;let m;
   while((m=rx.exec(cleaned))){
     const t=decode(m[1]);
-    if(!readableCandidate(t)||seen.has(t))continue;
-    const refs=(t.match(refRx)||[]).length;
-    // EGW 正文段落通常带定位码；聚合了很多段的外层容器直接丢弃。
-    if(refs>=1&&refs<=3){seen.add(t);strong.push(t);continue}
-    if(refs===0&&t.length<=900){seen.add(t);fallback.push(t)}
+    if(!readableCandidate(t)||seen.has(t)||t.length>900)continue;
+    seen.add(t);fallback.push(t);
   }
-  let out=strong.length?strong:fallback;
-  // 去掉被更短正文完整包含的外层重复块。
-  out=out.filter((t,i,a)=>!a.some((u,j)=>j!==i&&u.length<t.length&&t.includes(u)&&t.length>u.length*1.6));
-  // 去掉章节目录标题，只保留真正可阅读的连续正文。
-  out=out.filter(t=>!/^第\s*[0-9０-９一二三四五六七八九十百零〇]+\s*章.{0,80}$/.test(t));
-  return out.slice(0,180);
+  return fallback.filter((t,i,a)=>!a.some((u,j)=>j!==i&&u.length<t.length&&t.includes(u)&&t.length>u.length*1.6)).slice(0,180);
 }
 function title(html){
   const h=(html.match(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/i)||[])[1];
@@ -64,7 +91,7 @@ function normalizeReadUrl(href,base){
   if(url.startsWith('//'))url='https:'+url;
   else if(url.startsWith('/'))url='https://text.egwwritings.org'+url;
   else if(!/^https?:\/\//i.test(url)){try{url=new URL(url,base).href}catch{return ''}}
-  return url;
+  return url.replace(/[?#].*$/,'');
 }
 function chapterLinks(html,current){
   const rows=[],seen=new Set(),rx=/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;let m;
@@ -78,6 +105,10 @@ function chapterLinks(html,current){
     seen.add(url);rows.push({title:text,url});
   }
   return rows.slice(0,240);
+}
+function adjacentChapters(html,current){
+  const chapters=chapterLinks(html,current),needle=normalizeReadUrl(current,current),i=chapters.findIndex(x=>normalizeReadUrl(x.url,current)===needle);
+  return {prev:i>0?chapters[i-1]:null,next:i>=0&&i<chapters.length-1?chapters[i+1]:null};
 }
 async function fetchHtml(url){
   const r=await fetch(url,{headers,redirect:'follow'});
@@ -105,10 +136,10 @@ export default async function handler(req,res){
     let url=input;
     const mobile=input.match(/\/zh\/book\/(\d+)\.(\d+)/i);
     if(mobile)url=`https://text.egwwritings.org/read/${mobile[1]}.${mobile[2]}`;
-    const html=await fetchHtml(url),pageTitle=title(html),parts=paragraphs(html);
+    const html=await fetchHtml(url),pageTitle=title(html),structured=blocks(html),parts=paragraphs(html),nav=adjacentChapters(html,url);
     if(!parts.length)return res.status(422).json({ok:false,error:'no_readable_text',official_url:input,title:pageTitle});
     res.setHeader('Cache-Control','private, no-store');
-    return res.status(200).json({ok:true,title:pageTitle,paragraphs:parts,official_url:input,source_url:url});
+    return res.status(200).json({ok:true,title:pageTitle,blocks:structured,paragraphs:parts,prev:nav.prev,next:nav.next,official_url:input,source_url:url});
   }catch(e){
     return res.status(502).json({ok:false,error:'official_reader_unavailable',detail:String(e?.message||e),official_url:input});
   }
