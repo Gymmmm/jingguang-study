@@ -106,10 +106,7 @@ function title(html){
 }
 function chapterSubtitle(structured,chapterTitle=''){
   const base=cleanTitleText(chapterTitle).replace(/\s+/g,'');
-  const candidates=[
-    ...structured.filter(x=>x?.type==='heading'),
-    ...structured.filter(x=>x?.type==='paragraph'&&x.locator)
-  ];
+  const candidates=structured.filter(x=>x?.type==='heading'||(x?.type==='paragraph'&&x.locator));
   for(const item of candidates){
     const text=cleanTitleText(item?.text||'');
     if(!text||text.replace(/\s+/g,'')===base||chinese(text)<2||text.length>36)continue;
