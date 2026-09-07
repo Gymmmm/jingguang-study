@@ -28,6 +28,7 @@
   width:58px;
   visibility:hidden;
   pointer-events:none;
+  overflow:hidden;
 }
 #detail[data-reader-kind="egw-toc"] #detailBody{
   max-width:700px;
@@ -56,9 +57,10 @@
 }
 #detail[data-reader-kind="egw-toc"] .nativeSearchIcon{
   position:static;
-  width:36px;
-  min-width:36px;
-  height:34px;
+  width:44px;
+  min-width:44px;
+  height:44px;
+  min-height:44px;
   padding:0!important;
   border:0!important;
   border-radius:9px!important;

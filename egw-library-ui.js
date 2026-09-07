@@ -134,7 +134,7 @@
     }
     const officialAction=officialTocAllowed(b.toc_url)?`<button type="button" data-egw-official-toc="${esc(b.toc_url)}">查看官方目录</button>`:'';
     actions.innerHTML=officialAction;
-    body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名">⌕</button></div><div class="empty">正在读取章节目录…</div>`;
+    body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><circle cx="10.3" cy="10.3" r="6.3"/><line x1="20" y1="20" x2="15.1" y2="15.1"/></svg></button></div><div class="empty">正在读取章节目录…</div>`;
     openDialog();
     try{
       const r=await fetch(`/api/egw-read?toc=1&url=${encodeURIComponent(b.toc_url)}&_=${Date.now()}`,{cache:'no-store'});
@@ -144,12 +144,12 @@
       if(!r.ok||!j.ok)throw new Error(j.error||'toc_failed');
       const chapters=(j.chapters||[]).filter((x,i,a)=>x.url&&x.title&&a.findIndex(y=>canonicalUrl(y.url)===canonicalUrl(x.url))===i);
       if(!chapters.length)throw new Error('empty_toc');
-      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名">⌕</button></div><div class="egwChapterList">${chapters.map(c=>`<button type="button" class="egwChapterRow" data-egw-native-url="${esc(c.url)}" data-egw-chapter-title="${esc(c.title)}" data-egw-book-title="${esc(b.title_cn)}" data-egw-book-id="${esc(b.id)}" data-egw-toc-url="${esc(b.toc_url)}"><span>${esc(c.title)}</span><b aria-hidden="true">›</b></button>`).join('')}</div>`;
+      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><circle cx="10.3" cy="10.3" r="6.3"/><line x1="20" y1="20" x2="15.1" y2="15.1"/></svg></button></div><div class="egwChapterList">${chapters.map(c=>`<button type="button" class="egwChapterRow" data-egw-native-url="${esc(c.url)}" data-egw-chapter-title="${esc(c.title)}" data-egw-book-title="${esc(b.title_cn)}" data-egw-book-id="${esc(b.id)}" data-egw-toc-url="${esc(b.toc_url)}"><span>${esc(c.title)}</span><b aria-hidden="true">›</b></button>`).join('')}</div>`;
       restoreChapterInToc(b.id);
     }catch(err){
       if(requestId!==tocSeq)return;
       console.warn('EGW TOC read failed',err);
-      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名">⌕</button></div><div class="empty">暂时无法读取目录，请稍后重试。</div>`;
+      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><circle cx="10.3" cy="10.3" r="6.3"/><line x1="20" y1="20" x2="15.1" y2="15.1"/></svg></button></div><div class="empty">暂时无法读取目录，请稍后重试。</div>`;
     }
   }
 
