@@ -1,43 +1,23 @@
 (() => {
   'use strict';
-  function showPage(id){
-    document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));
-    document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===id));
-    try{window.scrollTo(0,0)}catch(_){}
-  }
-  function openShelf(kind){
-    showPage('library');
-    const bible=document.getElementById('bibleShelf');
-    const egw=document.getElementById('egwShelf');
-    if(bible)bible.hidden=kind!=='bible';
-    if(egw)egw.hidden=kind!=='egw';
-    document.querySelectorAll('[data-shelf]').forEach(x=>x.classList.toggle('active',x.dataset.shelf===kind));
-    document.querySelectorAll('nav button[data-open-shelf]').forEach(x=>x.classList.toggle('active',x.dataset.openShelf===kind));
-    if(kind==='egw'){
-      const input=document.getElementById('egwBookSearch');
-      if(input)input.dispatchEvent(new Event('input',{bubbles:true}));
-    }
-    if(kind==='bible'){
-      const input=document.getElementById('bibleBookSearch');
-      if(input)input.dispatchEvent(new Event('input',{bubbles:true}));
-    }
-  }
+  // app.js 正常完成监听绑定后，不安装第二套导航监听。
+  if(window.jgAppNavigationReady)return;
+
   document.addEventListener('click',e=>{
     const shelf=e.target.closest('[data-open-shelf],[data-shelf]');
     if(shelf){
       const kind=shelf.dataset.openShelf||shelf.dataset.shelf;
-      if(kind==='bible'||kind==='egw'){
+      if((kind==='bible'||kind==='egw')&&typeof window.openShelf==='function'){
         e.preventDefault();
-        openShelf(kind);
+        window.openShelf(kind);
         return;
       }
     }
     const page=e.target.closest('[data-page]');
-    if(page&&page.dataset.page){
+    if(page?.dataset.page&&typeof window.page==='function'){
       e.preventDefault();
-      showPage(page.dataset.page);
+      window.page(page.dataset.page);
     }
   },true);
-  window.jgNavOpenShelf=openShelf;
-  window.jgNavShowPage=showPage;
+  console.warn('[nav-rescue] 主导航监听未就绪，已启用单次兜底绑定');
 })();
