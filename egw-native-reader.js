@@ -59,6 +59,7 @@
     body.innerHTML=`<div class="egwLoading"><div>${esc(title)}</div><span>正在读取原文章节…</span></div>`;
     actions.innerHTML='';
     if(!detail.open)detail.showModal();
+    window.jgRefreshReadAloud?.();
   }
   function returnToToc(){
     if(!current?.bookId||!current?.tocUrl||typeof window.jgOpenEgwBook!=='function')return false;
@@ -92,13 +93,14 @@
       const bottomNav=(j.prev||j.next)?`<nav class="egwChapterPager" aria-label="章节导航">${j.prev?`<button data-egw-native-url="${esc(j.prev.url)}" ${navMeta} data-egw-chapter="${esc(j.prev.title||'')}"><small>上一章</small><span>‹ ${esc(j.prev.title)}</span></button>`:'<span></span>'}${j.next?`<button data-egw-native-url="${esc(j.next.url)}" ${navMeta} data-egw-chapter="${esc(j.next.title||'')}"><small>下一章</small><span>${esc(j.next.title)} ›</span></button>`:'<span></span>'}</nav>`:'';
       body.innerHTML=`<article class="egwReaderArticle"><header class="egwReaderIntro"><div class="egwBookName">${esc(bookTitle)}</div><h1>${esc(chapterTitle)}</h1></header><div class="reading egwReading">${renderBlocks(j)}</div>${bottomNav}</article>`;
       current={type:'egw',native_url:url,title:bookTitle,chapter:chapterTitle,locator:meta.locator||previous?.locator||'',bookId,tocUrl};
-      remember(current);renderActions();restorePosition();
+      remember(current);renderActions();window.jgRefreshReadAloud?.();restorePosition();
       try{localStorage.setItem('jg_last_egw_native',JSON.stringify({url,title:bookTitle,chapter:chapterTitle,bookId,tocUrl,at:Date.now()}))}catch(_){}
       return true;
     }catch(e){
       console.warn('EGW native reader failed',e);
       current=previous;
       body.innerHTML=`<div class="empty">这一页暂时无法在站内读取。<div class="actions"><button data-official-url="${esc(url)}">打开官方原文</button></div></div>`;
+      window.jgRefreshReadAloud?.();
       return false;
     }
   }
