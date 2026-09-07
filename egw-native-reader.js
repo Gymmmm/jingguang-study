@@ -16,7 +16,7 @@
     const blocks=Array.isArray(j.blocks)?j.blocks:[];
     if(blocks.length)return blocks.map((block,i)=>{
       if(block?.type==='heading')return `<h3 class="egwSectionHeading">${esc(block.text||'')}</h3>`;
-      if(block?.type==='paragraph')return `<div class="egwParagraphWrap" data-egw-wrap="${i}"><p class="egwParagraph" data-egw-paragraph="${i}">${esc(block.text||'')}</p>${renderLocator(block.locator||'')}</div>`;
+      if(block?.type==='paragraph')return `<div class="egwParagraphWrap"><p class="egwParagraph" data-egw-paragraph="${i}">${esc(block.text||'')}</p>${renderLocator(block.locator||'')}</div>`;
       return '';
     }).join('');
     return (j.paragraphs||[]).map((p,i)=>`<div class="egwParagraphWrap"><p class="egwParagraph" data-egw-paragraph="${i}">${formatParagraph(p)}</p></div>`).join('');
@@ -52,8 +52,8 @@
   function showLoading(title='怀爱伦著作'){
     detail.dataset.readerKind='egw-reader';
     detail.dataset.readingKey='';
-    type.textContent='预言之灵阅读';
-    body.innerHTML=`<span class="badge egw">怀著</span><h1>${esc(title)}</h1><div class="empty">正在读取原文章节…</div>`;
+    type.textContent='正在读取';
+    body.innerHTML=`<div class="egwLoading"><div>${esc(title)}</div><span>正在读取原文章节…</span></div>`;
     actions.innerHTML='';
     if(!detail.open)detail.showModal();
   }
@@ -73,13 +73,13 @@
       const r=await fetch(`/api/egw-read?url=${encodeURIComponent(url)}`,{cache:'no-store'}),j=await r.json();
       if(!r.ok||!j.ok)throw new Error(j.error||'read_failed');
       const chapterTitle=meta.chapter||j.title||'预言之灵阅读';
-      type.textContent=chapterTitle;
-      const bookTitle=meta.title||previous?.title||j.title||'怀爱伦著作';
+      const bookTitle=meta.title||previous?.title||'怀爱伦著作';
       const bookId=meta.bookId||previous?.bookId||'';
       const tocUrl=meta.tocUrl||previous?.tocUrl||'';
+      type.textContent=chapterTitle;
       const navMeta=`data-egw-title="${esc(bookTitle)}" data-egw-book-id="${esc(bookId)}" data-egw-toc-url="${esc(tocUrl)}"`;
-      const nav=`<div class="readerNav egwReaderNav">${j.prev?`<button data-egw-native-url="${esc(j.prev.url)}" ${navMeta} data-egw-chapter="${esc(j.prev.title||'')}">‹ ${esc(j.prev.title)}</button>`:'<span></span>'}${j.next?`<button data-egw-native-url="${esc(j.next.url)}" ${navMeta} data-egw-chapter="${esc(j.next.title||'')}">${esc(j.next.title)} ›</button>`:'<span></span>'}</div>`;
-      body.innerHTML=`${nav}<span class="badge egw">怀著原文</span><h1>${esc(bookTitle)}</h1>${chapterTitle?`<h2 class="egwChapterTitle">${esc(chapterTitle)}</h2>`:''}<div class="meta">${meta.locator?esc(meta.locator)+' · ':''}怀爱伦著作中文原文</div><div class="reading egwReading">${renderBlocks(j)}</div>`;
+      const bottomNav=(j.prev||j.next)?`<nav class="egwChapterPager" aria-label="章节导航">${j.prev?`<button data-egw-native-url="${esc(j.prev.url)}" ${navMeta} data-egw-chapter="${esc(j.prev.title||'')}"><small>上一章</small><span>‹ ${esc(j.prev.title)}</span></button>`:'<span></span>'}${j.next?`<button data-egw-native-url="${esc(j.next.url)}" ${navMeta} data-egw-chapter="${esc(j.next.title||'')}"><small>下一章</small><span>${esc(j.next.title)} ›</span></button>`:'<span></span>'}</nav>`:'';
+      body.innerHTML=`<article class="egwReaderArticle"><header class="egwReaderIntro"><div class="egwBookName">${esc(bookTitle)}</div><h1>${esc(chapterTitle)}</h1></header><div class="reading egwReading">${renderBlocks(j)}</div>${bottomNav}</article>`;
       current={type:'egw',native_url:url,title:bookTitle,chapter:chapterTitle,locator:meta.locator||previous?.locator||'',bookId,tocUrl};
       remember(current);renderActions();restorePosition();
       try{localStorage.setItem('jg_last_egw_native',JSON.stringify({url,title:bookTitle,chapter:chapterTitle,bookId,tocUrl,at:Date.now()}))}catch(_){}
@@ -87,7 +87,7 @@
     }catch(e){
       console.warn('EGW native reader failed',e);
       current=previous;
-      body.innerHTML=`<span class="badge egw">怀著</span><h1>${esc(meta.title||previous?.title||'怀爱伦著作')}</h1><div class="empty">这一页暂时无法在站内读取。<div class="actions"><button data-official-url="${esc(url)}">打开官方原文</button></div></div>`;
+      body.innerHTML=`<div class="empty">这一页暂时无法在站内读取。<div class="actions"><button data-official-url="${esc(url)}">打开官方原文</button></div></div>`;
       return false;
     }
   }
@@ -113,6 +113,33 @@
   detail.addEventListener('close',()=>{savePosition();if(detail.dataset.readerKind==='egw-reader')delete detail.dataset.readerKind});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')savePosition()});
   window.addEventListener('pagehide',savePosition);
-  const style=document.createElement('style');style.textContent=`.egwReading{max-width:720px}.egwParagraphWrap{margin:0 0 13px}.egwReading .egwParagraph{margin:0;padding:0 5px;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:var(--reader-font,19px);line-height:2.05}.egwLocator{margin:3px 5px 0;color:var(--muted);font-size:calc(var(--reader-font,19px)*.72);line-height:1.5;letter-spacing:.01em}.egwSectionHeading{margin:28px 5px 11px;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:1.04em;line-height:1.5;color:var(--text);font-weight:700}.egwSourceRef{display:inline;color:var(--muted);font-size:.76em;line-height:1.5}.egwChapterTitle{font-size:16px;color:var(--muted);font-weight:600;margin-top:-4px}.egwReaderNav button{white-space:normal;line-height:1.4}.egwReaderNav span{min-width:0}#detail[data-reader-kind="egw-reader"]>header{grid-template-columns:auto minmax(0,1fr) auto}#detail[data-reader-kind="egw-reader"]>header>#back{white-space:nowrap}#detail[data-reader-kind="egw-reader"]>header>#detailType{min-width:0;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;line-height:1.25}#detail[data-reader-kind="egw-reader"]>header>.fontTools{flex-wrap:nowrap;white-space:nowrap}@media(max-width:560px){.egwReading .egwParagraph{padding:0;line-height:1.95}.egwLocator,.egwSectionHeading{margin-left:0;margin-right:0}.egwReaderNav{gap:10px}.egwReaderNav button{font-size:12px;padding:8px 7px}#detail[data-reader-kind="egw-reader"]>header{gap:5px;padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right))}#detail[data-reader-kind="egw-reader"]>header>#back{min-width:58px;padding-left:0;padding-right:4px}#detail[data-reader-kind="egw-reader"]>header>#detailType{font-size:12px}#detail[data-reader-kind="egw-reader"]>header>.fontTools{gap:0}#detail[data-reader-kind="egw-reader"]>header>.fontTools button{min-width:42px;font-size:12px}}@media(max-width:390px){#detail[data-reader-kind="egw-reader"]>header>#back{min-width:52px;font-size:12px}#detail[data-reader-kind="egw-reader"]>header>.fontTools button{min-width:38px;font-size:11px}#detail[data-reader-kind="egw-reader"]>header>#detailType{font-size:11.5px}}`;document.head.appendChild(style);
+  const style=document.createElement('style');style.textContent=`
+    .egwReaderArticle{max-width:720px;margin:0 auto;padding:18px 18px 34px}
+    .egwReaderIntro{padding:8px 0 22px;border-bottom:1px solid var(--line);text-align:center}
+    .egwReaderIntro .egwBookName{color:var(--muted);font-size:12px;line-height:1.4}
+    .egwReaderIntro h1{margin:7px auto 0;max-width:620px;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:24px;line-height:1.4;font-weight:700;color:var(--text)}
+    .egwReading{max-width:680px;margin:0 auto;padding:24px 0 6px;background:transparent!important}
+    .egwParagraphWrap{margin:0 0 1.25em}
+    .egwReading .egwParagraph{margin:0;padding:0;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:var(--reader-font,19px);line-height:2.02;text-align:justify;text-justify:inter-ideograph;letter-spacing:.01em}
+    .egwLocator{margin:4px 0 0;color:var(--muted);font-size:calc(var(--reader-font,19px)*.68);line-height:1.45;letter-spacing:.015em}
+    .egwSectionHeading{margin:1.75em 0 .75em;font-family:"Songti SC","STSong","Noto Serif SC",serif;font-size:calc(var(--reader-font,19px)*1.04);line-height:1.55;color:var(--text);font-weight:700}
+    .egwSourceRef{display:inline;color:var(--muted);font-size:.76em;line-height:1.5}
+    .egwChapterPager{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:34px 0 0;padding-top:18px;border-top:1px solid var(--line)}
+    .egwChapterPager button{min-width:0;padding:10px 0;border:0;background:transparent;color:var(--accent);text-align:left}
+    .egwChapterPager button:last-child{text-align:right}
+    .egwChapterPager small,.egwChapterPager span{display:block}
+    .egwChapterPager small{margin-bottom:4px;color:var(--muted);font-size:11px;font-weight:500}
+    .egwChapterPager span{font-size:13px;line-height:1.45;white-space:normal}
+    .egwLoading{padding:46px 18px;text-align:center;color:var(--text)}.egwLoading span{display:block;margin-top:8px;color:var(--muted);font-size:13px}
+    #detail[data-reader-kind="egw-reader"]>header{grid-template-columns:auto minmax(0,1fr) auto}
+    #detail[data-reader-kind="egw-reader"]>header>#back{white-space:nowrap}
+    #detail[data-reader-kind="egw-reader"]>header>#detailType{min-width:0;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;line-height:1.25}
+    #detail[data-reader-kind="egw-reader"]>header>.fontTools{flex-wrap:nowrap;white-space:nowrap}
+    @media(max-width:560px){
+      .egwReaderArticle{padding:12px 14px 28px}.egwReaderIntro{padding:5px 0 18px}.egwReaderIntro h1{font-size:21px}.egwReading{padding-top:20px}.egwReading .egwParagraph{line-height:1.92}.egwParagraphWrap{margin-bottom:1.18em}.egwChapterPager{gap:12px;margin-top:28px}
+      #detail[data-reader-kind="egw-reader"]>header{gap:5px;padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right))}#detail[data-reader-kind="egw-reader"]>header>#back{min-width:58px;padding-left:0;padding-right:4px}#detail[data-reader-kind="egw-reader"]>header>#detailType{font-size:12px}#detail[data-reader-kind="egw-reader"]>header>.fontTools{gap:0}#detail[data-reader-kind="egw-reader"]>header>.fontTools button{min-width:42px;font-size:12px}
+    }
+    @media(max-width:390px){.egwReaderArticle{padding-left:12px;padding-right:12px}.egwReaderIntro h1{font-size:20px}#detail[data-reader-kind="egw-reader"]>header>#back{min-width:52px;font-size:12px}#detail[data-reader-kind="egw-reader"]>header>.fontTools button{min-width:38px;font-size:11px}#detail[data-reader-kind="egw-reader"]>header>#detailType{font-size:11.5px}}
+  `;document.head.appendChild(style);
   window.jgOpenNativeEgw=openUrl;
 })();
