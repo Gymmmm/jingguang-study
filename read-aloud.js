@@ -12,6 +12,7 @@
   let speaking = false;
   let paused = false;
   let session = 0;
+  let activeKey = '';
 
   const detail = document.getElementById('detail');
   const body = document.getElementById('detailBody');
@@ -30,17 +31,19 @@
 
   function savePosition() {
     if (!units.length) return;
+    const key = activeKey || titleKey();
+    if (!key) return;
     try {
       const all = JSON.parse(localStorage.getItem(POS_KEY) || '{}');
-      all[titleKey()] = index;
+      all[key] = index;
       localStorage.setItem(POS_KEY, JSON.stringify(all));
     } catch (_) {}
   }
 
-  function restorePosition() {
+  function restorePosition(key = titleKey()) {
     try {
       const all = JSON.parse(localStorage.getItem(POS_KEY) || '{}');
-      const n = +all[titleKey()];
+      const n = +all[key];
       return Number.isFinite(n) ? Math.max(0, Math.min(n, Math.max(0, units.length - 1))) : 0;
     } catch (_) { return 0; }
   }
@@ -53,7 +56,6 @@
     const bar = ensureToolbar();
     const show = detail.open && readablePage();
     bar.hidden = !show;
-    if (!show && speaking) stop(false);
     return show;
   }
 
@@ -69,7 +71,8 @@
       const text = cleanText(reading?.textContent);
       if (text) units = [{ el: reading, text }];
     }
-    index = restorePosition();
+    activeKey = units.length ? titleKey() : '';
+    index = units.length ? restorePosition(activeKey) : 0;
     syncToolbarVisibility();
     updateToolbar();
   }
@@ -151,14 +154,27 @@
   }
 
   function stop(reset = false) {
+    savePosition();
     session += 1;
     synth.cancel();
     speaking = false;
     paused = false;
     clearHighlight();
     if (reset) index = 0;
-    savePosition();
     updateToolbar();
+  }
+
+  function refresh() {
+    savePosition();
+    session += 1;
+    synth.cancel();
+    speaking = false;
+    paused = false;
+    clearHighlight();
+    units = [];
+    index = 0;
+    activeKey = '';
+    collectUnits();
   }
 
   function jump(delta) {
@@ -234,19 +250,13 @@
 
   detail.addEventListener('close', () => {
     stop(false);
+    units = [];
+    activeKey = '';
     ensureToolbar().hidden = true;
   });
   detail.addEventListener('cancel', () => stop(false));
 
-  const observer = new MutationObserver(() => {
-    if (!detail.open) {
-      ensureToolbar().hidden = true;
-      return;
-    }
-    if (speaking) stop(false);
-    collectUnits();
-  });
-  observer.observe(body, { childList: true, subtree: true });
+  window.jgRefreshReadAloud = refresh;
 
   const style = document.createElement('style');
   style.textContent = `
