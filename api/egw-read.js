@@ -14,14 +14,14 @@ const decode=s=>String(s||'')
   .replace(/\s+/g,' ')
   .trim();
 const chinese=s=>(s.match(/[\u3400-\u9fff]/g)||[]).length;
-const junk=s=>/^(Loading|Search|Contents|Book Info|Copy|Print|Larger font|Smaller font|Main|Chinese|English|Show search|Hide search|Your mail sent|Error while)/i.test(s)||/Search Syntax Examples|All collections|Support our ministry|Go to Full App/i.test(s);
+const junk=s=>/^(Loading|Search|Contents|Book Info|Copy|Print|Larger font|Smaller font|Main|Chinese|English|Show search|Hide search|Your mail sent|Error while)/i.test(s)||/Search Syntax Examples|All collections|Support our ministry|Go to Full App|Directory|Table of Contents/i.test(s);
 const headers={'user-agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/151 Safari/537.36','accept-language':'zh-CN,zh;q=0.9,en;q=0.5'};
 const LOCATOR_TAIL=/(?:\s*(?:〖\d+〗|\([A-Za-z]{1,12}\.?\s*\d+(?:\.\d+)*\)|\{[A-Za-z]{1,12}\s+\d+(?:\.\d+)+\}|[A-Za-z]{1,12}[A-Z]?\s+\d+(?:\.\d+)+))+\s*$/;
 const LOCATOR_PART=/(〖\d+〗|\([A-Za-z]{1,12}\.?\s*\d+(?:\.\d+)*\)|\{[A-Za-z]{1,12}\s+\d+(?:\.\d+)+\}|[A-Za-z]{1,12}[A-Z]?\s+\d+(?:\.\d+)+)/g;
 
 function readableCandidate(t){
-  if(!t||t.length<12||t.length>3200||chinese(t)<6||junk(t))return false;
-  if(/Language:|Collection:|Section:|Search filters|怀爱伦著作.*圣经.*书籍|No results found|EGW Extras|Directory|Android App|iOS App/i.test(t))return false;
+  if(!t||t.length<12||t.length>1800||chinese(t)<6||junk(t))return false;
+  if(/Language:|Collection:|Section:|Search filters|怀爱伦著作.*圣经.*书籍|No results found|EGW Extras|Android App|iOS App/i.test(t))return false;
   return true;
 }
 function splitLocator(text){
@@ -34,48 +34,61 @@ function cleanHtml(html){
   return html
     .replace(/<script[\s\S]*?<\/script>/gi,'')
     .replace(/<style[\s\S]*?<\/style>/gi,'')
-    .replace(/<svg[\s\S]*?<\/svg>/gi,'');
+    .replace(/<svg[\s\S]*?<\/svg>/gi,'')
+    .replace(/<nav[\s\S]*?<\/nav>/gi,'')
+    .replace(/<footer[\s\S]*?<\/footer>/gi,'');
+}
+function dedupeParagraphs(items){
+  const seen=new Set(),unique=[];
+  for(const item of items){
+    const key=item.text+'\u0000'+item.locator;
+    if(!item.text||seen.has(key))continue;
+    seen.add(key);unique.push(item);
+  }
+  return unique.filter((item,i,a)=>!a.some((other,j)=>j!==i&&other.text.length<item.text.length&&item.text.includes(other.text)&&item.text.length>other.text.length*1.55));
+}
+function paragraphCandidates(cleaned,tagRx){
+  const out=[],rx=tagRx;let m;
+  while((m=rx.exec(cleaned))){
+    const raw=decode(m[1]);
+    if(!readableCandidate(raw))continue;
+    const {text,locator}=splitLocator(raw);
+    if(text)out.push({type:'paragraph',text,locator,pos:m.index});
+  }
+  return out;
 }
 function blocks(html){
-  const cleaned=cleanHtml(html),candidates=[],rx=/<(h[2-6]|p|div|span|li)\b[^>]*>([\s\S]*?)<\/\1>/gi;let m;
-  while((m=rx.exec(cleaned))){
-    const tag=m[1].toLowerCase(),raw=decode(m[2]);
-    if(!raw||junk(raw))continue;
-    if(/^h[2-6]$/.test(tag)){
-      if(chinese(raw)>=2&&raw.length<=160&&!/^第\s*[0-9０-９一二三四五六七八九十百零〇]+\s*章/.test(raw))candidates.push({type:'heading',text:raw,pos:m.index});
-      continue;
-    }
-    if(!readableCandidate(raw))continue;
-    const {text,locator}=splitLocator(raw);if(text)candidates.push({type:'paragraph',text,locator,pos:m.index});
+  const cleaned=cleanHtml(html);
+  const pCandidates=paragraphCandidates(cleaned,/<p\b[^>]*>([\s\S]*?)<\/p>/gi);
+  const locatedP=pCandidates.filter(x=>x.locator);
+  let paragraphs=locatedP.length>=2?locatedP:pCandidates;
+
+  // 个别 EGW 页面不用 p 包正文；只有在 p 不足时，才从 div/span 中补“带真实定位码”的正文，避免把目录和页面导航抓进来。
+  if(paragraphs.length<2){
+    const fallback=paragraphCandidates(cleaned,/<(?:div|span)\b[^>]*>([\s\S]*?)<\/(?:div|span)>/gi).filter(x=>x.locator);
+    paragraphs=paragraphs.concat(fallback);
   }
-  const located=candidates.filter(x=>x.type==='paragraph'&&x.locator);
-  const paragraphPool=located.length>=3?located:candidates.filter(x=>x.type==='paragraph'&&x.text.length<=900);
-  const unique=[] ,seen=new Set();
-  for(const item of paragraphPool){
-    const key=item.text+'\u0000'+item.locator;if(seen.has(key))continue;seen.add(key);unique.push(item);
-  }
-  const paragraphs=unique.filter((item,i,a)=>!a.some((other,j)=>j!==i&&other.text.length<item.text.length&&item.text.includes(other.text)&&item.text.length>other.text.length*1.6));
+  paragraphs=dedupeParagraphs(paragraphs).slice(0,180);
   if(!paragraphs.length)return [];
+
   const first=Math.min(...paragraphs.map(x=>x.pos)),last=Math.max(...paragraphs.map(x=>x.pos));
-  const headings=candidates.filter(x=>x.type==='heading'&&x.pos>=first&&x.pos<=last);
-  return [...paragraphs,...headings].sort((a,b)=>a.pos-b.pos).slice(0,220).map(({pos,...item})=>item);
+  const headings=[],hrx=/<h([2-5])\b[^>]*>([\s\S]*?)<\/h\1>/gi;let h;
+  while((h=hrx.exec(cleaned))){
+    const text=decode(h[2]);
+    if(h.index<first||h.index>last||chinese(text)<2||text.length>80||junk(text))continue;
+    if(/^第\s*[0-9０-９一二三四五六七八九十百零〇]+\s*章/.test(text))continue;
+    headings.push({type:'heading',text,pos:h.index});
+  }
+  return [...paragraphs,...headings].sort((a,b)=>a.pos-b.pos).map(({pos,...item})=>item);
 }
 function paragraphs(html){
   const structured=blocks(html).filter(x=>x.type==='paragraph');
-  if(structured.length)return structured.map(x=>x.text+(x.locator?' '+x.locator:''));
-  const cleaned=cleanHtml(html),fallback=[],seen=new Set();
-  const rx=/<(?:p|div|span|li)\b[^>]*>([\s\S]*?)<\/(?:p|div|span|li)>/gi;let m;
-  while((m=rx.exec(cleaned))){
-    const t=decode(m[1]);
-    if(!readableCandidate(t)||seen.has(t)||t.length>900)continue;
-    seen.add(t);fallback.push(t);
-  }
-  return fallback.filter((t,i,a)=>!a.some((u,j)=>j!==i&&u.length<t.length&&t.includes(u)&&t.length>u.length*1.6)).slice(0,180);
+  return structured.map(x=>x.text+(x.locator?' '+x.locator:''));
 }
 function title(html){
   const h=(html.match(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/i)||[])[1];
   const t=decode(h||'');
-  if(t&&chinese(t))return t;
+  if(t&&chinese(t)&&t.length<160)return t;
   return decode((html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)||[])[1]||(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||'怀爱伦著作').replace(/\s*\|\s*EGW Writings.*$/i,'');
 }
 function bookIdFrom(url){
