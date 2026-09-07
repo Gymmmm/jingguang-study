@@ -91,11 +91,18 @@ function paragraphs(html){
   const structured=blocks(html).filter(x=>x.type==='paragraph');
   return structured.map(x=>x.text+(x.locator?' '+x.locator:''));
 }
+function cleanTitleText(value){
+  return decode(value||'')
+    .replace(/\s*[|｜]\s*EGW Writings.*$/i,'')
+    .replace(/\s*[-—–]\s*Ellen G\.? White Writings.*$/i,'')
+    .replace(/\s+/g,' ')
+    .trim();
+}
 function title(html){
   const h=(html.match(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/i)||[])[1];
-  const t=decode(h||'');
+  const t=cleanTitleText(h||'');
   if(t&&chinese(t)&&t.length<160)return t;
-  return decode((html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)||[])[1]||(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||'怀爱伦著作').replace(/\s*\|\s*EGW Writings.*$/i,'');
+  return cleanTitleText((html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)||[])[1]||(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||'怀爱伦著作');
 }
 function bookIdFrom(url){
   const s=String(url||'');
@@ -126,7 +133,7 @@ function chapterLinks(html,current){
 }
 function adjacentChapters(html,current){
   const chapters=chapterLinks(html,current),needle=normalizeReadUrl(current,current),i=chapters.findIndex(x=>normalizeReadUrl(x.url,current)===needle);
-  return {prev:i>0?chapters[i-1]:null,next:i>=0&&i<chapters.length-1?chapters[i+1]:null};
+  return {current:i>=0?chapters[i]:null,prev:i>0?chapters[i-1]:null,next:i>=0&&i<chapters.length-1?chapters[i+1]:null};
 }
 async function fetchHtml(url){
   const r=await fetch(url,{headers,redirect:'follow'});
@@ -154,10 +161,10 @@ export default async function handler(req,res){
     let url=input;
     const mobile=input.match(/\/zh\/book\/(\d+)\.(\d+)/i);
     if(mobile)url=`https://text.egwwritings.org/read/${mobile[1]}.${mobile[2]}`;
-    const html=await fetchHtml(url),pageTitle=title(html),structured=blocks(html),parts=paragraphs(html),nav=adjacentChapters(html,url);
-    if(!parts.length)return res.status(422).json({ok:false,error:'no_readable_text',official_url:input,title:pageTitle});
+    const html=await fetchHtml(url),pageTitle=title(html),structured=blocks(html),parts=paragraphs(html),nav=adjacentChapters(html,url),chapterTitle=nav.current?.title||pageTitle;
+    if(!parts.length)return res.status(422).json({ok:false,error:'no_readable_text',official_url:input,title:chapterTitle});
     res.setHeader('Cache-Control','private, no-store');
-    return res.status(200).json({ok:true,title:pageTitle,blocks:structured,paragraphs:parts,prev:nav.prev,next:nav.next,official_url:input,source_url:url});
+    return res.status(200).json({ok:true,title:chapterTitle,blocks:structured,paragraphs:parts,prev:nav.prev,next:nav.next,official_url:input,source_url:url});
   }catch(e){
     return res.status(502).json({ok:false,error:'official_reader_unavailable',detail:String(e?.message||e),official_url:input});
   }
