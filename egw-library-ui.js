@@ -91,6 +91,7 @@
     detail.dataset.readingKey='';
     if(!detail.open)detail.showModal();
     detail.scrollTop=0;
+    window.jgRefreshReadAloud?.();
   }
   function restoreChapterInToc(bookId){
     const last=lastReading();
