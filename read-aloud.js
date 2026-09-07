@@ -22,11 +22,14 @@
   }
 
   function titleKey() {
-    const h = body.querySelector('h1,h2');
-    return cleanText(h?.textContent || document.getElementById('detailType')?.textContent || 'reader');
+    const kind = detail.dataset.readerKind || 'reader';
+    const book = cleanText(body.querySelector('.egwBookName,h1')?.textContent || '');
+    const chapter = cleanText(document.getElementById('detailType')?.textContent || body.querySelector('h2')?.textContent || '');
+    return [kind, book, chapter].filter(Boolean).join('|') || 'reader';
   }
 
   function savePosition() {
+    if (!units.length) return;
     try {
       const all = JSON.parse(localStorage.getItem(POS_KEY) || '{}');
       all[titleKey()] = index;
@@ -42,19 +45,32 @@
     } catch (_) { return 0; }
   }
 
+  function readablePage() {
+    return !!body.querySelector('.reading .verse span, .egwReading .egwParagraph, .reading p');
+  }
+
+  function syncToolbarVisibility() {
+    const bar = ensureToolbar();
+    const show = detail.open && readablePage();
+    bar.hidden = !show;
+    if (!show && speaking) stop(false);
+    return show;
+  }
+
   function collectUnits() {
     const candidates = [
-      ...body.querySelectorAll('.reading .verse span, .reading p, .egw-original p, .egw-original div, .detailSection p')
+      ...body.querySelectorAll('.reading .verse span, .egwReading .egwParagraph, .egw-original p, .detailSection p')
     ];
     const seen = new Set();
     units = candidates.map(el => ({ el, text: cleanText(el.textContent) }))
       .filter(x => x.text.length > 1 && !seen.has(x.text) && seen.add(x.text));
-    if (!units.length) {
+    if (!units.length && readablePage()) {
       const reading = body.querySelector('.reading, .egw-original');
       const text = cleanText(reading?.textContent);
       if (text) units = [{ el: reading, text }];
     }
     index = restorePosition();
+    syncToolbarVisibility();
     updateToolbar();
   }
 
@@ -113,7 +129,7 @@
 
   function start() {
     collectUnits();
-    if (!units.length) return;
+    if (!units.length || !readablePage()) return;
     if (paused && synth.paused) {
       synth.resume();
       paused = false;
@@ -174,11 +190,12 @@
     if (bar) return bar;
     bar = document.createElement('div');
     bar.className = 'readAloudBar';
+    bar.hidden = true;
     bar.innerHTML = `
-      <button type="button" data-tts="prev" aria-label="上一段">‹ 上一段</button>
-      <button type="button" class="ttsMain" data-tts="toggle">▶ 朗读</button>
-      <button type="button" data-tts="next" aria-label="下一段">下一段 ›</button>
-      <label>语速
+      <button type="button" data-tts="prev" aria-label="上一段">‹</button>
+      <button type="button" class="ttsMain" data-tts="toggle">朗读</button>
+      <button type="button" data-tts="next" aria-label="下一段">›</button>
+      <label aria-label="朗读语速">
         <select data-tts-rate aria-label="朗读语速">
           <option value="0.8">0.8×</option>
           <option value="1">1×</option>
@@ -195,7 +212,7 @@
   function updateToolbar() {
     const bar = ensureToolbar();
     const main = bar.querySelector('[data-tts="toggle"]');
-    if (main) main.textContent = paused ? '▶ 继续' : (speaking ? '⏸ 暂停' : '▶ 朗读');
+    if (main) main.textContent = paused ? '继续' : (speaking ? '暂停' : '朗读');
     const select = bar.querySelector('[data-tts-rate]');
     if (select && select.value !== String(rate)) select.value = String(rate);
     bar.dataset.active = speaking ? '1' : '0';
@@ -215,11 +232,17 @@
     if (e.target.matches('[data-tts-rate]')) setRate(e.target.value);
   });
 
-  detail.addEventListener('close', () => stop(false));
+  detail.addEventListener('close', () => {
+    stop(false);
+    ensureToolbar().hidden = true;
+  });
   detail.addEventListener('cancel', () => stop(false));
 
   const observer = new MutationObserver(() => {
-    if (!detail.open) return;
+    if (!detail.open) {
+      ensureToolbar().hidden = true;
+      return;
+    }
     if (speaking) stop(false);
     collectUnits();
   });
@@ -227,11 +250,12 @@
 
   const style = document.createElement('style');
   style.textContent = `
-    .readAloudBar{position:sticky;top:52px;z-index:6;display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--card) 94%,transparent);backdrop-filter:blur(12px)}
-    .readAloudBar button,.readAloudBar select{min-height:38px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font:inherit}
-    .readAloudBar button{padding:0 12px}.readAloudBar .ttsMain{font-weight:800}.readAloudBar label{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}.readAloudBar select{padding:0 8px}
+    .readAloudBar[hidden]{display:none!important}
+    .readAloudBar{position:sticky;top:52px;z-index:6;display:flex;justify-content:center;align-items:center;gap:4px;padding:6px 10px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(12px)}
+    .readAloudBar button,.readAloudBar select{min-height:34px;border:0;border-radius:0;background:transparent;color:var(--text);font:inherit;box-shadow:none}
+    .readAloudBar button{min-width:38px;padding:0 8px}.readAloudBar .ttsMain{min-width:68px;color:var(--accent);font-weight:800}.readAloudBar label{display:flex;align-items:center}.readAloudBar select{padding:0 5px;color:var(--muted);font-size:12px}
     .ttsSpeaking{border-left:3px solid var(--accent)!important;background:transparent!important;box-shadow:none!important;transition:border-color .18s ease}
-    @media(max-width:560px){.readAloudBar{top:48px;grid-template-columns:1fr 1.4fr 1fr}.readAloudBar label{grid-column:1/-1;justify-content:flex-end}.readAloudBar button{padding:0 8px;font-size:13px}}
+    @media(max-width:560px){.readAloudBar{top:48px;padding:5px 8px}.readAloudBar button{min-width:34px;padding:0 6px;font-size:12px}.readAloudBar .ttsMain{min-width:60px}.readAloudBar select{font-size:11px}}
   `;
   document.head.appendChild(style);
   ensureToolbar();
