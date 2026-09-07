@@ -15,6 +15,7 @@
   let tocSeq=0;
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const norm=s=>String(s||'').trim().toLowerCase().replace(/[\s《》〈〉“”"'，。！？；、·_]/g,'');
+  const debounce=(fn,wait=250)=>{let t=0;return(...args)=>{clearTimeout(t);t=setTimeout(()=>fn(...args),wait)}};
   const canonicalUrl=url=>{
     const s=String(url||'').trim();
     const read=s.match(/\/(?:read|zh\/book)\/(\d+)\.(\d+)/i);
@@ -150,7 +151,8 @@
   }
 
   fetch('./data/egw-official-books.json',{cache:'no-store'}).then(r=>r.json()).then(j=>{books=j.books||[];renderBooks()}).catch(()=>{});
-  input?.addEventListener('input',renderBooks);
+  const debouncedRenderBooks=debounce(renderBooks,250);
+  input?.addEventListener('input',debouncedRenderBooks);
   document.addEventListener('click',e=>{
     const modeBtn=e.target.closest('[data-egw-mode]');if(modeBtn){e.preventDefault();mode=modeBtn.dataset.egwMode;renderBooks();return}
     const book=e.target.closest('[data-egw-book-id]:not([data-egw-chapter-title])');if(book){e.preventDefault();e.stopImmediatePropagation();openBook(book.dataset.egwBookId,book.dataset.egwTocUrl,book.dataset.egwBookTitle);return}
