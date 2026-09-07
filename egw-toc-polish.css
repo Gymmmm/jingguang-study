@@ -26,9 +26,28 @@
 }
 #detail[data-reader-kind="egw-toc"]>header>.fontTools{
   width:58px;
-  visibility:hidden;
-  pointer-events:none;
-  overflow:hidden;
+  visibility:visible;
+  pointer-events:auto;
+  overflow:visible;
+  justify-content:flex-end;
+}
+#detail[data-reader-kind="egw-toc"]>header>.fontTools>[data-font]{
+  display:none!important;
+}
+#detail[data-reader-kind="egw-toc"]>header .tocSearchButton{
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  width:44px;
+  min-width:44px;
+  height:40px;
+  min-height:40px;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:var(--accent)!important;
+  box-shadow:none!important;
 }
 #detail[data-reader-kind="egw-toc"] #detailBody{
   max-width:700px;
@@ -39,9 +58,9 @@
   position:static;
   display:flex;
   align-items:center;
-  justify-content:space-between;
-  min-height:42px;
-  padding:8px 2px 5px;
+  justify-content:flex-start;
+  min-height:34px;
+  padding:8px 2px 4px;
   border-bottom:0;
   background:transparent;
 }
@@ -56,41 +75,23 @@
   display:none;
 }
 #detail[data-reader-kind="egw-toc"] .nativeSearchIcon{
-  position:static;
-  width:44px;
-  min-width:44px;
-  height:44px;
-  min-height:44px;
-  padding:0!important;
-  border:0!important;
-  border-radius:9px!important;
-  background:transparent!important;
-  color:var(--accent)!important;
-  font-size:22px!important;
-  font-weight:500!important;
-  line-height:1!important;
+  display:none!important;
 }
 #detail[data-reader-kind="egw-toc"] .egwChapterList{
   margin:0;
   border-top:1px solid var(--line);
 }
 #detail[data-reader-kind="egw-toc"] .egwChapterRow{
-  min-height:46px;
+  min-height:56px;
   gap:10px;
-  padding:10px 4px;
+  padding:7px 4px;
   border-bottom:1px solid color-mix(in srgb,var(--line) 84%,transparent);
   background:transparent;
-}
-#detail[data-reader-kind="egw-toc"] .egwChapterRow>span{
-  font-size:16px;
-  font-weight:520;
-  line-height:1.4;
-  letter-spacing:.002em;
 }
 #detail[data-reader-kind="egw-toc"] .egwChapterRow>b{
   align-self:center;
   color:color-mix(in srgb,var(--muted) 72%,transparent);
-  font-size:22px;
+  font-size:21px;
   font-weight:400;
   line-height:1;
 }
@@ -138,13 +139,11 @@
   #detail[data-reader-kind="egw-toc"]>header>.fontTools{width:52px}
   #detail[data-reader-kind="egw-toc"]>header>#detailType{font-size:13px}
   #detail[data-reader-kind="egw-toc"] #detailBody{padding-left:13px;padding-right:13px}
-  #detail[data-reader-kind="egw-toc"] .nativeBookHead{min-height:38px;padding-top:6px}
-  #detail[data-reader-kind="egw-toc"] .egwChapterRow{min-height:44px;padding:9px 3px}
-  #detail[data-reader-kind="egw-toc"] .egwChapterRow>span{font-size:15.5px;line-height:1.38}
+  #detail[data-reader-kind="egw-toc"] .nativeBookHead{min-height:32px;padding-top:6px}
+  #detail[data-reader-kind="egw-toc"] .egwChapterRow{min-height:54px;padding:6px 3px}
   #detail[data-reader-kind="egw-toc"] .egwChapterRow>b{font-size:20px}
 }
 @media(max-width:390px){
   #detail[data-reader-kind="egw-toc"] #detailBody{padding-left:11px;padding-right:11px}
-  #detail[data-reader-kind="egw-toc"] .egwChapterRow>span{font-size:15px}
   #detail[data-reader-kind="egw-toc"] .currentReadingLabel{font-size:9px}
 }
