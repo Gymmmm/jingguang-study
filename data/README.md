@@ -2,6 +2,10 @@
 
 本目录是经光 V10+ 的正式数据源。前端不得重新把 Bible→EGW 关系或 EGW 记录写死在 `index.html`。
 
+圣经运行时正文位于 `data/bible/`，关键词搜索使用构建生成的
+`data/bible-search.json`。上游来源和公有领域许可仍记录在
+`bible-source.json`，用户端不依赖 GitHub Raw 才能打开或搜索经文。
+
 ## 1. `egw-index.json`
 
 每条预言之灵记录必须是可核验的结构化出处。当前中文索引最低字段：

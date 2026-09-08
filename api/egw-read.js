@@ -18,6 +18,7 @@ const junk=s=>/^(Loading|Search|Contents|Book Info|Copy|Print|Larger font|Smalle
 const headers={'user-agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/151 Safari/537.36','accept-language':'zh-CN,zh;q=0.9,en;q=0.5'};
 const LOCATOR_TAIL=/(?:\s*(?:〖\d+〗|\([A-Za-z]{1,12}\.?\s*\d+(?:\.\d+)*\)|\{[A-Za-z]{1,12}\s+\d+(?:\.\d+)+\}|[A-Za-z]{1,12}[A-Z]?\s+\d+(?:\.\d+)+))+\s*$/;
 const LOCATOR_PART=/(〖\d+〗|\([A-Za-z]{1,12}\.?\s*\d+(?:\.\d+)*\)|\{[A-Za-z]{1,12}\s+\d+(?:\.\d+)+\}|[A-Za-z]{1,12}[A-Z]?\s+\d+(?:\.\d+)+)/g;
+const tocCache=new Map(),TOC_TTL=30*60*1000;
 
 function readableCandidate(t){
   if(!t||t.length<12||t.length>1800||chinese(t)<6||junk(t))return false;
@@ -99,7 +100,7 @@ function cleanTitleText(value){
     .trim();
 }
 function title(html){
-  const h=(html.match(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/i)||[])[1];
+  const h=(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)||[])[1];
   const t=cleanTitleText(h||'');
   if(t&&chinese(t)&&t.length<160)return t;
   return cleanTitleText((html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)||[])[1]||(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||'怀爱伦著作');
@@ -154,9 +155,12 @@ async function fetchHtml(url){
 async function getToc(url){
   const id=bookIdFrom(url);
   if(!id)throw new Error('missing_book_id');
+  const cached=tocCache.get(id);
+  if(cached&&Date.now()-cached.at<TOC_TTL)return cached.value;
   const stable=`https://text.egwwritings.org/book/b${id}`;
-  const html=await fetchHtml(stable);
-  return {html,url:stable,chapters:chapterLinks(html,stable)};
+  const pending=fetchHtml(stable).then(html=>({html,url:stable,chapters:chapterLinks(html,stable)}));
+  tocCache.set(id,{at:Date.now(),value:pending});
+  try{const value=await pending;tocCache.set(id,{at:Date.now(),value});return value}catch(e){tocCache.delete(id);throw e}
 }
 export default async function handler(req,res){
   const input=String(req.query?.url||'').trim();
@@ -180,9 +184,11 @@ export default async function handler(req,res){
     }
     const parts=structured.filter(x=>x.type==='paragraph').map(x=>x.text+(x.locator?' '+x.locator:'')),tocData=await getToc(url),nav=adjacentChapters(tocData.html,url),chapterTitle=nav.current?.title||pageTitle,chapterLead=chapterSubtitle(structured,chapterTitle),chapterDisplayTitle=chapterLead?`${chapterTitle} ${chapterLead}`:chapterTitle;
     if(!parts.length)return res.status(422).json({ok:false,error:'no_readable_text',official_url:input,title:chapterTitle});
-    res.setHeader('Cache-Control','private, no-store');
+    res.setHeader('Cache-Control','public, s-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).json({ok:true,title:chapterTitle,subtitle:chapterLead,display_title:chapterDisplayTitle,blocks:structured,paragraphs:parts,prev:nav.prev,next:nav.next,official_url:input,source_url:url});
   }catch(e){
     return res.status(502).json({ok:false,error:'official_reader_unavailable',detail:String(e?.message||e),official_url:input});
   }
 }
+
+export {blocks,chapterLinks,splitLocator,title};

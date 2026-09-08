@@ -11,8 +11,9 @@
       "license": "public-domain",
       "provider": "midvash/bible-data",
       "repository": "https://github.com/midvash/bible-data",
-      "base_url": "https://raw.githubusercontent.com/midvash/bible-data/main/versions/zh/cuvs/books/",
+      "base_url": "./data/bible/",
       "format": "book-json",
+      "search_index": "./data/bible-search.json",
       "book_id_system": "OSIS",
       "role": "primary"
     },

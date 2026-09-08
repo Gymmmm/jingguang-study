@@ -17,6 +17,7 @@
   let mode='books';
   let tocSeq=0;
   let chapterObserver=null;
+  const TOC_TIMEOUT_MS=12000;
   let metaActive=0;
   const metaQueue=[];
   const metaCache=new Map();
@@ -29,6 +30,7 @@
     return read?`https://text.egwwritings.org/read/${read[1]}.${read[2]}`:s.replace(/[?#].*$/,'');
   };
   const officialTocAllowed=url=>/^https?:\/\/(?:m\.|text\.)?egwwritings\.org\/(?:book\/b|zh\/book\/)/i.test(String(url||''));
+  const displayTitle=b=>`${b?.title_cn||'怀爱伦著作'}${b?.volume_label?` · ${b.volume_label}`:''}`;
   const lastReading=()=>{try{return JSON.parse(localStorage.getItem('jg_last_egw_native')||'null')}catch(_){return null}};
   const devotionalRx=/每日|灵修|晨钟|天父|从心出发|从心发出|高举主耶稣|举目向上|得胜的基督|奋斗与勇敢|今日|荣耀之光|彰显主基督|信仰的基础|与主同行|一同在天上/i;
   const collator=new Intl.Collator('zh-CN-u-co-pinyin');
@@ -104,13 +106,13 @@
     syncShelfHeader();
     const q=norm(input?.value||'');
     let list=mode==='devotional'?books.filter(b=>devotionalRx.test(b.title_cn||'')):books;
-    if(q)list=list.filter(b=>norm(b.title_cn).includes(q));
-    list=[...list].sort((a,b)=>collator.compare(a.title_cn||'',b.title_cn||''));
+    if(q)list=list.filter(b=>[b.title_cn,b.volume_label,b.book_code].some(value=>norm(value).includes(q)));
+    list=[...list].sort((a,b)=>collator.compare(a.title_cn||'',b.title_cn||'')||String(a.book_code||'').localeCompare(String(b.book_code||''),'zh-CN',{numeric:true}));
     const groups=new Map();
     for(const b of list){const key=initial(b.title_cn);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(b)}
     const letters=[...groups.keys()].sort((a,b)=>alphabet.indexOf(a)-alphabet.indexOf(b));
     shelf.className='egwNativeList';
-    shelf.innerHTML=letters.map(k=>`<section class="egwAlphaGroup" id="egw-alpha-${k}" data-letter="${k}"><h3>${k}</h3>${groups.get(k).map(b=>`<button class="egwBookRow" data-egw-book-id="${esc(b.id)}" data-egw-toc-url="${esc(b.toc_url)}" data-egw-book-title="${esc(b.title_cn)}"><span>${esc(b.title_cn)}</span><b aria-hidden="true">›</b></button>`).join('')}</section>`).join('')||(mode==='devotional'?'<div class="empty">每日灵修书单正在核验整理，请先使用书籍资料阅读。</div>':'<div class="empty">没有匹配的书籍。</div>');
+    shelf.innerHTML=letters.map(k=>`<section class="egwAlphaGroup" id="egw-alpha-${k}" data-letter="${k}"><h3>${k}</h3>${groups.get(k).map(b=>`<button class="egwBookRow" data-egw-book-id="${esc(b.id)}" data-egw-toc-url="${esc(b.toc_url)}" data-egw-book-title="${esc(displayTitle(b))}"><span><strong>${esc(b.title_cn)}</strong>${b.volume_label?`<small>${esc(b.volume_label)}${b.book_code?` · ${esc(b.book_code)}`:''}</small>`:''}</span><b aria-hidden="true">›</b></button>`).join('')}</section>`).join('')||(mode==='devotional'?'<div class="empty">每日灵修书单正在核验整理，请先使用书籍资料阅读。</div>':'<div class="empty">没有匹配的书籍。</div>');
     let rail=shelfRoot.querySelector('.egwAlphaRail');if(!rail){rail=document.createElement('div');rail.className='egwAlphaRail';shelfRoot.appendChild(rail)}
     const available=new Set(letters);
     rail.innerHTML=alphabet.map(k=>`<button type="button" data-egw-letter="${k}" aria-label="跳到 ${k}" aria-disabled="${available.has(k)?'false':'true'}" class="${available.has(k)?'':'empty'}">${k}</button>`).join('');
@@ -210,6 +212,28 @@
     detail.scrollTop=0;
     window.jgRefreshReadAloud?.();
   }
+  async function fetchToc(url){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),TOC_TIMEOUT_MS);
+    try{
+      const r=await fetch(`/api/egw-read?toc=1&url=${encodeURIComponent(url)}`,{signal:controller.signal});
+      let j=null;
+      try{j=await r.json()}catch(_){throw new Error('invalid_response')}
+      if(!r.ok||!j?.ok)throw new Error(j?.error||`http_${r.status}`);
+      return j;
+    }catch(err){
+      if(err?.name==='AbortError')throw new Error('request_timeout');
+      throw err;
+    }finally{clearTimeout(timer)}
+  }
+  function tocFailureHtml(b,error){
+    const code=String(error?.message||error||'');
+    const empty=code==='no_chapters_found'||code==='empty_toc';
+    const invalid=code==='invalid_response';
+    const title=empty?'这本书暂时没有可读取的章节目录。':code==='request_timeout'?'读取目录超时，请检查网络后重试。':invalid?'目录返回内容异常，请稍后重试。':'暂时无法连接怀爱伦官方资料。';
+    const detailText=empty?'你仍可打开官方目录核对。':'页面没有退出，可以直接重新读取。';
+    return `<div class="nativeBookHead"><h1>${esc(displayTitle(b))}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><circle cx="10.3" cy="10.3" r="6.3"/><line x1="20" y1="20" x2="15.1" y2="15.1"/></svg></button></div><div class="empty egwTocFailure"><b>${title}</b><span>${detailText}</span><button type="button" class="primary" data-egw-retry-book="${esc(b.id)}" data-egw-toc-url="${esc(b.toc_url)}" data-egw-book-title="${esc(displayTitle(b))}">重新读取</button></div>`;
+  }
   function restoreChapterInToc(bookId){
     const last=lastReading();
     if(!last||String(last.bookId||'')!==String(bookId||''))return;
@@ -241,7 +265,7 @@
     const b=found||{id,title_cn:fallbackTitle||'怀爱伦著作',toc_url:fallbackUrl};
     detail.dataset.readerKind='egw-toc';
     detail.dataset.readingKey='';
-    type.textContent=b.title_cn||'预言之灵';
+    type.textContent=displayTitle(b);
     if(!b.toc_url){
       actions.innerHTML='';
       body.innerHTML='<div class="empty">这本书暂时没有目录地址。</div>';
@@ -250,23 +274,20 @@
     }
     const officialAction=officialTocAllowed(b.toc_url)?`<button type="button" data-egw-official-toc="${esc(b.toc_url)}">查看官方目录</button>`:'';
     actions.innerHTML=officialAction;
-    body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><circle cx="10.3" cy="10.3" r="6.3"/><line x1="20" y1="20" x2="15.1" y2="15.1"/></svg></button></div><div class="empty">正在读取章节目录…</div>`;
+    body.innerHTML=`<div class="nativeBookHead"><h1>${esc(displayTitle(b))}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><circle cx="10.3" cy="10.3" r="6.3"/><line x1="20" y1="20" x2="15.1" y2="15.1"/></svg></button></div><div class="empty">正在读取章节目录…</div>`;
     openDialog();
     try{
-      const r=await fetch(`/api/egw-read?toc=1&url=${encodeURIComponent(b.toc_url)}&_=${Date.now()}`,{cache:'no-store'});
+      const j=await fetchToc(b.toc_url);
       if(requestId!==tocSeq)return;
-      const j=await r.json();
-      if(requestId!==tocSeq)return;
-      if(!r.ok||!j.ok)throw new Error(j.error||'toc_failed');
       const chapters=(j.chapters||[]).filter((x,i,a)=>x.url&&x.title&&a.findIndex(y=>canonicalUrl(y.url)===canonicalUrl(x.url))===i);
       if(!chapters.length)throw new Error('empty_toc');
-      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><circle cx="10.3" cy="10.3" r="6.3"/><line x1="20" y1="20" x2="15.1" y2="15.1"/></svg></button></div><div class="egwChapterList">${chapters.map(c=>`<button type="button" class="egwChapterRow" data-egw-native-url="${esc(c.url)}" data-egw-chapter-title="${esc(c.title)}" data-egw-display-title="${esc(c.title)}" data-egw-book-title="${esc(b.title_cn)}" data-egw-book-id="${esc(b.id)}" data-egw-toc-url="${esc(b.toc_url)}">${chapterLabelHtml(c.title)}<b aria-hidden="true">›</b></button>`).join('')}</div>`;
+      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(displayTitle(b))}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><circle cx="10.3" cy="10.3" r="6.3"/><line x1="20" y1="20" x2="15.1" y2="15.1"/></svg></button></div><div class="egwChapterList">${chapters.map(c=>`<button type="button" class="egwChapterRow" data-egw-native-url="${esc(c.url)}" data-egw-chapter-title="${esc(c.title)}" data-egw-display-title="${esc(c.title)}" data-egw-book-title="${esc(displayTitle(b))}" data-egw-book-id="${esc(b.id)}" data-egw-toc-url="${esc(b.toc_url)}">${chapterLabelHtml(c.title)}<b aria-hidden="true">›</b></button>`).join('')}</div>`;
       restoreChapterInToc(b.id);
       observeChapterTitles();
     }catch(err){
       if(requestId!==tocSeq)return;
       console.warn('EGW TOC read failed',err);
-      body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><circle cx="10.3" cy="10.3" r="6.3"/><line x1="20" y1="20" x2="15.1" y2="15.1"/></svg></button></div><div class="empty">暂时无法读取目录，请稍后重试。</div>`;
+      body.innerHTML=tocFailureHtml(b,err);
     }
   }
 
@@ -279,6 +300,7 @@
     const pageBtn=e.target.closest('[data-page]');if(pageBtn&&pageBtn.dataset.page!=='library')setShelfHeader(false);
     const modeBtn=e.target.closest('[data-egw-mode]');if(modeBtn){e.preventDefault();mode=modeBtn.dataset.egwMode;renderBooks();return}
     const book=e.target.closest('[data-egw-book-id]:not([data-egw-chapter-title])');if(book){e.preventDefault();e.stopImmediatePropagation();openBook(book.dataset.egwBookId,book.dataset.egwTocUrl,book.dataset.egwBookTitle);return}
+    const retry=e.target.closest('[data-egw-retry-book]');if(retry){e.preventDefault();e.stopImmediatePropagation();openBook(retry.dataset.egwRetryBook,retry.dataset.egwTocUrl,retry.dataset.egwBookTitle);return}
     const legacy=e.target.closest('[data-official-id]');if(legacy){e.preventDefault();e.stopImmediatePropagation();const title=legacy.closest('button,article')?.querySelector('b,.title')?.textContent?.replace(/[《》]/g,'')||'';openBook(legacy.dataset.officialId,legacy.dataset.officialUrl,title);return}
     const chapter=e.target.closest('[data-egw-chapter-title]');if(chapter){e.preventDefault();e.stopImmediatePropagation();if(window.jgOpenNativeEgw){window.jgOpenNativeEgw(chapter.dataset.egwNativeUrl,{title:`《${chapter.dataset.egwBookTitle||'怀爱伦著作'}》`,chapter:chapter.dataset.egwDisplayTitle||chapter.dataset.egwChapterTitle||'',bookId:chapter.dataset.egwBookId||'',tocUrl:chapter.dataset.egwTocUrl||''})}else{location.href=chapter.dataset.egwNativeUrl}return}
     const officialToc=e.target.closest('[data-egw-official-toc]');if(officialToc){e.preventDefault();e.stopImmediatePropagation();if(officialTocAllowed(officialToc.dataset.egwOfficialToc))window.open(officialToc.dataset.egwOfficialToc,'_blank','noopener');return}
@@ -303,7 +325,7 @@
     .egwAlphaGroup{margin:0;scroll-margin-top:82px}
     .egwAlphaGroup h3{font-size:16px;margin:0;padding:9px 5px 3px;color:var(--accent);font-weight:800;line-height:1.2}
     .egwBookRow,.egwChapterRow{width:100%;display:flex;align-items:center;justify-content:space-between;text-align:left;background:transparent;border:0;border-bottom:1px solid color-mix(in srgb,var(--line) 88%,transparent);border-radius:0;padding:8px 5px;font:inherit;min-height:56px;cursor:pointer;color:var(--text)}
-    .egwBookRow span{min-width:0;font-size:17px;font-weight:560;line-height:1.35;white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word}
+    .egwBookRow span{min-width:0;font-size:17px;font-weight:560;line-height:1.35;white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word}.egwBookRow span strong{display:block;font:inherit}.egwBookRow span small{display:block;margin-top:3px;color:var(--muted);font-size:11.5px;font-weight:500}
     .egwBookRow b,.egwChapterRow>b{flex:0 0 auto;font-size:23px;color:color-mix(in srgb,var(--muted) 70%,transparent);font-weight:400;line-height:1}
     .egwAlphaRail{position:fixed;right:max(2px,env(safe-area-inset-right));top:50%;z-index:7;display:flex;flex-direction:column;align-items:center;width:20px;height:min(500px,59vh);transform:translateY(-50%);touch-action:none;user-select:none}
     .egwAlphaRail button{flex:1;width:20px;min-height:0;padding:0;border:0;background:transparent;color:var(--accent);font-size:8.5px;font-weight:800;line-height:1}
@@ -319,6 +341,7 @@
     .egwChapterName{max-width:100%;color:var(--text);font-size:16.5px;font-weight:620;line-height:1.35;white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word}
     .egwChapterRow.currentReading{background:color-mix(in srgb,var(--soft) 55%,transparent);box-shadow:inset 2px 0 0 var(--accent)}
     .currentReadingLabel{display:block;margin-top:2px;color:var(--accent);font-size:9.5px;font-weight:700;line-height:1.3}
+    .egwTocFailure{display:grid;justify-items:start;gap:8px;margin-top:14px}.egwTocFailure b{color:var(--text);font-size:15px}.egwTocFailure span{color:var(--muted);font-size:13px;line-height:1.55}.egwTocFailure button{margin-top:2px}
     @media(max-width:560px){#egwShelf{padding-right:14px}.egwBookSearchNative{margin-top:6px}.egwBookRow{min-height:54px;padding:7px 3px}.egwBookRow span{font-size:16.5px}.egwAlphaGroup h3{padding:8px 4px 2px;font-size:15.5px}.egwAlphaRail{right:0;height:min(460px,57vh)}.egwModeTabs{margin-bottom:0}.egwChapterRow{min-height:56px;padding:7px 3px}.egwChapterName{font-size:16px}.egwChapterNumber{font-size:15.5px}.egwChapterText.hasSubtitle .egwChapterNumber{font-size:10px}}
   `;
   document.head.appendChild(style);
