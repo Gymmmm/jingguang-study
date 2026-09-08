@@ -14,43 +14,106 @@ const decode=s=>String(s||'')
   .replace(/\s+/g,' ')
   .trim();
 const chinese=s=>(s.match(/[\u3400-\u9fff]/g)||[]).length;
-const junk=s=>/^(Loading|Search|Contents|Book Info|Copy|Print|Larger font|Smaller font|Main|Chinese|English|Show search|Hide search|Your mail sent|Error while)/i.test(s)||/Search Syntax Examples|All collections|Support our ministry|Go to Full App/i.test(s);
+const junk=s=>/^(Loading|Search|Contents|Book Info|Copy|Print|Larger font|Smaller font|Main|Chinese|English|Show search|Hide search|Your mail sent|Error while)/i.test(s)||/Search Syntax Examples|All collections|Support our ministry|Go to Full App|Directory|Table of Contents/i.test(s);
 const headers={'user-agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/151 Safari/537.36','accept-language':'zh-CN,zh;q=0.9,en;q=0.5'};
+const LOCATOR_TAIL=/(?:\s*(?:〖\d+〗|\([A-Za-z]{1,12}\.?\s*\d+(?:\.\d+)*\)|\{[A-Za-z]{1,12}\s+\d+(?:\.\d+)+\}|[A-Za-z]{1,12}[A-Z]?\s+\d+(?:\.\d+)+))+\s*$/;
+const LOCATOR_PART=/(〖\d+〗|\([A-Za-z]{1,12}\.?\s*\d+(?:\.\d+)*\)|\{[A-Za-z]{1,12}\s+\d+(?:\.\d+)+\}|[A-Za-z]{1,12}[A-Z]?\s+\d+(?:\.\d+)+)/g;
 
 function readableCandidate(t){
-  if(!t||t.length<12||t.length>3200||chinese(t)<6||junk(t))return false;
-  if(/Language:|Collection:|Section:|Search filters|怀爱伦著作.*圣经.*书籍|No results found|EGW Extras|Directory|Android App|iOS App/i.test(t))return false;
+  if(!t||t.length<12||t.length>1800||chinese(t)<6||junk(t))return false;
+  if(/Language:|Collection:|Section:|Search filters|怀爱伦著作.*圣经.*书籍|No results found|EGW Extras|Android App|iOS App/i.test(t))return false;
   return true;
 }
-function paragraphs(html){
-  const cleaned=html
+function splitLocator(text){
+  const value=String(text||'').trim(),m=value.match(LOCATOR_TAIL);
+  if(!m)return {text:value,locator:''};
+  const locator=(m[0].match(LOCATOR_PART)||[]).join(' '),body=value.slice(0,m.index).trim();
+  return body?{text:body,locator}:{text:value,locator:''};
+}
+function cleanHtml(html){
+  return html
     .replace(/<script[\s\S]*?<\/script>/gi,'')
     .replace(/<style[\s\S]*?<\/style>/gi,'')
-    .replace(/<svg[\s\S]*?<\/svg>/gi,'');
-  const strong=[],fallback=[],seen=new Set();
-  const refRx=/\b[A-Za-z]{1,12}[A-Z]?\s+\d+(?:\.\d+)+(?:\s|$)|〖\d+〗/g;
-  const rx=/<(?:p|div|span|li)\b[^>]*>([\s\S]*?)<\/(?:p|div|span|li)>/gi;
-  let m;
-  while((m=rx.exec(cleaned))){
-    const t=decode(m[1]);
-    if(!readableCandidate(t)||seen.has(t))continue;
-    const refs=(t.match(refRx)||[]).length;
-    // EGW 正文段落通常带定位码；聚合了很多段的外层容器直接丢弃。
-    if(refs>=1&&refs<=3){seen.add(t);strong.push(t);continue}
-    if(refs===0&&t.length<=900){seen.add(t);fallback.push(t)}
+    .replace(/<svg[\s\S]*?<\/svg>/gi,'')
+    .replace(/<nav[\s\S]*?<\/nav>/gi,'')
+    .replace(/<footer[\s\S]*?<\/footer>/gi,'');
+}
+function dedupeParagraphs(items){
+  const seen=new Set(),unique=[];
+  for(const item of items){
+    const key=item.text+'\u0000'+item.locator;
+    if(!item.text||seen.has(key))continue;
+    seen.add(key);unique.push(item);
   }
-  let out=strong.length?strong:fallback;
-  // 去掉被更短正文完整包含的外层重复块。
-  out=out.filter((t,i,a)=>!a.some((u,j)=>j!==i&&u.length<t.length&&t.includes(u)&&t.length>u.length*1.6));
-  // 去掉章节目录标题，只保留真正可阅读的连续正文。
-  out=out.filter(t=>!/^第\s*[0-9０-９一二三四五六七八九十百零〇]+\s*章.{0,80}$/.test(t));
-  return out.slice(0,180);
+  return unique.filter((item,i,a)=>!a.some((other,j)=>j!==i&&other.text.length<item.text.length&&item.text.includes(other.text)&&item.text.length>other.text.length*1.55));
+}
+function paragraphCandidates(cleaned,tagRx){
+  const out=[],rx=tagRx;let m;
+  while((m=rx.exec(cleaned))){
+    const raw=decode(m[1]);
+    if(!readableCandidate(raw))continue;
+    const {text,locator}=splitLocator(raw);
+    if(text)out.push({type:'paragraph',text,locator,pos:m.index});
+  }
+  return out;
+}
+function bodyRangeParagraphs(pCandidates){
+  const located=pCandidates.filter(x=>x.locator);
+  if(located.length<2)return pCandidates;
+  const first=located[0].pos,last=located[located.length-1].pos;
+  const inside=pCandidates.filter(x=>x.pos>=first&&x.pos<=last);
+  return inside.length>=located.length?inside:located;
+}
+function blocks(html){
+  const cleaned=cleanHtml(html);
+  const pCandidates=paragraphCandidates(cleaned,/<p\b[^>]*>([\s\S]*?)<\/p>/gi);
+  let paragraphs=bodyRangeParagraphs(pCandidates);
+
+  // 个别 EGW 页面不用 p 包正文；只有在 p 不足时，才从 div/span 中补“带真实定位码”的正文，避免把目录和页面导航抓进来。
+  if(paragraphs.length<2){
+    const fallback=paragraphCandidates(cleaned,/<(?:div|span)\b[^>]*>([\s\S]*?)<\/(?:div|span)>/gi).filter(x=>x.locator);
+    paragraphs=paragraphs.concat(fallback);
+  }
+  paragraphs=dedupeParagraphs(paragraphs).slice(0,220);
+  if(!paragraphs.length)return [];
+
+  const first=Math.min(...paragraphs.map(x=>x.pos)),last=Math.max(...paragraphs.map(x=>x.pos));
+  const headings=[],hrx=/<h([2-5])\b[^>]*>([\s\S]*?)<\/h\1>/gi;let h;
+  while((h=hrx.exec(cleaned))){
+    const text=decode(h[2]);
+    if(h.index<first||h.index>last||chinese(text)<2||text.length>80||junk(text))continue;
+    if(/^第\s*[0-9０-９一二三四五六七八九十百零〇]+\s*章/.test(text))continue;
+    headings.push({type:'heading',text,pos:h.index});
+  }
+  return [...paragraphs,...headings].sort((a,b)=>a.pos-b.pos).map(({pos,...item})=>item);
+}
+function paragraphs(html){
+  const structured=blocks(html).filter(x=>x.type==='paragraph');
+  return structured.map(x=>x.text+(x.locator?' '+x.locator:''));
+}
+function cleanTitleText(value){
+  return decode(value||'')
+    .replace(/\s*[|｜]\s*EGW Writings.*$/i,'')
+    .replace(/\s*[-—–]\s*Ellen G\.? White Writings.*$/i,'')
+    .replace(/\s+/g,' ')
+    .trim();
 }
 function title(html){
   const h=(html.match(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/i)||[])[1];
-  const t=decode(h||'');
-  if(t&&chinese(t))return t;
-  return decode((html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)||[])[1]||(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||'怀爱伦著作').replace(/\s*\|\s*EGW Writings.*$/i,'');
+  const t=cleanTitleText(h||'');
+  if(t&&chinese(t)&&t.length<160)return t;
+  return cleanTitleText((html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)||[])[1]||(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||'怀爱伦著作');
+}
+function chapterSubtitle(structured,chapterTitle=''){
+  const base=cleanTitleText(chapterTitle).replace(/\s+/g,'');
+  const candidates=structured.filter(x=>x?.type==='heading'||(x?.type==='paragraph'&&x.locator));
+  for(const item of candidates){
+    const text=cleanTitleText(item?.text||'');
+    if(!text||text.replace(/\s+/g,'')===base||chinese(text)<2||text.length>36)continue;
+    if(/[。！？!?；;]$/.test(text))continue;
+    return text;
+  }
+  return '';
 }
 function bookIdFrom(url){
   const s=String(url||'');
@@ -64,7 +127,7 @@ function normalizeReadUrl(href,base){
   if(url.startsWith('//'))url='https:'+url;
   else if(url.startsWith('/'))url='https://text.egwwritings.org'+url;
   else if(!/^https?:\/\//i.test(url)){try{url=new URL(url,base).href}catch{return ''}}
-  return url;
+  return url.replace(/[?#].*$/,'');
 }
 function chapterLinks(html,current){
   const rows=[],seen=new Set(),rx=/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;let m;
@@ -78,6 +141,10 @@ function chapterLinks(html,current){
     seen.add(url);rows.push({title:text,url});
   }
   return rows.slice(0,240);
+}
+function adjacentChapters(html,current){
+  const chapters=chapterLinks(html,current),needle=normalizeReadUrl(current,current),i=chapters.findIndex(x=>normalizeReadUrl(x.url,current)===needle);
+  return {current:i>=0?chapters[i]:null,prev:i>0?chapters[i-1]:null,next:i>=0&&i<chapters.length-1?chapters[i+1]:null};
 }
 async function fetchHtml(url){
   const r=await fetch(url,{headers,redirect:'follow'});
@@ -94,6 +161,7 @@ async function getToc(url){
 export default async function handler(req,res){
   const input=String(req.query?.url||'').trim();
   const toc=String(req.query?.toc||'')==='1';
+  const meta=String(req.query?.meta||'')==='1';
   if(!ALLOWED.test(input))return res.status(400).json({ok:false,error:'invalid_url'});
   try{
     if(toc){
@@ -105,10 +173,15 @@ export default async function handler(req,res){
     let url=input;
     const mobile=input.match(/\/zh\/book\/(\d+)\.(\d+)/i);
     if(mobile)url=`https://text.egwwritings.org/read/${mobile[1]}.${mobile[2]}`;
-    const html=await fetchHtml(url),pageTitle=title(html),parts=paragraphs(html);
-    if(!parts.length)return res.status(422).json({ok:false,error:'no_readable_text',official_url:input,title:pageTitle});
+    const html=await fetchHtml(url),pageTitle=title(html),structured=blocks(html),subtitle=chapterSubtitle(structured,pageTitle),displayTitle=subtitle?`${pageTitle} ${subtitle}`:pageTitle;
+    if(meta){
+      res.setHeader('Cache-Control','public, s-maxage=86400, stale-while-revalidate=604800');
+      return res.status(200).json({ok:true,title:pageTitle,subtitle,display_title:displayTitle,official_url:input,source_url:url});
+    }
+    const parts=structured.filter(x=>x.type==='paragraph').map(x=>x.text+(x.locator?' '+x.locator:'')),tocData=await getToc(url),nav=adjacentChapters(tocData.html,url),chapterTitle=nav.current?.title||pageTitle,chapterLead=chapterSubtitle(structured,chapterTitle),chapterDisplayTitle=chapterLead?`${chapterTitle} ${chapterLead}`:chapterTitle;
+    if(!parts.length)return res.status(422).json({ok:false,error:'no_readable_text',official_url:input,title:chapterTitle});
     res.setHeader('Cache-Control','private, no-store');
-    return res.status(200).json({ok:true,title:pageTitle,paragraphs:parts,official_url:input,source_url:url});
+    return res.status(200).json({ok:true,title:chapterTitle,subtitle:chapterLead,display_title:chapterDisplayTitle,blocks:structured,paragraphs:parts,prev:nav.prev,next:nav.next,official_url:input,source_url:url});
   }catch(e){
     return res.status(502).json({ok:false,error:'official_reader_unavailable',detail:String(e?.message||e),official_url:input});
   }

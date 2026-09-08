@@ -6,12 +6,20 @@
 
   const RATE_KEY = 'jg_read_aloud_rate';
   const POS_KEY = 'jg_read_aloud_position';
+  const VOICE_MODE_KEY = 'jg_read_aloud_voice_mode';
+  const RATES = [0.8, 1, 1.2, 1.5, 2];
+  const VOICE_MODES = new Set(['female', 'male', 'system']);
+  const FEMALE_RX = /female|女声|ting|mei|xiaoxiao|xiaoyi|xiaomeng|xiaoshuang|sin[- ]?ji/i;
+  const MALE_RX = /male|男声|yunxi|yunjian|yunyang|yunze|li[- ]?mu/i;
   let units = [];
   let index = 0;
   let rate = +(localStorage.getItem(RATE_KEY) || 1);
+  let voiceMode = localStorage.getItem(VOICE_MODE_KEY) || 'female';
+  if (!VOICE_MODES.has(voiceMode)) voiceMode = 'female';
   let speaking = false;
   let paused = false;
   let session = 0;
+  let activeKey = '';
 
   const detail = document.getElementById('detail');
   const body = document.getElementById('detailBody');
@@ -22,39 +30,52 @@
   }
 
   function titleKey() {
-    const h = body.querySelector('h1,h2');
-    return cleanText(h?.textContent || document.getElementById('detailType')?.textContent || 'reader');
+    const kind = detail.dataset.readerKind || 'reader';
+    const book = cleanText(body.querySelector('.egwBookName,h1')?.textContent || '');
+    const chapter = cleanText(document.getElementById('detailType')?.textContent || body.querySelector('h2')?.textContent || '');
+    return [kind, book, chapter].filter(Boolean).join('|') || 'reader';
   }
 
   function savePosition() {
+    if (!units.length) return;
+    const key = activeKey || titleKey();
+    if (!key) return;
     try {
       const all = JSON.parse(localStorage.getItem(POS_KEY) || '{}');
-      all[titleKey()] = index;
+      all[key] = index;
       localStorage.setItem(POS_KEY, JSON.stringify(all));
     } catch (_) {}
   }
 
-  function restorePosition() {
+  function restorePosition(key = titleKey()) {
     try {
       const all = JSON.parse(localStorage.getItem(POS_KEY) || '{}');
-      const n = +all[titleKey()];
+      const n = +all[key];
       return Number.isFinite(n) ? Math.max(0, Math.min(n, Math.max(0, units.length - 1))) : 0;
     } catch (_) { return 0; }
   }
 
+  function readablePage() {
+    return detail.dataset.readerKind === 'bible-reader' || detail.dataset.readerKind === 'egw-reader';
+  }
+
   function collectUnits() {
     const candidates = [
-      ...body.querySelectorAll('.reading .verse span, .reading p, .egw-original p, .egw-original div, .detailSection p')
+      ...body.querySelectorAll('.reading .verse span, .egwReading .egwParagraph, .egw-original p, .detailSection p')
     ];
     const seen = new Set();
-    units = candidates.map(el => ({ el, text: cleanText(el.textContent) }))
-      .filter(x => x.text.length > 1 && !seen.has(x.text) && seen.add(x.text));
-    if (!units.length) {
+    units = candidates
+      .filter(el => !seen.has(el) && seen.add(el))
+      .map(el => ({ el, text: cleanText(el.textContent) }))
+      .filter(x => x.text.length > 1);
+    if (!units.length && readablePage()) {
       const reading = body.querySelector('.reading, .egw-original');
       const text = cleanText(reading?.textContent);
       if (text) units = [{ el: reading, text }];
     }
-    index = restorePosition();
+    activeKey = units.length ? titleKey() : '';
+    index = units.length ? restorePosition(activeKey) : 0;
+    syncToolbarVisibility();
     updateToolbar();
   }
 
@@ -70,11 +91,29 @@
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  function pickChineseVoice() {
-    const voices = synth.getVoices?.() || [];
-    return voices.find(v => /^zh(-|_)/i.test(v.lang) && /female|ting|mei|xiaoxiao|sinji|yunxi|zh/i.test(v.name))
-      || voices.find(v => /^zh(-|_)/i.test(v.lang))
+  function chineseVoices() {
+    return (synth.getVoices?.() || []).filter(v => /^zh(?:-|_)/i.test(v.lang || ''));
+  }
+
+  function pickChineseVoice(mode = voiceMode) {
+    if (mode === 'system') return null;
+    const voices = chineseVoices();
+    if (!voices.length) return null;
+    const rx = mode === 'male' ? MALE_RX : FEMALE_RX;
+    return voices.find(v => rx.test(v.name || ''))
+      || voices.find(v => v.localService)
+      || voices[0]
       || null;
+  }
+
+  function voiceModeLabel(mode = voiceMode) {
+    return mode === 'male' ? '自然男声' : mode === 'system' ? '系统默认' : '自然女声';
+  }
+
+  function currentVoiceName() {
+    if (voiceMode === 'system') return '系统默认中文语音';
+    const voice = pickChineseVoice();
+    return voice?.name || `${voiceModeLabel()}（系统回退）`;
   }
 
   function speakCurrent(token = session) {
@@ -113,7 +152,7 @@
 
   function start() {
     collectUnits();
-    if (!units.length) return;
+    if (!units.length || !readablePage()) return;
     if (paused && synth.paused) {
       synth.resume();
       paused = false;
@@ -135,33 +174,43 @@
   }
 
   function stop(reset = false) {
+    savePosition();
     session += 1;
     synth.cancel();
     speaking = false;
     paused = false;
     clearHighlight();
     if (reset) index = 0;
-    savePosition();
     updateToolbar();
   }
 
-  function jump(delta) {
-    collectUnits();
-    if (!units.length) return;
-    index = Math.max(0, Math.min(units.length - 1, index + delta));
+  function refresh() {
     savePosition();
-    if (speaking) {
-      session += 1;
-      speakCurrent(session);
-    } else {
-      highlightCurrent();
-      updateToolbar();
-    }
+    session += 1;
+    synth.cancel();
+    speaking = false;
+    paused = false;
+    clearHighlight();
+    units = [];
+    index = 0;
+    activeKey = '';
+    collectUnits();
   }
 
-  function setRate(value) {
-    rate = +value || 1;
+  function cycleRate() {
+    const current = RATES.findIndex(x => Math.abs(x - rate) < 0.01);
+    rate = RATES[(current + 1 + RATES.length) % RATES.length];
     localStorage.setItem(RATE_KEY, String(rate));
+    if (speaking && !paused) {
+      session += 1;
+      speakCurrent(session);
+    }
+    updateToolbar();
+  }
+
+  function setVoiceMode(value) {
+    voiceMode = VOICE_MODES.has(value) ? value : 'system';
+    localStorage.setItem(VOICE_MODE_KEY, voiceMode);
     if (speaking && !paused) {
       session += 1;
       speakCurrent(session);
@@ -174,30 +223,40 @@
     if (bar) return bar;
     bar = document.createElement('div');
     bar.className = 'readAloudBar';
+    bar.hidden = true;
     bar.innerHTML = `
-      <button type="button" data-tts="prev" aria-label="上一段">‹ 上一段</button>
-      <button type="button" class="ttsMain" data-tts="toggle">▶ 朗读</button>
-      <button type="button" data-tts="next" aria-label="下一段">下一段 ›</button>
-      <label>语速
-        <select data-tts-rate aria-label="朗读语速">
-          <option value="0.8">0.8×</option>
-          <option value="1">1×</option>
-          <option value="1.2">1.2×</option>
-          <option value="1.5">1.5×</option>
-          <option value="2">2×</option>
-        </select>
-      </label>`;
+      <button type="button" class="ttsMain" data-tts="toggle">朗读</button>
+      <select class="ttsVoice" data-tts-voice aria-label="选择朗读声音">
+        <option value="female">女声</option>
+        <option value="male">男声</option>
+        <option value="system">系统</option>
+      </select>
+      <button type="button" class="ttsRate" data-tts="rate" aria-label="调整朗读语速">1×</button>`;
     detail.querySelector('header')?.insertAdjacentElement('afterend', bar);
-    bar.querySelector('[data-tts-rate]').value = String(rate);
+    const select = bar.querySelector('[data-tts-voice]');
+    if (select) select.value = voiceMode;
     return bar;
+  }
+
+  function syncToolbarVisibility() {
+    const bar = ensureToolbar();
+    const show = detail.open && readablePage();
+    bar.hidden = !show;
+    return show;
   }
 
   function updateToolbar() {
     const bar = ensureToolbar();
     const main = bar.querySelector('[data-tts="toggle"]');
-    if (main) main.textContent = paused ? '▶ 继续' : (speaking ? '⏸ 暂停' : '▶ 朗读');
-    const select = bar.querySelector('[data-tts-rate]');
-    if (select && select.value !== String(rate)) select.value = String(rate);
+    if (main) {
+      main.textContent = paused ? '继续朗读' : (speaking ? '暂停朗读' : '朗读');
+      main.setAttribute('aria-label', `${main.textContent}，${voiceModeLabel()}，${currentVoiceName()}`);
+      main.title = currentVoiceName();
+    }
+    const voiceSelect = bar.querySelector('[data-tts-voice]');
+    if (voiceSelect && voiceSelect.value !== voiceMode) voiceSelect.value = voiceMode;
+    const rateBtn = bar.querySelector('[data-tts="rate"]');
+    if (rateBtn) rateBtn.textContent = `${rate}×`;
     bar.dataset.active = speaking ? '1' : '0';
   }
 
@@ -207,31 +266,39 @@
     const action = btn.dataset.tts;
     if (action === 'toggle') {
       if (speaking && !paused) pause(); else start();
-    } else if (action === 'prev') jump(-1);
-    else if (action === 'next') jump(1);
+    } else if (action === 'rate') cycleRate();
   });
 
   detail.addEventListener('change', e => {
-    if (e.target.matches('[data-tts-rate]')) setRate(e.target.value);
+    if (e.target.matches('[data-tts-voice]')) setVoiceMode(e.target.value);
   });
 
-  detail.addEventListener('close', () => stop(false));
+  detail.addEventListener('close', () => {
+    stop(false);
+    units = [];
+    activeKey = '';
+    ensureToolbar().hidden = true;
+  });
   detail.addEventListener('cancel', () => stop(false));
 
-  const observer = new MutationObserver(() => {
-    if (!detail.open) return;
-    if (speaking) stop(false);
-    collectUnits();
-  });
-  observer.observe(body, { childList: true, subtree: true });
+  if ('onvoiceschanged' in synth) {
+    synth.addEventListener?.('voiceschanged', updateToolbar);
+  }
+
+  window.jgRefreshReadAloud = refresh;
+  window.jgReadAloudVoiceName = currentVoiceName;
 
   const style = document.createElement('style');
   style.textContent = `
-    .readAloudBar{position:sticky;top:52px;z-index:6;display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--card) 94%,transparent);backdrop-filter:blur(12px)}
-    .readAloudBar button,.readAloudBar select{min-height:38px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font:inherit}
-    .readAloudBar button{padding:0 12px}.readAloudBar .ttsMain{font-weight:800}.readAloudBar label{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}.readAloudBar select{padding:0 8px}
-    .ttsSpeaking{border-radius:6px;background:rgba(72,123,145,.16)!important;box-shadow:0 0 0 3px rgba(72,123,145,.08);transition:background .18s ease}
-    @media(max-width:560px){.readAloudBar{top:48px;grid-template-columns:1fr 1.4fr 1fr}.readAloudBar label{grid-column:1/-1;justify-content:flex-end}.readAloudBar button{padding:0 8px;font-size:13px}}
+    .readAloudBar[hidden]{display:none!important}
+    .readAloudBar{position:relative;z-index:2;display:flex;justify-content:flex-end;align-items:center;gap:2px;max-width:720px;margin:0 auto;padding:5px 14px 0;border:0;background:transparent;backdrop-filter:none}
+    .readAloudBar button,.readAloudBar select{min-height:30px!important;padding:0 6px!important;border:0!important;border-radius:0!important;background:transparent!important;color:var(--muted)!important;font:inherit;font-size:10.5px!important;font-weight:650!important;box-shadow:none!important}
+    .readAloudBar .ttsMain{color:var(--accent)!important}
+    .readAloudBar[data-active="1"] .ttsMain{font-weight:800!important}
+    .readAloudBar .ttsVoice{width:auto;max-width:48px;appearance:auto;-webkit-appearance:menulist;color:color-mix(in srgb,var(--muted) 88%,transparent)!important}
+    .readAloudBar .ttsRate{min-width:34px!important;color:color-mix(in srgb,var(--muted) 78%,transparent)!important;font-weight:550!important}
+    .ttsSpeaking{border-left:2px solid var(--accent)!important;background:transparent!important;box-shadow:none!important;transition:border-color .18s ease}
+    @media(max-width:560px){.readAloudBar{padding:4px 12px 0}.readAloudBar button,.readAloudBar select{font-size:10px!important}.readAloudBar .ttsVoice{max-width:44px}}
   `;
   document.head.appendChild(style);
   ensureToolbar();
