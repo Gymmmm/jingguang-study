@@ -3,8 +3,7 @@
 
   const detail = document.getElementById('detail');
   const body = document.getElementById('detailBody');
-  const fontTools = detail?.querySelector('.fontTools');
-  if (!detail || !body || !fontTools) return;
+  if (!detail || !body) return;
 
   const canonicalEgw = value => String(value || '')
     .trim()
@@ -24,31 +23,26 @@
     .replace(/[：:]/g, '')
     .trim();
 
+  const tocCache = new Map();
+  let currentEgwUrl = '';
+  let pagerRequest = 0;
+
+  function isReaderOpen() {
+    return detail.open && (detail.dataset.readerKind === 'bible-reader' || detail.dataset.readerKind === 'egw-reader');
+  }
+
   function lastEgw() {
     try { return JSON.parse(localStorage.getItem('jg_last_egw_native') || 'null'); }
     catch (_) { return null; }
   }
 
-  let pagerRequest = 0;
-  const tocCache = new Map();
-
-  function isReaderOpen() {
-    return detail.open && (detail.dataset.readerKind === 'egw-reader' || detail.dataset.readerKind === 'bible-reader');
-  }
-
-  function ensureCrossButton() {
-    let button = fontTools.querySelector('.crossIndexTopButton');
-    if (!button) {
-      button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'crossIndexTopButton';
-      button.dataset.crossIndexOpen = '1';
-      button.setAttribute('aria-label', '打开互相索引');
-      button.innerHTML = '<span aria-hidden="true">↔</span>';
-      fontTools.appendChild(button);
-    }
-    button.hidden = !isReaderOpen();
-    return button;
+  function ensureCrossHandleVisible() {
+    if (!isReaderOpen()) return;
+    try { window.jgRefreshCrossIndex?.(); } catch (_) {}
+    const handle = detail.querySelector('.crossIndexHandle[data-cross-index-open]');
+    if (!handle) return;
+    handle.hidden = false;
+    handle.setAttribute('aria-label', '打开互相索引');
   }
 
   function makeInlineLinksClickable() {
@@ -60,18 +54,15 @@
   }
 
   function openCrossIndex() {
-    window.jgRefreshCrossIndex?.();
+    try { window.jgRefreshCrossIndex?.(); } catch (_) {}
     const handle = detail.querySelector('.crossIndexHandle[data-cross-index-open]');
-    if (handle) handle.click();
+    if (handle) {
+      handle.hidden = false;
+      handle.click();
+    }
   }
 
   detail.addEventListener('click', event => {
-    if (event.target.closest('.crossIndexTopButton')) {
-      event.preventDefault();
-      event.stopPropagation();
-      openCrossIndex();
-      return;
-    }
     if (event.target.closest('button,a,input,select,textarea')) return;
     const linked = event.target.closest('.egwParagraphWrap.crossLinked,.reading>.verse.crossLinked');
     if (!linked) return;
@@ -87,6 +78,18 @@
     openCrossIndex();
   });
 
+  function ensureBibleBottomPager() {
+    if (!detail.open || detail.dataset.readerKind !== 'bible-reader') return;
+    const reading = body.querySelector('.reading');
+    const topPager = body.querySelector('.readerNav');
+    if (!reading || !topPager || body.querySelector('.readerNavBottom')) return;
+
+    const bottom = topPager.cloneNode(true);
+    bottom.classList.add('readerNavBottom');
+    bottom.setAttribute('aria-label', '章节导航');
+    reading.insertAdjacentElement('afterend', bottom);
+  }
+
   async function tocFor(url) {
     const pos = readPos(url);
     const key = pos?.bookId || url;
@@ -94,7 +97,9 @@
     const promise = fetch(`/api/egw-read?toc=1&url=${encodeURIComponent(url)}`, {cache:'force-cache'})
       .then(async response => {
         const data = await response.json();
-        if (!response.ok || !data?.ok || !Array.isArray(data.chapters) || !data.chapters.length) throw new Error('toc_unavailable');
+        if (!response.ok || !data?.ok || !Array.isArray(data.chapters) || !data.chapters.length) {
+          throw new Error('toc_unavailable');
+        }
         return data.chapters;
       })
       .catch(error => {
@@ -105,25 +110,24 @@
     return promise;
   }
 
-  function locateChapter(chapters, currentUrl, currentTitle) {
-    let index = chapters.findIndex(ch => canonicalEgw(ch?.url) === currentUrl);
+  function locateChapter(chapters, url, title) {
+    let index = chapters.findIndex(ch => canonicalEgw(ch?.url) === canonicalEgw(url));
     if (index >= 0) return index;
 
-    const current = readPos(currentUrl);
-    if (current) {
-      const exactBook = chapters.map((ch, i) => ({i, pos:readPos(ch?.url)})).filter(x => x.pos?.bookId === current.bookId);
-      const exact = exactBook.find(x => x.pos.pos === current.pos);
+    const pos = readPos(url);
+    if (pos) {
+      const exact = chapters
+        .map((ch, i) => ({i, p:readPos(ch?.url)}))
+        .find(x => x.p?.bookId === pos.bookId && x.p.pos === pos.pos);
       if (exact) return exact.i;
     }
 
-    const key = titleKey(currentTitle);
-    if (key) {
-      index = chapters.findIndex(ch => {
-        const candidate = titleKey(ch?.title);
-        return candidate && (candidate === key || candidate.includes(key) || key.includes(candidate));
-      });
-    }
-    return index;
+    const key = titleKey(title);
+    if (!key) return -1;
+    return chapters.findIndex(ch => {
+      const candidate = titleKey(ch?.title);
+      return candidate && (candidate === key || candidate.includes(key) || key.includes(candidate));
+    });
   }
 
   function pagerButton(item, label, direction, saved) {
@@ -139,23 +143,34 @@
     return button;
   }
 
-  async function ensurePager() {
+  async function ensureEgwBottomPager() {
     if (!detail.open || detail.dataset.readerKind !== 'egw-reader') return;
     const article = body.querySelector('.egwReaderArticle');
     if (!article || article.querySelector('.egwChapterPager')) return;
 
     const saved = lastEgw();
-    const currentUrl = canonicalEgw(saved?.url || saved?.native_url || detail.dataset.egwCurrentUrl || '');
-    if (!currentUrl) return;
+    const url = canonicalEgw(
+      currentEgwUrl ||
+      detail.dataset.egwCurrentUrl ||
+      saved?.url ||
+      saved?.native_url ||
+      ''
+    );
+    if (!url) return;
 
     const requestId = ++pagerRequest;
     try {
-      const chapters = await tocFor(currentUrl);
+      const chapters = await tocFor(url);
       if (requestId !== pagerRequest || !detail.open || detail.dataset.readerKind !== 'egw-reader') return;
       if (article.querySelector('.egwChapterPager')) return;
 
-      const index = locateChapter(chapters, currentUrl, document.getElementById('detailType')?.textContent || saved?.chapter || '');
+      const index = locateChapter(
+        chapters,
+        url,
+        document.getElementById('detailType')?.textContent || saved?.chapter || ''
+      );
       if (index < 0) return;
+
       const prev = index > 0 ? chapters[index - 1] : null;
       const next = index < chapters.length - 1 ? chapters[index + 1] : null;
       if (!prev && !next) return;
@@ -174,60 +189,119 @@
   }
 
   function refreshControls() {
-    ensureCrossButton();
     if (!isReaderOpen()) return;
-    window.jgRefreshCrossIndex?.();
-    requestAnimationFrame(makeInlineLinksClickable);
-    ensurePager();
+    ensureCrossHandleVisible();
+    makeInlineLinksClickable();
+    ensureBibleBottomPager();
+    ensureEgwBottomPager();
   }
 
-  const previousRefreshReadAloud = window.jgRefreshReadAloud;
-  if (typeof previousRefreshReadAloud === 'function' && !previousRefreshReadAloud.__readerControlsCore) {
-    const wrapped = (...args) => {
-      const result = previousRefreshReadAloud(...args);
-      queueMicrotask(refreshControls);
-      return result;
-    };
-    wrapped.__readerControlsCore = true;
-    window.jgRefreshReadAloud = wrapped;
-  }
+  document.addEventListener('click', event => {
+    const nav = event.target.closest?.('[data-egw-native-url]');
+    if (!nav?.dataset.egwNativeUrl) return;
+    currentEgwUrl = canonicalEgw(nav.dataset.egwNativeUrl);
+    detail.dataset.egwCurrentUrl = currentEgwUrl;
+    pagerRequest += 1;
+  }, true);
 
   const previousOpenEgw = window.jgOpenNativeEgw;
-  if (typeof previousOpenEgw === 'function' && !previousOpenEgw.__readerControlsCore) {
+  if (typeof previousOpenEgw === 'function' && !previousOpenEgw.__unifiedReaderControls) {
     const wrappedOpen = (url, meta) => {
-      detail.dataset.egwCurrentUrl = canonicalEgw(url);
+      currentEgwUrl = canonicalEgw(url);
+      detail.dataset.egwCurrentUrl = currentEgwUrl;
       pagerRequest += 1;
       const result = previousOpenEgw(url, meta);
       Promise.resolve(result).finally(() => queueMicrotask(refreshControls));
       return result;
     };
-    wrappedOpen.__readerControlsCore = true;
+    wrappedOpen.__unifiedReaderControls = true;
     window.jgOpenNativeEgw = wrappedOpen;
   }
 
+  const previousRefreshReadAloud = window.jgRefreshReadAloud;
+  if (typeof previousRefreshReadAloud === 'function' && !previousRefreshReadAloud.__unifiedReaderControls) {
+    const wrappedRefresh = (...args) => {
+      const result = previousRefreshReadAloud(...args);
+      queueMicrotask(refreshControls);
+      return result;
+    };
+    wrappedRefresh.__unifiedReaderControls = true;
+    window.jgRefreshReadAloud = wrappedRefresh;
+  }
+
+  window.jgRefreshReaderControls = refreshControls;
+
   detail.addEventListener('close', () => {
     pagerRequest += 1;
-    ensureCrossButton().hidden = true;
+    currentEgwUrl = '';
   });
 
   const style = document.createElement('style');
   style.textContent = `
-    .crossIndexTopButton[hidden]{display:none!important}
-    #detail[data-reader-kind="egw-reader"]>header,
-    #detail[data-reader-kind="bible-reader"]>header{grid-template-columns:68px minmax(0,1fr) 108px!important}
-    #detail .crossIndexTopButton{
-      display:inline-flex!important;align-items:center;justify-content:center;
-      width:32px!important;min-width:32px!important;height:34px!important;min-height:34px!important;
-      padding:0!important;border:0!important;background:transparent!important;
-      color:var(--egw-accent,var(--accent))!important;font-size:17px!important;font-weight:700!important;
-      box-shadow:none!important
+    #detail[data-reader-kind="bible-reader"] .crossIndexHandle,
+    #detail[data-reader-kind="egw-reader"] .crossIndexHandle{
+      display:flex!important;
+      position:fixed!important;
+      top:50%!important;
+      right:max(7px,env(safe-area-inset-right))!important;
+      bottom:auto!important;
+      transform:translateY(-50%)!important;
+      z-index:55!important;
+      min-height:38px!important;
+      padding:0 10px!important;
+      opacity:.94!important;
+      pointer-events:auto!important;
+      box-shadow:0 4px 18px #00000014!important;
     }
+
     #detail .egwParagraphWrap.crossLinked,
-    #detail .reading>.verse.crossLinked{cursor:pointer;-webkit-tap-highlight-color:transparent}
+    #detail .reading>.verse.crossLinked{
+      cursor:pointer;
+      -webkit-tap-highlight-color:transparent;
+    }
     #detail .egwParagraphWrap.crossLinked::after,
     #detail .reading>.verse.crossLinked::after{pointer-events:none}
-    #detail .egwChapterPager{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:14px!important;margin:38px 0 8px!important;padding-top:18px!important;border-top:1px solid var(--line)!important}
-    #detail .egwChapterPager button{display:flex!important;min-height:62px!important;flex-direction:column!important;justify-content:center!important;gap:4px!important;padding:8px 2px!important;border:0!important;background:transparent!important;color:var(--egw-accent,var(--accent))!important;box-shadow:none!important}
+
+    #detail .readerNavBottom{
+      display:flex!important;
+      justify-content:space-between!important;
+      gap:14px!important;
+      margin:30px 0 6px!important;
+      padding-top:18px!important;
+      border-top:1px solid var(--line)!important;
+    }
+    #detail .readerNavBottom button{
+      flex:1!important;
+      min-height:54px!important;
+      padding:8px 2px!important;
+      border:0!important;
+      background:transparent!important;
+      color:var(--accent)!important;
+      box-shadow:none!important;
+    }
+    #detail .readerNavBottom button:first-child{text-align:left!important}
+    #detail .readerNavBottom button:last-child{text-align:right!important}
+
+    #detail .egwChapterPager{
+      display:grid!important;
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+      gap:14px!important;
+      margin:38px 0 8px!important;
+      padding-top:18px!important;
+      border-top:1px solid var(--line)!important;
+    }
+    #detail .egwChapterPager button{
+      display:flex!important;
+      min-height:62px!important;
+      flex-direction:column!important;
+      justify-content:center!important;
+      gap:4px!important;
+      padding:8px 2px!important;
+      border:0!important;
+      background:transparent!important;
+      color:var(--egw-accent,var(--accent))!important;
+      box-shadow:none!important;
+    }
     #detail .egwChapterPager button:first-child{text-align:left!important;align-items:flex-start!important}
     #detail .egwChapterPager button:last-child{text-align:right!important;align-items:flex-end!important}
     #detail .egwChapterPager small{font-size:10px!important;color:var(--muted)!important}
@@ -235,6 +309,5 @@
   `;
   document.head.appendChild(style);
 
-  ensureCrossButton();
   queueMicrotask(refreshControls);
 })();
