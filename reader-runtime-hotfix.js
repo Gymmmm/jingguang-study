@@ -3,7 +3,9 @@
 
   const detail = document.getElementById('detail');
   const body = document.getElementById('detailBody');
-  if (!detail || !body) return;
+  const crossButton = document.getElementById('readerCrossIndex');
+  const bottomNav = document.getElementById('readerBottomNav');
+  if (!detail || !body || !crossButton || !bottomNav) return;
 
   const canonicalEgw = value => String(value || '')
     .trim()
@@ -26,9 +28,15 @@
   const tocCache = new Map();
   let currentEgwUrl = '';
   let pagerRequest = 0;
+  let refreshTimer = 0;
+
+  function readerKind() {
+    return detail.dataset.readerKind || '';
+  }
 
   function isReaderOpen() {
-    return detail.open && (detail.dataset.readerKind === 'bible-reader' || detail.dataset.readerKind === 'egw-reader');
+    const kind = readerKind();
+    return detail.open && (kind === 'bible-reader' || kind === 'egw-reader');
   }
 
   function lastEgw() {
@@ -36,14 +44,31 @@
     catch (_) { return null; }
   }
 
-  function ensureCrossHandleVisible() {
-    if (!isReaderOpen()) return;
-    try { window.jgRefreshCrossIndex?.(); } catch (_) {}
-    const handle = detail.querySelector('.crossIndexHandle[data-cross-index-open]');
-    if (!handle) return;
-    handle.hidden = false;
-    handle.setAttribute('aria-label', '打开互相索引');
+  function setCrossButton() {
+    crossButton.hidden = !isReaderOpen();
+    if (!crossButton.hidden) {
+      crossButton.setAttribute('aria-label', '打开互相索引');
+      crossButton.querySelector('b').textContent = '关联';
+    }
   }
+
+  function openCrossIndex() {
+    try { window.jgRefreshCrossIndex?.(); } catch (_) {}
+    const tryOpen = () => {
+      const handle = detail.querySelector('.crossIndexHandle[data-cross-index-open]');
+      if (!handle) return false;
+      handle.hidden = false;
+      handle.click();
+      return true;
+    };
+    if (!tryOpen()) setTimeout(tryOpen, 160);
+  }
+
+  crossButton.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    openCrossIndex();
+  });
 
   function makeInlineLinksClickable() {
     body.querySelectorAll('.egwParagraphWrap.crossLinked,.reading>.verse.crossLinked').forEach(row => {
@@ -51,15 +76,6 @@
       row.setAttribute('role', 'button');
       row.setAttribute('aria-label', '查看这一处的互相索引');
     });
-  }
-
-  function openCrossIndex() {
-    try { window.jgRefreshCrossIndex?.(); } catch (_) {}
-    const handle = detail.querySelector('.crossIndexHandle[data-cross-index-open]');
-    if (handle) {
-      handle.hidden = false;
-      handle.click();
-    }
   }
 
   detail.addEventListener('click', event => {
@@ -78,16 +94,20 @@
     openCrossIndex();
   });
 
-  function ensureBibleBottomPager() {
-    if (!detail.open || detail.dataset.readerKind !== 'bible-reader') return;
-    const reading = body.querySelector('.reading');
-    const topPager = body.querySelector('.readerNav');
-    if (!reading || !topPager || body.querySelector('.readerNavBottom')) return;
+  function clearBottomNav() {
+    bottomNav.innerHTML = '';
+    bottomNav.hidden = true;
+    delete bottomNav.dataset.kind;
+  }
 
-    const bottom = topPager.cloneNode(true);
-    bottom.classList.add('readerNavBottom');
-    bottom.setAttribute('aria-label', '章节导航');
-    reading.insertAdjacentElement('afterend', bottom);
+  function fillBibleBottomNav() {
+    if (!detail.open || readerKind() !== 'bible-reader') return false;
+    const topPager = body.querySelector('.readerNav');
+    if (!topPager) return false;
+    bottomNav.innerHTML = topPager.innerHTML;
+    bottomNav.dataset.kind = 'bible';
+    bottomNav.hidden = false;
+    return true;
   }
 
   async function tocFor(url) {
@@ -130,102 +150,105 @@
     });
   }
 
-  function pagerButton(item, label, direction, saved) {
-    if (!item) return document.createElement('span');
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.dataset.egwNativeUrl = item.url || '';
-    button.dataset.egwTitle = saved?.title || body.querySelector('.egwBookName')?.textContent || '怀爱伦著作';
-    button.dataset.egwBookId = saved?.bookId || readPos(item.url)?.bookId || '';
-    button.dataset.egwTocUrl = saved?.tocUrl || '';
-    button.dataset.egwChapter = item.title || '';
-    button.innerHTML = `<small>${label}</small><span>${direction === 'prev' ? '‹ ' : ''}${String(item.title || '')}${direction === 'next' ? ' ›' : ''}</span>`;
-    return button;
+  function egwPagerButton(item, label, direction, saved) {
+    if (!item) return '<span></span>';
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    const bookTitle = saved?.title || body.querySelector('.egwBookName')?.textContent || '怀爱伦著作';
+    const bookId = saved?.bookId || readPos(item.url)?.bookId || '';
+    const tocUrl = saved?.tocUrl || '';
+    return `<button type="button" data-egw-native-url="${esc(item.url || '')}" data-egw-title="${esc(bookTitle)}" data-egw-book-id="${esc(bookId)}" data-egw-toc-url="${esc(tocUrl)}" data-egw-chapter="${esc(item.title || '')}"><small>${label}</small><span>${direction === 'prev' ? '‹ ' : ''}${esc(item.title || '')}${direction === 'next' ? ' ›' : ''}</span></button>`;
   }
 
-  async function ensureEgwBottomPager() {
-    if (!detail.open || detail.dataset.readerKind !== 'egw-reader') return;
-    const article = body.querySelector('.egwReaderArticle');
-    if (!article || article.querySelector('.egwChapterPager')) return;
-
+  async function fillEgwBottomNav() {
+    if (!detail.open || readerKind() !== 'egw-reader') return false;
     const saved = lastEgw();
-    const url = canonicalEgw(
-      currentEgwUrl ||
-      detail.dataset.egwCurrentUrl ||
-      saved?.url ||
-      saved?.native_url ||
-      ''
-    );
-    if (!url) return;
+    const url = canonicalEgw(currentEgwUrl || detail.dataset.egwCurrentUrl || saved?.url || saved?.native_url || '');
+    if (!url) return false;
 
     const requestId = ++pagerRequest;
     try {
       const chapters = await tocFor(url);
-      if (requestId !== pagerRequest || !detail.open || detail.dataset.readerKind !== 'egw-reader') return;
-      if (article.querySelector('.egwChapterPager')) return;
-
-      const index = locateChapter(
-        chapters,
-        url,
-        document.getElementById('detailType')?.textContent || saved?.chapter || ''
-      );
-      if (index < 0) return;
+      if (requestId !== pagerRequest || !detail.open || readerKind() !== 'egw-reader') return false;
+      const index = locateChapter(chapters, url, document.getElementById('detailType')?.textContent || saved?.chapter || '');
+      if (index < 0) return false;
 
       const prev = index > 0 ? chapters[index - 1] : null;
       const next = index < chapters.length - 1 ? chapters[index + 1] : null;
-      if (!prev && !next) return;
+      if (!prev && !next) return false;
 
-      const nav = document.createElement('nav');
-      nav.className = 'egwChapterPager';
-      nav.setAttribute('aria-label', '章节导航');
-      nav.append(
-        pagerButton(prev, '上一章', 'prev', saved),
-        pagerButton(next, '下一章', 'next', saved)
-      );
-      article.appendChild(nav);
+      bottomNav.innerHTML = `${egwPagerButton(prev, '上一章', 'prev', saved)}${egwPagerButton(next, '下一章', 'next', saved)}`;
+      bottomNav.dataset.kind = 'egw';
+      bottomNav.hidden = false;
+      return true;
     } catch (error) {
-      console.warn('EGW pager fallback failed', error);
+      console.warn('EGW bottom pager failed', error);
+      return false;
     }
   }
 
   function refreshControls() {
-    if (!isReaderOpen()) return;
-    ensureCrossHandleVisible();
+    clearTimeout(refreshTimer);
+    setCrossButton();
+    if (!isReaderOpen()) {
+      clearBottomNav();
+      return;
+    }
+    try { window.jgRefreshCrossIndex?.(); } catch (_) {}
     makeInlineLinksClickable();
-    ensureBibleBottomPager();
-    ensureEgwBottomPager();
+    if (readerKind() === 'bible-reader') {
+      fillBibleBottomNav();
+    } else {
+      clearBottomNav();
+      fillEgwBottomNav();
+    }
+  }
+
+  function scheduleRefresh(delay = 0) {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => {
+      refreshControls();
+      requestAnimationFrame(() => {
+        setCrossButton();
+        makeInlineLinksClickable();
+        if (readerKind() === 'bible-reader' && bottomNav.hidden) fillBibleBottomNav();
+      });
+    }, delay);
   }
 
   document.addEventListener('click', event => {
-    const nav = event.target.closest?.('[data-egw-native-url]');
-    if (!nav?.dataset.egwNativeUrl) return;
-    currentEgwUrl = canonicalEgw(nav.dataset.egwNativeUrl);
-    detail.dataset.egwCurrentUrl = currentEgwUrl;
-    pagerRequest += 1;
+    const egw = event.target.closest?.('[data-egw-native-url]');
+    if (egw?.dataset.egwNativeUrl) {
+      currentEgwUrl = canonicalEgw(egw.dataset.egwNativeUrl);
+      detail.dataset.egwCurrentUrl = currentEgwUrl;
+      pagerRequest += 1;
+      scheduleRefresh(80);
+      return;
+    }
+    if (event.target.closest?.('[data-bible]')) scheduleRefresh(80);
   }, true);
 
   const previousOpenEgw = window.jgOpenNativeEgw;
-  if (typeof previousOpenEgw === 'function' && !previousOpenEgw.__unifiedReaderControls) {
+  if (typeof previousOpenEgw === 'function' && !previousOpenEgw.__staticReaderControls) {
     const wrappedOpen = (url, meta) => {
       currentEgwUrl = canonicalEgw(url);
       detail.dataset.egwCurrentUrl = currentEgwUrl;
       pagerRequest += 1;
       const result = previousOpenEgw(url, meta);
-      Promise.resolve(result).finally(() => queueMicrotask(refreshControls));
+      Promise.resolve(result).finally(() => scheduleRefresh(0));
       return result;
     };
-    wrappedOpen.__unifiedReaderControls = true;
+    wrappedOpen.__staticReaderControls = true;
     window.jgOpenNativeEgw = wrappedOpen;
   }
 
   const previousRefreshReadAloud = window.jgRefreshReadAloud;
-  if (typeof previousRefreshReadAloud === 'function' && !previousRefreshReadAloud.__unifiedReaderControls) {
+  if (typeof previousRefreshReadAloud === 'function' && !previousRefreshReadAloud.__staticReaderControls) {
     const wrappedRefresh = (...args) => {
       const result = previousRefreshReadAloud(...args);
       queueMicrotask(refreshControls);
       return result;
     };
-    wrappedRefresh.__unifiedReaderControls = true;
+    wrappedRefresh.__staticReaderControls = true;
     window.jgRefreshReadAloud = wrappedRefresh;
   }
 
@@ -234,80 +257,69 @@
   detail.addEventListener('close', () => {
     pagerRequest += 1;
     currentEgwUrl = '';
+    crossButton.hidden = true;
+    clearBottomNav();
   });
+
+  window.addEventListener('load', () => scheduleRefresh(0), {once:true});
 
   const style = document.createElement('style');
   style.textContent = `
-    #detail[data-reader-kind="bible-reader"] .crossIndexHandle,
-    #detail[data-reader-kind="egw-reader"] .crossIndexHandle{
-      display:flex!important;
+    #readerCrossIndex[hidden],#readerBottomNav[hidden]{display:none!important}
+    #readerCrossIndex{
       position:fixed!important;
       top:50%!important;
       right:max(7px,env(safe-area-inset-right))!important;
       bottom:auto!important;
       transform:translateY(-50%)!important;
-      z-index:55!important;
-      min-height:38px!important;
+      z-index:80!important;
+      display:flex!important;
+      align-items:center!important;
+      gap:4px!important;
+      min-height:40px!important;
       padding:0 10px!important;
-      opacity:.94!important;
+      border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line))!important;
+      border-radius:999px!important;
+      background:color-mix(in srgb,var(--surface) 94%,transparent)!important;
+      color:var(--accent)!important;
+      font-size:10px!important;
+      box-shadow:0 4px 18px #00000018!important;
+      backdrop-filter:blur(12px)!important;
       pointer-events:auto!important;
-      box-shadow:0 4px 18px #00000014!important;
     }
-
+    #readerCrossIndex b{font-size:10px!important;font-weight:700!important}
+    #detail .crossIndexHandle{display:none!important}
     #detail .egwParagraphWrap.crossLinked,
-    #detail .reading>.verse.crossLinked{
-      cursor:pointer;
-      -webkit-tap-highlight-color:transparent;
-    }
+    #detail .reading>.verse.crossLinked{cursor:pointer;-webkit-tap-highlight-color:transparent}
     #detail .egwParagraphWrap.crossLinked::after,
     #detail .reading>.verse.crossLinked::after{pointer-events:none}
 
-    #detail .readerNavBottom{
-      display:flex!important;
-      justify-content:space-between!important;
-      gap:14px!important;
-      margin:30px 0 6px!important;
-      padding-top:18px!important;
+    #readerBottomNav{
+      width:min(680px,calc(100% - 36px));
+      margin:12px auto 18px!important;
+      padding:18px 0 0!important;
       border-top:1px solid var(--line)!important;
-    }
-    #detail .readerNavBottom button{
-      flex:1!important;
-      min-height:54px!important;
-      padding:8px 2px!important;
-      border:0!important;
       background:transparent!important;
-      color:var(--accent)!important;
-      box-shadow:none!important;
     }
-    #detail .readerNavBottom button:first-child{text-align:left!important}
-    #detail .readerNavBottom button:last-child{text-align:right!important}
-
-    #detail .egwChapterPager{
-      display:grid!important;
-      grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
-      gap:14px!important;
-      margin:38px 0 8px!important;
-      padding-top:18px!important;
-      border-top:1px solid var(--line)!important;
-    }
-    #detail .egwChapterPager button{
-      display:flex!important;
-      min-height:62px!important;
-      flex-direction:column!important;
-      justify-content:center!important;
-      gap:4px!important;
+    #readerBottomNav[data-kind="bible"]{display:flex!important;justify-content:space-between!important;gap:14px!important}
+    #readerBottomNav[data-kind="egw"]{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:14px!important}
+    #readerBottomNav button{
+      flex:1!important;
+      min-width:0!important;
+      min-height:58px!important;
       padding:8px 2px!important;
       border:0!important;
       background:transparent!important;
       color:var(--egw-accent,var(--accent))!important;
       box-shadow:none!important;
     }
-    #detail .egwChapterPager button:first-child{text-align:left!important;align-items:flex-start!important}
-    #detail .egwChapterPager button:last-child{text-align:right!important;align-items:flex-end!important}
-    #detail .egwChapterPager small{font-size:10px!important;color:var(--muted)!important}
-    #detail .egwChapterPager span{max-width:100%;font-size:13px!important;line-height:1.45!important;white-space:normal!important}
+    #readerBottomNav button:first-child{text-align:left!important;align-items:flex-start!important}
+    #readerBottomNav button:last-child{text-align:right!important;align-items:flex-end!important}
+    #readerBottomNav[data-kind="egw"] button{display:flex!important;flex-direction:column!important;justify-content:center!important;gap:4px!important}
+    #readerBottomNav small{font-size:10px!important;color:var(--muted)!important}
+    #readerBottomNav span{max-width:100%;font-size:13px!important;line-height:1.45!important;white-space:normal!important}
   `;
   document.head.appendChild(style);
 
-  queueMicrotask(refreshControls);
+  scheduleRefresh(0);
 })();
