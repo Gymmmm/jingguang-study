@@ -37,30 +37,23 @@ export default async function handler(req,res){
     const rows=[];
     const seen=new Set();
 
-    // Current mobile search results link directly to /zh/book/{book}.{paragraph}
-    const rx=/<a\b[^>]*href=["']([^"']*\/zh\/book\/\d+(?:\.\d+)?[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+    // Parse one official result container at a time. Reading a wide window around
+    // each link also captures pagination and neighbouring results.
+    const excerptRx=/<div\b[^>]*class=["'][^"']*\bexcerpt\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi;
     let m;
-    while((m=rx.exec(html))&&rows.length<30){
-      const href=abs(m[1]);
+    while((m=excerptRx.exec(html))&&rows.length<30){
+      const block=m[1];
+      const link=block.match(/<a\b[^>]*href=["']([^"']*\/zh\/book\/\d+(?:\.\d+)?[^"']*)["'][^>]*>([\s\S]*?)<\/a>/i);
+      if(!link)continue;
+      const href=abs(link[1].replace(/&amp;/gi,'&'));
       if(seen.has(href))continue;
-      let title=decode(m[2]);
+      const title=decode(link[2]);
       if(!title||title.length<2)continue;
-
-      // Search result blocks include title + book/page + matching excerpt around the link.
-      const left=Math.max(0,m.index-900),right=Math.min(html.length,rx.lastIndex+1700);
-      const around=decode(html.slice(left,right));
-      const qi=around.toLowerCase().indexOf(q.toLowerCase());
-      let snippet=qi>=0
-        ? around.slice(Math.max(0,qi-90),Math.min(around.length,qi+q.length+180))
-        : around.slice(0,270);
-      snippet=snippet
-        .replace(/^\s*\d+\s+/,'')
-        .replace(/Search for:.*?(?=\S)/i,'')
-        .replace(/First|Previous|Next|Last/gi,' ')
-        .replace(/\s+/g,' ').trim();
+      const paragraph=(block.match(/<p\b[^>]*>([\s\S]*?)<\/p>/i)||[])[1]||'';
+      const snippet=decode(paragraph).slice(0,420);
 
       // Try to derive a readable chapter/book label from the title/nearby text.
-      const chapterMatch=around.match(/(第\s*\d+\s*章[^。；|]{0,45}|\d+月\d+日[^。；|]{0,45})/);
+      const chapterMatch=`${title} ${snippet}`.match(/(第\s*\d+\s*章[^。；|]{0,45}|\d+月\d+日[^。；|]{0,45})/);
       rows.push({
         title,
         chapter:chapterMatch?chapterMatch[1].replace(/\s+/g,' '):'',

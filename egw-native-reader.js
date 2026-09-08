@@ -94,7 +94,7 @@
     savePosition();
     showLoading(meta.title||previous?.title||'怀爱伦著作');
     try{
-      const r=await fetch(`/api/egw-read?url=${encodeURIComponent(url)}`,{cache:'no-store'});
+      const r=await fetch(`/api/egw-read?url=${encodeURIComponent(url)}`);
       if(requestId!==openSeq)return false;
       const j=await r.json();
       if(requestId!==openSeq)return false;

@@ -253,7 +253,7 @@
     body.innerHTML=`<div class="nativeBookHead"><h1>${esc(b.title_cn)}</h1><button type="button" class="nativeSearchIcon" data-egw-back-search aria-label="搜索书名"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><circle cx="10.3" cy="10.3" r="6.3"/><line x1="20" y1="20" x2="15.1" y2="15.1"/></svg></button></div><div class="empty">正在读取章节目录…</div>`;
     openDialog();
     try{
-      const r=await fetch(`/api/egw-read?toc=1&url=${encodeURIComponent(b.toc_url)}&_=${Date.now()}`,{cache:'no-store'});
+      const r=await fetch(`/api/egw-read?toc=1&url=${encodeURIComponent(b.toc_url)}`);
       if(requestId!==tocSeq)return;
       const j=await r.json();
       if(requestId!==tocSeq)return;

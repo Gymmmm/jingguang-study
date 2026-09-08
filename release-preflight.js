@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const DATA_VERSION = '20260908.1';
-  const CACHEABLE_DATA = /(?:^|\/)data\/(?:egw-index|egw-official-books|bible-egw-relations|bible-source|bible-books)\.json(?:[?#]|$)/i;
+  const DATA_VERSION = '20260908.2';
+  const CACHEABLE_DATA = /(?:^|\/)data\/(?:egw-index|egw-official-books|bible-egw-relations|bible-source|bible-books|bible-search)\.json(?:[?#]|$)/i;
   const nativeFetch = window.fetch.bind(window);
 
   function versionedUrl(value) {

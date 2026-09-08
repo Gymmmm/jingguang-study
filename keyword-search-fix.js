@@ -130,7 +130,7 @@
     loading.textContent=`正在搜索怀著全文：“${q}”…`;
     host.appendChild(loading);
     try{
-      const r=await fetch(`/api/egw-search?q=${encodeURIComponent(q)}`,{cache:'no-store'});
+      const r=await fetch(`/api/egw-search?q=${encodeURIComponent(q)}`);
       const j=await r.json();
       if(requestId!==officialSearchSeq||!host.isConnected){loading.remove();return}
       loading.remove();
