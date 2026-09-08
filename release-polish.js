@@ -8,6 +8,7 @@
     egw:'./data/egw-index.json',
     relations:'./data/bible-egw-relations.json'
   };
+
   let books = [];
   let egwRecords = [];
   let relations = [];
@@ -33,6 +34,7 @@
     showToast.timer = setTimeout(() => toast.classList.remove('show'), 1800);
   }
 
+  /* Preserve current scroll if code re-enters the already-active page. */
   if (typeof window.page === 'function' && !window.page.__jgStablePage) {
     const basePage = window.page;
     const wrappedPage = function stablePage(id) {
@@ -81,9 +83,7 @@
     relations = relationData.relations || [];
     aliasMap = new Map();
     for (const [osis, full, short] of books) {
-      for (const alias of [full, short]) {
-        if (alias) aliasMap.set(alias, {osis, full, short});
-      }
+      for (const alias of [full, short]) if (alias) aliasMap.set(alias, {osis, full, short});
     }
     aliases = [...aliasMap.keys()].sort((a,b) => b.length - a.length);
     scheduleCrossIndexEnrich();
@@ -161,8 +161,8 @@
       const url = String(last?.url || last?.native_url || '').replace(/[?#].*$/, '').replace(/\/$/, '')
         .replace(/^https?:\/\/(?:m\.|text\.)?egwwritings\.org\/zh\/book\/(\d+)\.(\d+)$/i, 'https://text.egwwritings.org/read/$1.$2');
       if (url) {
-        const exact = egwRecords.find(r => String(r.source_url || '').replace(/^https?:\/\/m\.egwwritings\.org\/zh\/book\/(\d+)\.(\d+)$/i, 'https://text.egwwritings.org/read/$1.$2') === url);
-        if (exact) return exact;
+        return egwRecords.find(r => String(r.source_url || '')
+          .replace(/^https?:\/\/m\.egwwritings\.org\/zh\/book\/(\d+)\.(\d+)$/i, 'https://text.egwwritings.org/read/$1.$2') === url) || null;
       }
     } catch (_) {}
     return null;
@@ -170,9 +170,7 @@
 
   function reasonForEgw(record, bibleRef) {
     const direct = (record?.bible_refs || []).filter(v => sameChapter(parseRef(v), bibleRef));
-    if (direct.length) {
-      return `关联依据：该怀著资料明确标注 ${direct.slice(0,2).join('、')}`;
-    }
+    if (direct.length) return `关联依据：该怀著资料明确标注 ${direct.slice(0,2).join('、')}`;
     const linked = relations.filter(rel => sameChapter(parseRef(rel.bible_ref), bibleRef) && (rel.egw_ids || []).includes(record?.id));
     if (linked.length) {
       const themes = [...new Set(linked.flatMap(rel => rel.themes || []))].slice(0,3);
@@ -193,6 +191,13 @@
     return '关联依据：当前怀著的经文引用索引';
   }
 
+  function normalizeSheetLabels(sheet, kind) {
+    const group = sheet.querySelector('.crossIndexList>h3');
+    if (group) group.textContent = kind === 'bible' ? '关联怀著资料' : '相关经文';
+    const note = sheet.querySelector('.crossIndexPanel>header small');
+    if (note) note.textContent = '只显示可核验的关联';
+  }
+
   function enrichOpenCrossIndex() {
     enrichQueued = false;
     if (!detail?.open) return;
@@ -210,6 +215,8 @@
     if (handle && crossSessionDepth === 0 && handle.querySelector('b')?.textContent === '返回') handle.hidden = true;
 
     const kind = sheet.dataset.kind;
+    normalizeSheetLabels(sheet, kind);
+
     if (kind === 'egw') {
       const paragraphRefs = extractExpandedRefs(
         [...detail.querySelectorAll('.egwParagraph')].map(x => x.textContent || '').join(' ')
@@ -301,6 +308,7 @@
     observer.observe(detail, {subtree:true, childList:true, attributes:true, attributeFilter:['hidden']});
   }
 
+  /* Track failed fetches only while a search is running so empty results and network failures differ. */
   const nativeFetch = window.fetch.bind(window);
   window.fetch = async function trackedFetch(...args) {
     try {
@@ -350,9 +358,8 @@
       lastSearchQuery = q;
       const state = {failures:0};
       searchState = state;
-      let promise;
       try {
-        promise = baseSearch(q);
+        const promise = baseSearch(q);
         searchLoading(q);
         await promise;
       } catch (_) {
@@ -379,99 +386,7 @@
     window.search?.(retry.dataset.searchRetry || lastSearchQuery);
   }, true);
 
-  const BACKUP_KEYS = [
-    'jg_v10_recent',
-    'jg_v10_reading',
-    'jg_v10_favorites',
-    'jg_v10_reading_position',
-    'jg_v10_egw_position',
-    'jg_v10_theme',
-    'jg_v10_bible_font',
-    'jg_last_egw_native',
-    'jg_read_aloud_rate',
-    'jg_read_aloud_position'
-  ];
-
-  function ensureBackupUi() {
-    const page = document.getElementById('favorites');
-    const list = document.getElementById('favoritesList');
-    if (!page || !list || page.querySelector('.readerBackup')) return;
-    const section = document.createElement('section');
-    section.className = 'readerBackup';
-    section.innerHTML =
-      `<h2>数据备份</h2>` +
-      `<p>保存收藏、最近阅读、阅读位置和阅读设置。不会导出材料篮或备讲内容。</p>` +
-      `<div><button type="button" data-reader-export>导出备份</button>` +
-      `<button type="button" data-reader-import>导入备份</button></div>` +
-      `<input type="file" accept="application/json,.json" data-reader-import-file hidden>`;
-    list.insertAdjacentElement('afterend', section);
-  }
-
-  function exportReaderData() {
-    const data = {};
-    for (const key of BACKUP_KEYS) {
-      const value = localStorage.getItem(key);
-      if (value != null) data[key] = value;
-    }
-    const payload = {
-      schema:'jingguang-reader-backup',
-      version:1,
-      exported_at:new Date().toISOString(),
-      data
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `救赎的历史-阅读备份-${new Date().toISOString().slice(0,10)}.json`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1200);
-    showToast('阅读数据已导出');
-  }
-
-  async function importReaderData(file) {
-    if (!file) return;
-    try {
-      const payload = JSON.parse(await file.text());
-      if (payload?.schema !== 'jingguang-reader-backup' || payload?.version !== 1 || !payload.data || typeof payload.data !== 'object') {
-        throw new Error('invalid_backup');
-      }
-      let count = 0;
-      for (const key of BACKUP_KEYS) {
-        if (!(key in payload.data) || typeof payload.data[key] !== 'string') continue;
-        localStorage.setItem(key, payload.data[key]);
-        count += 1;
-      }
-      if (!count) throw new Error('empty_backup');
-      showToast('备份已导入，正在刷新');
-      setTimeout(() => location.reload(), 650);
-    } catch (_) {
-      showToast('备份文件无法识别');
-    }
-  }
-
-  document.addEventListener('click', event => {
-    if (event.target.closest('[data-reader-export]')) {
-      event.preventDefault();
-      exportReaderData();
-      return;
-    }
-    if (event.target.closest('[data-reader-import]')) {
-      event.preventDefault();
-      document.querySelector('[data-reader-import-file]')?.click();
-    }
-  }, true);
-
-  document.addEventListener('change', event => {
-    if (!event.target.matches('[data-reader-import-file]')) return;
-    importReaderData(event.target.files?.[0]);
-    event.target.value = '';
-  });
-
-  ensureBackupUi();
-
+  /* Keep narration simple: browser/system default Chinese voice only. */
   function forceSystemVoice() {
     localStorage.setItem('jg_read_aloud_voice_mode', 'system');
     const selector = document.querySelector('.readAloudBar [data-tts-voice]');
@@ -497,11 +412,7 @@
     .crossIndexSummary{margin-top:3px!important;color:var(--text)!important;opacity:.78;font-size:10.5px!important;line-height:1.5!important}
     .crossIndexWhy{margin-top:2px!important;color:var(--accent)!important;font-size:9.5px!important;line-height:1.45!important}
     .crossIndexLimited{padding:10px 2px;color:var(--muted);font-size:9.5px;text-align:center}
-    .readerBackup{margin:32px 0 18px;padding-top:22px;border-top:1px solid var(--line)}
-    .readerBackup h2{margin:0 0 6px;font-size:16px}.readerBackup p{margin:0 0 12px;color:var(--muted);font-size:11px;line-height:1.6}
-    .readerBackup>div{display:flex;gap:8px}.readerBackup button{min-height:40px;padding:0 13px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--accent);font-size:12px;font-weight:700}
     .readAloudBar .ttsVoice,[data-tts-voice]{display:none!important}
-    @media(max-width:560px){.readerBackup{margin-left:2px;margin-right:2px}.readerBackup>div{display:grid;grid-template-columns:1fr 1fr}.readerBackup button{width:100%}}
   `;
   document.head.appendChild(style);
 })();
