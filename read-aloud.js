@@ -6,10 +6,16 @@
 
   const RATE_KEY = 'jg_read_aloud_rate';
   const POS_KEY = 'jg_read_aloud_position';
+  const VOICE_MODE_KEY = 'jg_read_aloud_voice_mode';
   const RATES = [0.8, 1, 1.2, 1.5, 2];
+  const VOICE_MODES = new Set(['female', 'male', 'system']);
+  const FEMALE_RX = /female|女声|ting|mei|xiaoxiao|xiaoyi|xiaomeng|xiaoshuang|sin[- ]?ji/i;
+  const MALE_RX = /male|男声|yunxi|yunjian|yunyang|yunze|li[- ]?mu/i;
   let units = [];
   let index = 0;
   let rate = +(localStorage.getItem(RATE_KEY) || 1);
+  let voiceMode = localStorage.getItem(VOICE_MODE_KEY) || 'female';
+  if (!VOICE_MODES.has(voiceMode)) voiceMode = 'female';
   let speaking = false;
   let paused = false;
   let session = 0;
@@ -85,16 +91,29 @@
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  function pickChineseVoice() {
-    const voices = synth.getVoices?.() || [];
-    return voices.find(v => /^zh(-|_)/i.test(v.lang) && /female|ting|mei|xiaoxiao|sinji|yunxi|zh/i.test(v.name))
-      || voices.find(v => /^zh(-|_)/i.test(v.lang))
+  function chineseVoices() {
+    return (synth.getVoices?.() || []).filter(v => /^zh(?:-|_)/i.test(v.lang || ''));
+  }
+
+  function pickChineseVoice(mode = voiceMode) {
+    if (mode === 'system') return null;
+    const voices = chineseVoices();
+    if (!voices.length) return null;
+    const rx = mode === 'male' ? MALE_RX : FEMALE_RX;
+    return voices.find(v => rx.test(v.name || ''))
+      || voices.find(v => v.localService)
+      || voices[0]
       || null;
   }
 
+  function voiceModeLabel(mode = voiceMode) {
+    return mode === 'male' ? '自然男声' : mode === 'system' ? '系统默认' : '自然女声';
+  }
+
   function currentVoiceName() {
+    if (voiceMode === 'system') return '系统默认中文语音';
     const voice = pickChineseVoice();
-    return voice?.name || '系统中文语音';
+    return voice?.name || `${voiceModeLabel()}（系统回退）`;
   }
 
   function speakCurrent(token = session) {
@@ -189,6 +208,16 @@
     updateToolbar();
   }
 
+  function setVoiceMode(value) {
+    voiceMode = VOICE_MODES.has(value) ? value : 'system';
+    localStorage.setItem(VOICE_MODE_KEY, voiceMode);
+    if (speaking && !paused) {
+      session += 1;
+      speakCurrent(session);
+    }
+    updateToolbar();
+  }
+
   function ensureToolbar() {
     let bar = detail.querySelector('.readAloudBar');
     if (bar) return bar;
@@ -197,8 +226,15 @@
     bar.hidden = true;
     bar.innerHTML = `
       <button type="button" class="ttsMain" data-tts="toggle">朗读</button>
+      <select class="ttsVoice" data-tts-voice aria-label="选择朗读声音">
+        <option value="female">女声</option>
+        <option value="male">男声</option>
+        <option value="system">系统</option>
+      </select>
       <button type="button" class="ttsRate" data-tts="rate" aria-label="调整朗读语速">1×</button>`;
     detail.querySelector('header')?.insertAdjacentElement('afterend', bar);
+    const select = bar.querySelector('[data-tts-voice]');
+    if (select) select.value = voiceMode;
     return bar;
   }
 
@@ -214,9 +250,11 @@
     const main = bar.querySelector('[data-tts="toggle"]');
     if (main) {
       main.textContent = paused ? '继续朗读' : (speaking ? '暂停朗读' : '朗读');
-      main.setAttribute('aria-label', `${main.textContent}，${currentVoiceName()}`);
+      main.setAttribute('aria-label', `${main.textContent}，${voiceModeLabel()}，${currentVoiceName()}`);
       main.title = currentVoiceName();
     }
+    const voiceSelect = bar.querySelector('[data-tts-voice]');
+    if (voiceSelect && voiceSelect.value !== voiceMode) voiceSelect.value = voiceMode;
     const rateBtn = bar.querySelector('[data-tts="rate"]');
     if (rateBtn) rateBtn.textContent = `${rate}×`;
     bar.dataset.active = speaking ? '1' : '0';
@@ -231,6 +269,10 @@
     } else if (action === 'rate') cycleRate();
   });
 
+  detail.addEventListener('change', e => {
+    if (e.target.matches('[data-tts-voice]')) setVoiceMode(e.target.value);
+  });
+
   detail.addEventListener('close', () => {
     stop(false);
     units = [];
@@ -239,19 +281,24 @@
   });
   detail.addEventListener('cancel', () => stop(false));
 
+  if ('onvoiceschanged' in synth) {
+    synth.addEventListener?.('voiceschanged', updateToolbar);
+  }
+
   window.jgRefreshReadAloud = refresh;
   window.jgReadAloudVoiceName = currentVoiceName;
 
   const style = document.createElement('style');
   style.textContent = `
     .readAloudBar[hidden]{display:none!important}
-    .readAloudBar{position:relative;z-index:2;display:flex;justify-content:flex-end;align-items:center;gap:3px;max-width:720px;margin:0 auto;padding:5px 14px 0;border:0;background:transparent;backdrop-filter:none}
-    .readAloudBar button{min-height:30px!important;padding:0 7px!important;border:0!important;border-radius:0!important;background:transparent!important;color:var(--muted)!important;font:inherit;font-size:10.5px!important;font-weight:650!important;box-shadow:none!important}
+    .readAloudBar{position:relative;z-index:2;display:flex;justify-content:flex-end;align-items:center;gap:2px;max-width:720px;margin:0 auto;padding:5px 14px 0;border:0;background:transparent;backdrop-filter:none}
+    .readAloudBar button,.readAloudBar select{min-height:30px!important;padding:0 6px!important;border:0!important;border-radius:0!important;background:transparent!important;color:var(--muted)!important;font:inherit;font-size:10.5px!important;font-weight:650!important;box-shadow:none!important}
     .readAloudBar .ttsMain{color:var(--accent)!important}
     .readAloudBar[data-active="1"] .ttsMain{font-weight:800!important}
+    .readAloudBar .ttsVoice{width:auto;max-width:48px;appearance:auto;-webkit-appearance:menulist;color:color-mix(in srgb,var(--muted) 88%,transparent)!important}
     .readAloudBar .ttsRate{min-width:34px!important;color:color-mix(in srgb,var(--muted) 78%,transparent)!important;font-weight:550!important}
     .ttsSpeaking{border-left:2px solid var(--accent)!important;background:transparent!important;box-shadow:none!important;transition:border-color .18s ease}
-    @media(max-width:560px){.readAloudBar{padding:4px 12px 0}.readAloudBar button{font-size:10px!important}}
+    @media(max-width:560px){.readAloudBar{padding:4px 12px 0}.readAloudBar button,.readAloudBar select{font-size:10px!important}.readAloudBar .ttsVoice{max-width:44px}}
   `;
   document.head.appendChild(style);
   ensureToolbar();
