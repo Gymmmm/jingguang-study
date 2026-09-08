@@ -233,18 +233,24 @@
     {
       "id": 14540,
       "title_cn": "信息选粹",
+      "volume_label": "第1卷",
+      "book_code": "1SMX",
       "read_url": "https://m.egwwritings.org/zh/book/14540.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14540/toc"
     },
     {
       "id": 14541,
       "title_cn": "信息选粹",
+      "volume_label": "第2卷",
+      "book_code": "2SMX",
       "read_url": "https://m.egwwritings.org/zh/book/14541.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14541/toc"
     },
     {
       "id": 14542,
       "title_cn": "信息选粹",
+      "volume_label": "第3卷",
+      "book_code": "3SMX",
       "read_url": "https://m.egwwritings.org/zh/book/14542.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14542/toc"
     },
@@ -395,30 +401,40 @@
     {
       "id": 14508,
       "title_cn": "属灵的恩赐",
+      "volume_label": "第4卷（上）",
+      "book_code": "4aSGS",
       "read_url": "https://m.egwwritings.org/zh/book/14508.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14508/toc"
     },
     {
       "id": 14509,
       "title_cn": "属灵的恩赐",
+      "volume_label": "第4卷（下）",
+      "book_code": "4bSGS",
       "read_url": "https://m.egwwritings.org/zh/book/14509.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14509/toc"
     },
     {
       "id": 14505,
       "title_cn": "属灵的恩赐",
+      "volume_label": "第1卷",
+      "book_code": "1SGS",
       "read_url": "https://m.egwwritings.org/zh/book/14505.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14505/toc"
     },
     {
       "id": 14506,
       "title_cn": "属灵的恩赐",
+      "volume_label": "第2卷",
+      "book_code": "2SGS",
       "read_url": "https://m.egwwritings.org/zh/book/14506.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14506/toc"
     },
     {
       "id": 14507,
       "title_cn": "属灵的恩赐",
+      "volume_label": "第3卷",
+      "book_code": "3SGS",
       "read_url": "https://m.egwwritings.org/zh/book/14507.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14507/toc"
     },
@@ -743,18 +759,24 @@
     {
       "id": 14606,
       "title_cn": "证言精选",
+      "volume_label": "第1卷",
+      "book_code": "1TTZ",
       "read_url": "https://m.egwwritings.org/zh/book/14606.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14606/toc"
     },
     {
       "id": 14607,
       "title_cn": "证言精选",
+      "volume_label": "第2卷",
+      "book_code": "2TTZ",
       "read_url": "https://m.egwwritings.org/zh/book/14607.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14607/toc"
     },
     {
       "id": 14559,
       "title_cn": "证言精选",
+      "volume_label": "第3卷",
+      "book_code": "3TTZ",
       "read_url": "https://m.egwwritings.org/zh/book/14559.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14559/toc"
     },
@@ -773,24 +795,32 @@
     {
       "id": 14549,
       "title_cn": "预言之灵",
+      "volume_label": "第1卷",
+      "book_code": "1SPY",
       "read_url": "https://m.egwwritings.org/zh/book/14549.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14549/toc"
     },
     {
       "id": 14550,
       "title_cn": "预言之灵",
+      "volume_label": "第2卷",
+      "book_code": "2SPY",
       "read_url": "https://m.egwwritings.org/zh/book/14550.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14550/toc"
     },
     {
       "id": 14551,
       "title_cn": "预言之灵",
+      "volume_label": "第3卷",
+      "book_code": "3SPY",
       "read_url": "https://m.egwwritings.org/zh/book/14551.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14551/toc"
     },
     {
       "id": 14552,
       "title_cn": "预言之灵",
+      "volume_label": "第4卷",
+      "book_code": "4SPY",
       "read_url": "https://m.egwwritings.org/zh/book/14552.0",
       "toc_url": "https://m.egwwritings.org/zh/book/14552/toc"
     },

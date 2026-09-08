@@ -11,6 +11,7 @@
   let aliases = [];
   let aliasMap = new Map();
   const navStack = [];
+  const INITIAL_RESULT_LIMIT = 5;
   let touchStart = null;
   let pendingRestore = null;
 
@@ -266,7 +267,7 @@
     scheduleRestore(origin.scroll);
   }
 
-  function renderSheet(items, kind) {
+  function renderSheet(items, kind, expanded=false) {
     const {sheet} = ensureUi();
     const list = sheet.querySelector('.crossIndexList');
     const back = sheet.querySelector('.crossIndexReturn');
@@ -275,10 +276,12 @@
       list.innerHTML = '<div class="crossIndexEmpty">当前章节暂时没有可核验的双向关联。</div>';
       return;
     }
+    const visible=expanded?items:items.slice(0,INITIAL_RESULT_LIMIT);
+    const more=!expanded&&items.length>visible.length?`<button type="button" class="crossIndexMore" data-cross-index-all>查看全部 ${items.length} 条</button>`:'';
     if (kind === 'bible') {
-      list.innerHTML = `<h3>相关怀著</h3>${items.map(r => `<button type="button" class="crossIndexRow" data-cross-egw="${esc(r.id)}"><span><b>《${esc(r.title_cn || '怀爱伦著作')}》</b><small>${esc(r.chapter || '')}${r.locator ? ' · ' + esc(r.locator) : ''}</small></span><i>›</i></button>`).join('')}`;
+      list.innerHTML = `<h3>相关怀著</h3>${visible.map(r => `<button type="button" class="crossIndexRow" data-cross-egw="${esc(r.id)}"><span><b>《${esc(r.title_cn || '怀爱伦著作')}》</b><small>${esc(r.chapter || '')}${r.locator ? ' · ' + esc(r.locator) : ''}</small></span><i>›</i></button>`).join('')}${more}`;
     } else {
-      list.innerHTML = `<h3>相关经文</h3>${items.map((r,i) => `<button type="button" class="crossIndexRow" data-cross-bible="${i}"><span><b>${esc(refLabel(r))}</b><small>打开整章${r.focus ? ` · 定位第 ${r.focus} 节` : ''}</small></span><i>›</i></button>`).join('')}`;
+      list.innerHTML = `<h3>相关经文</h3>${visible.map((r,i) => `<button type="button" class="crossIndexRow" data-cross-bible="${i}"><span><b>${esc(refLabel(r))}</b><small>打开整章${r.focus ? ` · 定位第 ${r.focus} 节` : ''}</small></span><i>›</i></button>`).join('')}${more}`;
     }
   }
 
@@ -291,6 +294,7 @@
     ui.sheet.hidden = false;
     ui.sheet.dataset.kind = kind;
     ui.sheet._crossItems = items;
+    ui.sheet._crossExpanded = false;
   }
 
   function closeSheet() {
@@ -327,6 +331,12 @@
   detail.addEventListener('click', e => {
     if (e.target.closest('[data-cross-index-open]')) { e.preventDefault(); openSheet(); return; }
     if (e.target.closest('[data-cross-index-close]')) { e.preventDefault(); closeSheet(); return; }
+    if (e.target.closest('[data-cross-index-all]')) {
+      e.preventDefault();
+      const sheet=detail.querySelector('.crossIndexSheet');
+      if(sheet){sheet._crossExpanded=true;renderSheet(sheet._crossItems||[],sheet.dataset.kind==='bible-reader'?'bible':'egw',true)}
+      return;
+    }
     if (e.target.closest('[data-cross-index-back]')) { e.preventDefault(); goBack(); return; }
     const egw = e.target.closest('[data-cross-egw]');
     if (egw) {
@@ -381,6 +391,7 @@
     .crossIndexHandle[hidden],.crossIndexSheet[hidden]{display:none!important}
     .crossIndexHandle{position:fixed;right:max(8px,env(safe-area-inset-right));bottom:calc(48px + env(safe-area-inset-bottom));z-index:18;display:flex;align-items:center;gap:4px;min-height:30px!important;padding:0 8px!important;border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line))!important;border-radius:999px!important;background:color-mix(in srgb,var(--surface) 92%,transparent)!important;color:var(--accent)!important;font-size:10px!important;box-shadow:0 2px 12px #0000000d!important;backdrop-filter:blur(10px);opacity:.86}
     .crossIndexHandle b{font-size:10px;font-weight:700}
+    .crossIndexMore{width:100%;min-height:44px;margin-top:6px;border:0!important;border-top:1px solid var(--line)!important;border-radius:0!important;background:transparent!important;color:var(--accent)!important;font-size:13px!important;font-weight:700!important}
     .crossIndexSheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center}
     .crossIndexBackdrop{position:absolute;inset:0;width:100%;height:100%;border:0!important;border-radius:0!important;background:#0004!important}
     .crossIndexPanel{position:relative;width:min(720px,100%);max-height:min(62vh,560px);overflow:auto;padding:12px 14px calc(14px + env(safe-area-inset-bottom));border-radius:18px 18px 0 0;background:var(--surface);box-shadow:0 -14px 40px #0002}
