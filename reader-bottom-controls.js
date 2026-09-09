@@ -49,14 +49,14 @@
     const quick = bar.querySelector('[data-reader-quick="tts"]');
     const icon = quick?.querySelector('.readerQuickPlayIcon');
     const label = quick?.querySelector('small');
-    const source = ttsButton();
-    if (!quick || !icon || !label || !source) return;
-    const text = String(source.textContent || '朗读');
-    const paused = text.includes('继续');
-    const active = text.includes('暂停');
+    if (!quick || !icon || !label) return;
+    const state = typeof window.jgReadAloudState === 'function'
+      ? window.jgReadAloudState()
+      : { speaking:false, paused:false };
+    const active = !!state.speaking && !state.paused;
     icon.textContent = active ? 'Ⅱ' : '▶';
-    label.textContent = active ? '暂停' : (paused ? '继续' : '朗读');
-    quick.setAttribute('aria-label', active ? '暂停朗读' : (paused ? '继续朗读' : '开始朗读'));
+    label.textContent = active ? '暂停' : (state.paused ? '继续' : '朗读');
+    quick.setAttribute('aria-label', active ? '暂停朗读' : (state.paused ? '继续朗读' : '开始朗读'));
     quick.dataset.playing = active ? '1' : '0';
   }
 
@@ -87,15 +87,14 @@
     if (!control) return;
     const action = control.dataset.readerQuick;
     if (action === 'tts') {
-      const source = ttsButton();
-      if (source) source.click();
-      syncPlayState();
+      ttsButton()?.click();
       return;
     }
     const target = findChapterButton(action);
     if (target) target.click();
   });
 
+  detail.addEventListener('jg-read-aloud-state', syncPlayState);
   detail.addEventListener('close', () => {
     const bar = ensureBar();
     bar.hidden = true;
