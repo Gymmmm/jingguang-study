@@ -142,9 +142,12 @@
     return Number.isFinite(n)?`第 ${String(n).padStart(2,'0')} 章`:m[0].replace(/\s+/g,'');
   }
   function chapterLabelHtml(base,subtitle=''){
-    const number=chapterNumberLabel(base);
-    if(number)return `<span class="egwChapterText${subtitle?' hasSubtitle':''}"><small class="egwChapterNumber">${esc(number)}</small>${subtitle?`<strong class="egwChapterName">${esc(subtitle)}</strong>`:''}</span>`;
-    return `<span class="egwChapterText"><strong class="egwChapterName">${esc(base)}</strong></span>`;
+    const raw=String(base||'').trim();
+    const number=chapterNumberLabel(raw);
+    const rest=number?raw.replace(/^第\s*[0-9０-９一二三四五六七八九十百零〇两]+\s*章\s*/,'').trim():'';
+    const name=String(subtitle||'').trim()||rest||(!number?raw:'');
+    if(number)return `<span class="egwChapterText${name?' hasSubtitle':''}"><small class="egwChapterNumber">${esc(number)}</small>${name?`<strong class="egwChapterName">${esc(name)}</strong>`:''}</span>`;
+    return `<span class="egwChapterText"><strong class="egwChapterName">${esc(raw)}</strong></span>`;
   }
   function addCurrentReadingLabel(row){
     const host=row?.querySelector('.egwChapterText');

@@ -44,10 +44,12 @@
     const paras=[...body.querySelectorAll('.egwParagraph')],p=paras[Math.max(0,Math.min(paras.length-1,+saved.paragraph||0))];
     p?.closest('.egwParagraphWrap')?.classList.add('readingMark');
   }
-  function savePosition(){
+  function savePosition(opts={}){
     if(!current||!detail.open)return;
     const snap=positionSnapshot();if(!snap)return;
-    const positions=read(POSITION_KEY,{});positions[itemId(current)]=snap;write(POSITION_KEY,positions);markParagraph(snap);
+    const positions=read(POSITION_KEY,{});positions[itemId(current)]=snap;write(POSITION_KEY,positions);
+    // Avoid class thrash while the user is still scrolling (causes jank on scroll-up).
+    if(!opts.silent)markParagraph(snap);
   }
   function restoreSnapshot(saved){
     requestAnimationFrame(()=>{
@@ -136,7 +138,14 @@
       e.preventDefault();e.stopImmediatePropagation();openUrl(official.dataset.officialUrl,{title:official.closest('.card')?.querySelector('.title')?.textContent||'怀爱伦著作'});
     }
   },true);
-  detail.addEventListener('scroll',()=>{clearTimeout(scrollTimer);scrollTimer=setTimeout(savePosition,220)},{passive:true});
+  detail.addEventListener('scroll',()=>{
+    detail.classList.add('is-scrolling');
+    clearTimeout(scrollTimer);
+    scrollTimer=setTimeout(()=>{
+      detail.classList.remove('is-scrolling');
+      savePosition({silent:true});
+    },400);
+  },{passive:true});
   document.querySelector('.fontTools')?.addEventListener('click',event=>{
     if(detail.dataset.readerKind!=='egw-reader'||!event.target.closest('[data-font]'))return;
     const saved=positionSnapshot();
@@ -173,6 +182,8 @@
       #detail[data-reader-kind="egw-reader"]>header{gap:5px;padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right))}#detail[data-reader-kind="egw-reader"]>header>#back{min-width:58px;padding-left:0;padding-right:4px}#detail[data-reader-kind="egw-reader"]>header>#detailType{font-size:12px}#detail[data-reader-kind="egw-reader"]>header>.fontTools{gap:0}#detail[data-reader-kind="egw-reader"]>header>.fontTools button{min-width:42px;font-size:12px}
     }
     @media(max-width:390px){.egwReaderArticle{padding-left:12px;padding-right:12px}.egwReaderIntro h1{font-size:20px}#detail[data-reader-kind="egw-reader"]>header>#back{min-width:52px;font-size:12px}#detail[data-reader-kind="egw-reader"]>header>.fontTools button{min-width:38px;font-size:11px}#detail[data-reader-kind="egw-reader"]>header>#detailType{font-size:11.5px}}
+  
+    #detail.is-scrolling .readerQuickBar,#detail.is-scrolling #readerCrossIndex{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
   `;document.head.appendChild(style);
   window.jgOpenNativeEgw=openUrl;
 })();
