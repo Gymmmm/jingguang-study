@@ -67,9 +67,23 @@
     const paras=[...body.querySelectorAll('.egwParagraph')],p=paras[Math.max(0,Math.min(paras.length-1,+saved.paragraph||0))];
     p?.closest('.egwParagraphWrap')?.classList.add('readingMark');
   }
+  function refineOffset(paragraphIndex){
+    const paras=body.querySelectorAll('.egwParagraph');
+    const p=paras[paragraphIndex];
+    if(!p)return 0;
+    // Single layout read after scroll rests — not on every scroll frame.
+    const y=(detail.scrollTop||0)+Math.min(140,Math.max(72,detail.clientHeight*.18));
+    const height=Math.max(1,p.offsetHeight);
+    return +Math.max(0,Math.min(1,(y-p.offsetTop)/height)).toFixed(3);
+  }
   function savePosition(opts={}){
     if(!current||!detail.open)return;
-    const snap=positionSnapshot();if(!snap)return;
+    let snap=positionSnapshot();if(!snap)return;
+    // When resting after scroll, refine in-paragraph offset once.
+    if(opts.refineOffset&&Number.isFinite(snap.paragraph)){
+      snap={paragraph:snap.paragraph,offset:refineOffset(snap.paragraph)};
+      visibleOffset=snap.offset;
+    }
     const positions=read(POSITION_KEY,{});positions[itemId(current)]=snap;write(POSITION_KEY,positions);
     // Avoid class thrash while the user is still scrolling (causes jank on scroll-up).
     if(!opts.silent)markParagraph(snap);
@@ -167,8 +181,8 @@
     clearTimeout(scrollTimer);
     scrollTimer=setTimeout(()=>{
       detail.classList.remove('is-scrolling');
-      // Silent persist only — no .readingMark DOM writes while reading.
-      savePosition({silent:true});
+      // After rest: one offset layout read + silent persist. No .readingMark writes.
+      savePosition({silent:true,refineOffset:true});
     },300);
   },{passive:true});
   document.querySelector('.fontTools')?.addEventListener('click',event=>{
@@ -208,7 +222,7 @@
     }
     @media(max-width:390px){.egwReaderArticle{padding-left:12px;padding-right:12px}.egwReaderIntro h1{font-size:20px}#detail[data-reader-kind="egw-reader"]>header>#back{min-width:52px;font-size:12px}#detail[data-reader-kind="egw-reader"]>header>.fontTools button{min-width:38px;font-size:11px}#detail[data-reader-kind="egw-reader"]>header>#detailType{font-size:11.5px}}
   
-    #detail.is-scrolling .readerQuickBar,#detail.is-scrolling #readerCrossIndex,#detail.is-scrolling #detail>footer{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:color-mix(in srgb,var(--surface) 96%,transparent)!important}
+    #detail.is-scrolling .readerQuickBar,#detail.is-scrolling #readerCrossIndex,#detail.is-scrolling>footer{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:color-mix(in srgb,var(--surface) 96%,transparent)!important}
   `;document.head.appendChild(style);
   window.jgOpenNativeEgw=openUrl;
 })();

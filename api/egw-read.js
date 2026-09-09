@@ -177,21 +177,17 @@ export default async function handler(req,res){
     let url=input;
     const mobile=input.match(/\/zh\/book\/(\d+)\.(\d+)/i);
     if(mobile)url=`https://text.egwwritings.org/read/${mobile[1]}.${mobile[2]}`;
-    // Chapter body is the critical path. TOC prev/next uses in-memory cache only;
-    // otherwise warm TOC in background — client already loads nav via ?toc=1.
-    const html=await fetchHtml(url),pageTitle=title(html),structured=blocks(html),subtitle=chapterSubtitle(structured,pageTitle),displayTitle=subtitle?`${pageTitle} ${subtitle}`:pageTitle;
+    // Parallelize chapter HTML + TOC. Await both so prev/next always populate
+    // even on cold serverless starts (in-memory tocCache is empty then).
+    // Keep strong edge cache so repeat opens stay cheap.
+    const htmlPromise=fetchHtml(url);
+    const tocPromise=meta?null:getToc(url).catch(err=>{console.warn('egw toc fetch failed',err);return null});
+    const html=await htmlPromise,pageTitle=title(html),structured=blocks(html),subtitle=chapterSubtitle(structured,pageTitle),displayTitle=subtitle?`${pageTitle} ${subtitle}`:pageTitle;
     if(meta){
       res.setHeader('Cache-Control','public, s-maxage=86400, stale-while-revalidate=604800');
       return res.status(200).json({ok:true,title:pageTitle,subtitle,display_title:displayTitle,official_url:input,source_url:url});
     }
-    const bookId=bookIdFrom(url);
-    const cachedToc=tocCache.get(bookId);
-    let tocData=null;
-    if(cachedToc&&cachedToc.value&&typeof cachedToc.value.then!=='function'&&Date.now()-cachedToc.at<TOC_TTL){
-      tocData=cachedToc.value;
-    }else if(!meta){
-      getToc(url).catch(err=>console.warn('egw toc warm failed',err));
-    }
+    const tocData=await tocPromise;
     const parts=structured.filter(x=>x.type==='paragraph').map(x=>x.text+(x.locator?' '+x.locator:'')),nav=tocData?adjacentChapters(tocData.html,url):{current:null,prev:null,next:null},chapterTitle=nav.current?.title||pageTitle,chapterLead=chapterSubtitle(structured,chapterTitle),chapterDisplayTitle=chapterLead?`${chapterTitle} ${chapterLead}`:chapterTitle;
     if(!parts.length)return res.status(422).json({ok:false,error:'no_readable_text',official_url:input,title:chapterTitle});
     res.setHeader('Cache-Control','public, s-maxage=86400, stale-while-revalidate=604800');
