@@ -37,43 +37,42 @@
         <div class="readerSettingsHandle" aria-hidden="true"></div>
         <header class="readerSettingsHead"><h2>阅读设置</h2><button type="button" data-reader-settings-close aria-label="关闭">×</button></header>
 
-        <div class="readerSettingsGroup">
-          <h3>字号</h3>
+        <div class="readerSettingsGroup readerSettingsFontGroup">
+          <h3>文字</h3>
           <div class="readerFontControl">
             <button type="button" data-reader-font-proxy="-1" aria-label="减小字号">A−</button>
-            <span>阅读字号</span>
+            <span>字号</span>
             <button type="button" data-reader-font-proxy="1" aria-label="加大字号">A+</button>
           </div>
         </div>
 
         <div class="readerSettingsGroup">
-          <h3>朗读</h3>
+          <div class="readerSettingsTitleRow"><h3>朗读</h3><small>系统中文语音</small></div>
           <div class="readerAudioControl">
             <button type="button" data-reader-audio-step="-1" aria-label="上一段"><span>‹</span><small>上一段</small></button>
             <button type="button" class="readerSheetPlay" data-reader-sheet-tts><span>▶</span><small>朗读</small></button>
             <button type="button" data-reader-audio-step="1" aria-label="下一段"><span>›</span><small>下一段</small></button>
           </div>
-          <div class="readerVoiceHint">使用设备系统默认中文语音</div>
           <div class="readerRateRow" aria-label="朗读速度">
             ${[0.8,1,1.2,1.5,2].map(v => `<button type="button" data-reader-rate="${v}">${v}×</button>`).join('')}
           </div>
         </div>
 
-        <div class="readerSettingsGroup">
-          <h3>阅读导航</h3>
+        <div class="readerSettingsGroup readerSettingsCompactGroup">
+          <h3>章节</h3>
           <div class="readerChapterControl">
             <button type="button" data-reader-sheet-nav="prev">‹ 上一章</button>
             <button type="button" data-reader-sheet-nav="next">下一章 ›</button>
           </div>
         </div>
 
-        <div class="readerSettingsGroup">
+        <div class="readerSettingsGroup readerSettingsCompactGroup">
           <h3>背景</h3>
           <div class="readerThemeRow">
-            <button type="button" data-reader-theme="paper">暖白</button>
-            <button type="button" data-reader-theme="sepia">米黄</button>
-            <button type="button" data-reader-theme="green">护眼</button>
-            <button type="button" data-reader-theme="dark">深色</button>
+            <button type="button" data-reader-theme="paper"><i class="readerThemeDot readerThemePaper"></i><span>暖白</span></button>
+            <button type="button" data-reader-theme="sepia"><i class="readerThemeDot readerThemeSepia"></i><span>米黄</span></button>
+            <button type="button" data-reader-theme="green"><i class="readerThemeDot readerThemeGreen"></i><span>护眼</span></button>
+            <button type="button" data-reader-theme="dark"><i class="readerThemeDot readerThemeDark"></i><span>深色</span></button>
           </div>
         </div>
       </section>`;
@@ -188,24 +187,25 @@
   const style = document.createElement('style');
   style.textContent = `
     .fontTools>[data-font]{display:none!important}
-    .readerSettingsTrigger[hidden]{display:none!important}
-    .readerSettingsBackdrop[hidden]{display:none!important}
-    .readerSettingsBackdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;background:rgba(22,24,22,.34)}
-    .readerSettingsSheet{width:min(720px,100%);max-height:82%;margin:0 auto;padding:9px 18px calc(24px + env(safe-area-inset-bottom));overflow:auto;border-radius:22px 22px 0 0;background:var(--surface);color:var(--text);box-shadow:0 -20px 55px rgba(20,24,21,.14)}
-    .readerSettingsHandle{width:38px;height:4px;margin:0 auto 12px;border-radius:99px;background:var(--line)}
-    .readerSettingsHead{position:static!important;display:flex!important;align-items:center!important;justify-content:space-between!important;padding:0 0 12px!important;border:0!important;background:transparent!important}
-    .readerSettingsHead h2{margin:0;font-size:19px}.readerSettingsHead button{width:44px;min-width:44px!important;border:0!important;background:transparent!important;color:var(--text)!important;font-size:28px!important;font-weight:300!important}
-    .readerSettingsGroup{padding:12px 0;border-top:1px solid var(--line)}.readerSettingsGroup:first-of-type{border-top:0}
-    .readerSettingsGroup h3{margin:0 0 10px;font-size:14px}
-    .readerFontControl{display:grid;grid-template-columns:58px 1fr 58px;align-items:center;min-height:58px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
-    .readerFontControl span{text-align:center;color:var(--muted);font-size:12px}.readerFontControl button{border:0!important;background:transparent!important;color:var(--text)!important;font-size:19px!important}
-    .readerAudioControl{display:grid;grid-template-columns:1fr 70px 1fr;align-items:center;margin:2px 0 6px}.readerAudioControl button{border:0!important;background:transparent!important;color:var(--text)!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.readerAudioControl button:disabled{opacity:.28}.readerAudioControl button>span{font-size:21px;line-height:1}.readerAudioControl button>small{font-size:9px}
-    .readerSheetPlay{width:62px;height:62px;min-height:62px!important;justify-self:center;border-radius:50%!important;background:var(--accent)!important;color:var(--surface)!important}.readerSheetPlay>span{font-size:20px!important;font-weight:800}.readerSheetPlay>small{font-size:9px!important}
-    .readerVoiceHint{margin:0 0 10px;text-align:center;color:var(--muted);font-size:10px}
-    .readerRateRow{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.readerRateRow button,.readerThemeRow button,.readerChapterControl button{min-height:44px!important;border:1px solid var(--line)!important;border-radius:10px!important;background:var(--soft)!important;color:var(--text)!important;font-size:11px!important}.readerRateRow button.active,.readerThemeRow button.active{border-color:var(--accent)!important;background:color-mix(in srgb,var(--accent) 12%,var(--surface))!important;color:var(--accent)!important;font-weight:800!important}
-    .readerChapterControl{display:grid;grid-template-columns:1fr 1fr;gap:9px}.readerChapterControl button:disabled{opacity:.3}
-    .readerThemeRow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-    @media(max-width:390px){.readerSettingsSheet{padding-left:14px;padding-right:14px}.readerThemeRow{gap:6px}.readerRateRow{gap:5px}}
+    .readerSettingsTrigger[hidden],.readerSettingsBackdrop[hidden]{display:none!important}
+    .readerSettingsTrigger{font-size:15px!important;letter-spacing:-.02em}
+    .readerSettingsBackdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;background:rgba(22,24,22,.32)}
+    .readerSettingsSheet{width:min(720px,100%);max-height:84%;margin:0 auto;padding:8px 18px calc(22px + env(safe-area-inset-bottom));overflow:auto;border-radius:22px 22px 0 0;background:var(--surface);color:var(--text);box-shadow:0 -18px 48px rgba(20,24,21,.13)}
+    .readerSettingsHandle{width:36px;height:4px;margin:0 auto 8px;border-radius:99px;background:var(--line)}
+    .readerSettingsHead{position:static!important;display:flex!important;align-items:center!important;justify-content:space-between!important;padding:0 0 7px!important;border:0!important;background:transparent!important}
+    .readerSettingsHead h2{margin:0;font-size:17px;font-weight:700}.readerSettingsHead button{width:40px;min-width:40px!important;min-height:40px!important;border:0!important;background:transparent!important;color:var(--muted)!important;font-size:25px!important;font-weight:300!important}
+    .readerSettingsGroup{padding:11px 0;border-top:1px solid var(--line)}.readerSettingsGroup:first-of-type{border-top:0}
+    .readerSettingsGroup h3{margin:0 0 8px;font-size:12px;font-weight:700;color:var(--muted)}
+    .readerSettingsTitleRow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.readerSettingsTitleRow h3{margin:0}.readerSettingsTitleRow small{color:var(--muted);font-size:9.5px}
+    .readerFontControl{display:grid;grid-template-columns:58px 1fr 58px;align-items:center;min-height:50px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+    .readerFontControl span{text-align:center;color:var(--muted);font-size:11px}.readerFontControl button{border:0!important;background:transparent!important;color:var(--text)!important;font-size:18px!important}
+    .readerAudioControl{display:grid;grid-template-columns:1fr 70px 1fr;align-items:center;margin:0 0 9px}.readerAudioControl button{border:0!important;background:transparent!important;color:var(--text)!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.readerAudioControl button:disabled{opacity:.24}.readerAudioControl button>span{font-size:21px;line-height:1}.readerAudioControl button>small{font-size:9px}
+    .readerSheetPlay{width:58px;height:58px;min-height:58px!important;justify-self:center;border-radius:50%!important;background:var(--accent)!important;color:var(--surface)!important}.readerSheetPlay>span{font-size:19px!important;font-weight:800}.readerSheetPlay>small{font-size:9px!important}
+    .readerRateRow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.readerRateRow button{min-height:38px!important;border:1px solid transparent!important;border-radius:9px!important;background:var(--soft)!important;color:var(--muted)!important;font-size:10.5px!important}.readerRateRow button.active{border-color:color-mix(in srgb,var(--accent) 36%,var(--line))!important;background:color-mix(in srgb,var(--accent) 10%,var(--surface))!important;color:var(--accent)!important;font-weight:800!important}
+    .readerChapterControl{display:grid;grid-template-columns:1fr 1fr;gap:8px}.readerChapterControl button{min-height:42px!important;border:1px solid var(--line)!important;border-radius:10px!important;background:transparent!important;color:var(--text)!important;font-size:11px!important}.readerChapterControl button:disabled{opacity:.28}
+    .readerThemeRow{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.readerThemeRow button{min-height:50px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:1px solid transparent!important;border-radius:10px!important;background:transparent!important;color:var(--muted)!important;font-size:9.5px!important}.readerThemeRow button.active{border-color:var(--line)!important;background:var(--soft)!important;color:var(--text)!important;font-weight:700!important}
+    .readerThemeDot{display:block;width:22px;height:22px;border:1px solid #00000018;border-radius:50%;box-shadow:inset 0 0 0 1px #ffffff24}.readerThemePaper{background:#f8f6f0}.readerThemeSepia{background:#e9dfc8}.readerThemeGreen{background:#dce6d8}.readerThemeDark{background:#20211f}
+    @media(max-width:390px){.readerSettingsSheet{padding-left:14px;padding-right:14px}.readerThemeRow,.readerRateRow{gap:5px}}
   `;
   document.head.appendChild(style);
   ensureTrigger();
