@@ -103,7 +103,7 @@
     detail.dataset.readingKey='';
     type.textContent='正在读取';
     disconnectParaObserver();visibleParagraph=null;
-    body.innerHTML=`<div class="egwLoading"><div>${esc(title)}</div><span>正在读取原文章节…</span></div>`;
+    body.innerHTML=`<div class="egwLoading" role="status" aria-live="polite"><i class="egwLoadingSpin" aria-hidden="true"></i><div>${esc(title)}</div><span>正在读取原文章节…</span></div>`;
     actions.innerHTML='';
     if(!detail.open)detail.showModal();
     window.jgRefreshReadAloud?.();
@@ -211,7 +211,7 @@
     .egwChapterPager small,.egwChapterPager span{display:block}
     .egwChapterPager small{margin-bottom:4px;color:var(--muted);font-size:11px;font-weight:500}
     .egwChapterPager span{font-size:13px;line-height:1.45;white-space:normal}
-    .egwLoading{padding:46px 18px;text-align:center;color:var(--text)}.egwLoading span{display:block;margin-top:8px;color:var(--muted);font-size:13px}
+    .egwLoading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:56px 18px;text-align:center;color:var(--text)}.egwLoadingSpin{width:22px;height:22px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:jgEgwSpin .75s linear infinite}@keyframes jgEgwSpin{to{transform:rotate(360deg)}}.egwLoading span{display:block;color:var(--muted);font-size:13px}
     #detail[data-reader-kind="egw-reader"]>header{grid-template-columns:auto minmax(0,1fr) auto}
     #detail[data-reader-kind="egw-reader"]>header>#back{white-space:nowrap}
     #detail[data-reader-kind="egw-reader"]>header>#detailType{min-width:0;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;line-height:1.25}

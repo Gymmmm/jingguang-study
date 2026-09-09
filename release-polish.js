@@ -199,7 +199,7 @@
     const group = sheet.querySelector('.crossIndexList>h3');
     if (group) group.textContent = kind === 'bible' ? '关联怀著资料' : '相关经文';
     const note = sheet.querySelector('.crossIndexPanel>header small');
-    if (note) note.textContent = '只显示可核验的关联';
+    if (note) note.textContent = '只显示可核验关联，并附依据';
   }
 
   function enrichOpenCrossIndex() {
@@ -252,7 +252,7 @@
       const bibleRef = currentBibleRef();
       const rows = [...list.querySelectorAll('[data-cross-egw]')];
       rows.forEach((row, index) => {
-        if (index >= 5) {
+        if (index >= 8) {
           row.hidden = true;
           return;
         }
@@ -276,8 +276,8 @@
         why.textContent = reasonForEgw(record, bibleRef);
         host.appendChild(why);
       });
-      if (rows.length > 5 && !list.querySelector('.crossIndexLimited')) {
-        list.insertAdjacentHTML('beforeend','<div class="crossIndexLimited">只显示置信度较高的前 5 条关联。</div>');
+      if (rows.length > 8 && !list.querySelector('.crossIndexLimited')) {
+        list.insertAdjacentHTML('beforeend','<div class="crossIndexLimited">先显示置信度较高的前 8 条；可点「查看全部」展开。</div>');
       }
     }
   }
