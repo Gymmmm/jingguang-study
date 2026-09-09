@@ -184,7 +184,7 @@
       sheet = document.createElement('div');
       sheet.className = 'crossIndexSheet';
       sheet.hidden = true;
-      sheet.innerHTML = `<button class="crossIndexBackdrop" type="button" data-cross-index-close aria-label="关闭互相索引"></button><section class="crossIndexPanel" aria-label="互相索引"><header><div><b>互相索引</b><small>只显示可从现有资料核验的关联</small></div><button type="button" data-cross-index-close aria-label="关闭">×</button></header><div class="crossIndexReturn"></div><div class="crossIndexList"></div></section>`;
+      sheet.innerHTML = `<button class="crossIndexBackdrop" type="button" data-cross-index-close aria-label="关闭关联"></button><section class="crossIndexPanel" aria-label="关联"><header><div><b>关联</b><small>只显示可核验关联，并附依据</small></div><button type="button" data-cross-index-close aria-label="关闭">×</button></header><div class="crossIndexReturn"></div><div class="crossIndexList"></div></section>`;
       detail.appendChild(sheet);
     }
     return {handle, sheet};
@@ -273,13 +273,17 @@
     const back = sheet.querySelector('.crossIndexReturn');
     back.innerHTML = navStack.length ? `<button type="button" data-cross-index-back>‹ 返回关联处</button>` : '';
     if (!items.length) {
-      list.innerHTML = '<div class="crossIndexEmpty">当前章节暂时没有可核验的双向关联。</div>';
+      list.innerHTML = '<div class="crossIndexEmpty">本章暂无可核验关联。<br><small>索引仍在建设；可先从已覆盖章节或怀著侧试。</small></div>';
       return;
     }
     const visible=expanded?items:items.slice(0,INITIAL_RESULT_LIMIT);
     const more=!expanded&&items.length>visible.length?`<button type="button" class="crossIndexMore" data-cross-index-all>查看全部 ${items.length} 条</button>`:'';
     if (kind === 'bible') {
-      list.innerHTML = `<h3>相关怀著</h3>${visible.map(r => `<button type="button" class="crossIndexRow" data-cross-egw="${esc(r.id)}"><span><b>《${esc(r.title_cn || '怀爱伦著作')}》</b><small>${esc(r.chapter || '')}${r.locator ? ' · ' + esc(r.locator) : ''}</small></span><i>›</i></button>`).join('')}${more}`;
+      list.innerHTML = `<h3>关联怀著</h3>${visible.map(r => {
+        const badge = r.evidence?.kind ? `<small class="crossIndexBadge">${esc(r.evidence.kind)}</small>` : '';
+        const why = r.evidence?.why ? `<small class="crossIndexWhy">关联依据：${esc(r.evidence.why)}</small>` : '';
+        return `<button type="button" class="crossIndexRow" data-cross-egw="${esc(r.id)}"><span>${badge}<b>《${esc(r.title_cn || '怀爱伦著作')}》</b><small>${esc(r.chapter || '')}${r.locator ? ' · ' + esc(r.locator) : ''}</small>${why}</span><i>›</i></button>`;
+      }).join('')}${more}`;
     } else {
       list.innerHTML = `<h3>相关经文</h3>${visible.map((r,i) => `<button type="button" class="crossIndexRow" data-cross-bible="${i}"><span><b>${esc(refLabel(r))}</b><small>打开整章${r.focus ? ` · 定位第 ${r.focus} 节` : ''}</small></span><i>›</i></button>`).join('')}${more}`;
     }
@@ -326,7 +330,7 @@
     }
     handle.hidden = count === 0 && navStack.length === 0;
     handle.querySelector('b').textContent = count ? `关联 ${count}` : '返回';
-    handle.setAttribute('aria-label', count ? `打开互相索引，共 ${count} 条` : '返回关联位置');
+    handle.setAttribute('aria-label', count ? `打开关联，共 ${count} 条` : '返回关联位置');
     if (!sheet.hidden) openSheet();
   }
 
@@ -403,6 +407,8 @@
     .crossIndexList h3{margin:8px 0 5px;color:var(--muted);font-size:10.5px;font-weight:700;letter-spacing:.03em}
     .crossIndexRow{width:100%;min-height:54px!important;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent!important;color:var(--text)!important;text-align:left;box-shadow:none!important}
     .crossIndexRow>span{min-width:0;display:flex;flex-direction:column;gap:3px}.crossIndexRow b{font-size:14px;font-weight:650;line-height:1.35}.crossIndexRow small{color:var(--muted);font-size:9.5px;line-height:1.35}.crossIndexRow i{flex:0 0 auto;color:var(--muted);font-size:22px;font-style:normal;font-weight:400}
+    .crossIndexBadge{display:inline-block;margin:0 0 4px;padding:1px 6px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:999px;color:var(--accent);font-size:9px;font-weight:700;line-height:1.4}
+    .crossIndexWhy{margin-top:2px;color:var(--accent);font-size:9.5px;line-height:1.45}
     .crossIndexEmpty{padding:20px 4px;color:var(--muted);font-size:12px;text-align:center}
     .egwParagraphWrap.crossLinked,.reading>.verse.crossLinked{position:relative}
     .egwParagraphWrap.crossLinked::after,.reading>.verse.crossLinked::after{content:'↔';position:absolute;right:1px;top:2px;color:var(--accent);font-family:system-ui,sans-serif;font-size:8px;font-weight:700;opacity:.42}
