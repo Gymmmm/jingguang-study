@@ -54,6 +54,10 @@
 
   function openCrossIndex() {
     try { window.jgRefreshCrossIndex?.(); } catch (_) {}
+    if (typeof window.jgOpenCrossIndex === 'function') {
+      window.jgOpenCrossIndex();
+      return;
+    }
     const tryOpen = () => {
       const handle = detail.querySelector('.crossIndexHandle[data-cross-index-open]');
       if (!handle) return false;
