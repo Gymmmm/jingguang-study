@@ -297,6 +297,8 @@
     ui.sheet._crossExpanded = false;
   }
 
+  window.jgOpenCrossIndex = openSheet;
+
   function closeSheet() {
     const sheet = detail.querySelector('.crossIndexSheet');
     if (sheet) sheet.hidden = true;

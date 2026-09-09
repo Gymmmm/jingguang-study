@@ -289,7 +289,7 @@
       }
       if (event.target.closest('[data-cross-egw],[data-cross-bible]')) crossSessionDepth += 1;
       if (back && crossSessionDepth > 0) crossSessionDepth -= 1;
-      if (event.target.closest('[data-cross-index-open]')) scheduleCrossIndexEnrich();
+      if (event.target.closest('[data-cross-index-open],[data-cross-index-persistent]')) scheduleCrossIndexEnrich();
     }, true);
 
     detail.addEventListener('close', () => {
@@ -300,12 +300,6 @@
         if (handle?.querySelector('b')?.textContent === '返回') handle.hidden = true;
       });
     });
-
-    const observer = new MutationObserver(() => {
-      if (detail.querySelector('.crossIndexSheet:not([hidden])')) scheduleCrossIndexEnrich();
-      forceSystemVoice();
-    });
-    observer.observe(detail, {subtree:true, childList:true, attributes:true, attributeFilter:['hidden']});
   }
 
   /* Track failed fetches only while a search is running so empty results and network failures differ. */
