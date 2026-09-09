@@ -1,18 +1,344 @@
 {
   "schema_version": 1,
   "relations": [
-    {"bible_ref":"但以理书8:14","normalized":"Dan 8:14","themes":["二千三百日","圣所","审判","1844"],"related_bible":["但以理书7:9-10","但以理书9:24-27","利未记16章","希伯来书8章","希伯来书9章","启示录14:6-7"],"egw_ids":["CIHS-2300","EW-VISIONS"]},
-    {"bible_ref":"启示录14:6-12","normalized":"Rev 14:6-12","themes":["永远的福音","审判的时候","敬拜创造主","巴比伦","兽与兽像","上帝诫命","耶稣真道"],"related_bible":["创世记2:1-3","出埃及记20:8-11","但以理书7:9-10","启示录13章","启示录18:1-4"],"egw_ids":["EW-VISIONS","EV-08-DISTINCTIVE"]},
-    {"bible_ref":"出埃及记20:8-11","normalized":"Exod 20:8-11","themes":["安息日","十诫","创造","敬拜"],"related_bible":["创世记2:1-3","以赛亚书58:13-14","马可福音2:27-28","启示录14:7"],"egw_ids":["DA-29-SABBATH","ED-29-SABBATH","CGE-79-SABBATH","CCH-47-SABBATH","6T-44-SABBATH","9MR-665-SABBATH"]},
-    {"bible_ref":"创世记2:1-3","normalized":"Gen 2:1-3","themes":["创造","第七日","安息","祝福","分别为圣"],"related_bible":["出埃及记20:8-11","马可福音2:27-28","希伯来书4:1-11"],"egw_ids":["DA-29-SABBATH","ED-29-SABBATH","9MR-665-SABBATH"]},
-    {"bible_ref":"约翰福音14:1-3","normalized":"John 14:1-3","themes":["基督复临","盼望","预备地方"],"related_bible":["帖撒罗尼迦前书4:13-18","启示录1:7","启示录22:12"],"egw_ids":["FHC-SECOND-COMING","9MR-847-SECOND-COMING","FHC-375-SECOND-COMING","FHC-369-SECOND-COMING"]},
-    {"bible_ref":"帖撒罗尼迦前书4:13-18","normalized":"1 Thess 4:13-18","themes":["基督复临","复活","盼望"],"related_bible":["约翰福音14:1-3","哥林多前书15:51-54","启示录1:7"],"egw_ids":["FHC-SECOND-COMING","9MR-847-SECOND-COMING","FHC-375-SECOND-COMING","FHC-369-SECOND-COMING"]},
-    {"bible_ref":"路加福音11:1","normalized":"Luke 11:1","themes":["祷告","主祷文","门徒训练"],"related_bible":["马太福音6:5-13","马太福音7:7","路加福音18:1"],"egw_ids":["FHC-019-PRAYER-EXAMPLE"]},
-    {"bible_ref":"马太福音6:7","normalized":"Matt 6:7","themes":["祷告","真诚","信心","敬拜"],"related_bible":["路加福音18:13","路加福音11:1-4","马太福音7:7-11"],"egw_ids":["FHC-023-PRAYER-FAITH"]},
-    {"bible_ref":"约翰福音15:7","normalized":"John 15:7","themes":["祷告","常在基督里","信心","应许"],"related_bible":["约翰福音15:4-8","创世记32:24-30","但以理书6:10"],"egw_ids":["FHC-022-PRAYER-MODELS"]},
-    {"bible_ref":"诗篇119:27","normalized":"Ps 119:27","themes":["圣经研究","默想","真理","个人研经"],"related_bible":["诗篇119:18","提摩太后书3:16-17","使徒行传17:11"],"egw_ids":["FHC-031-BIBLE-STUDY"]},
-    {"bible_ref":"创世记3:15","normalized":"Gen 3:15","themes":["善恶之争","救赎计划","基督与撒但","末世"],"related_bible":["启示录12:7-12","罗马书16:20","启示录20:10"],"egw_ids":["CTRS-028-GREAT-CONTROVERSY"]},
-    {"bible_ref":"提多书2:12-13","normalized":"Titus 2:12-13","themes":["基督复临","所盼望的福","敬虔","警醒"],"related_bible":["马太福音24:33-36","启示录22:20","帖撒罗尼迦前书5:4-6"],"egw_ids":["FHC-375-SECOND-COMING"]},
-    {"bible_ref":"马太福音24:31","normalized":"Matt 24:31","themes":["基督复临","天使","招聚选民","末世"],"related_bible":["帖撒罗尼迦前书4:16-17","启示录7:9-17","启示录14:14-16"],"egw_ids":["FHC-369-SECOND-COMING"]}
+    {
+      "bible_ref": "但以理书8:14",
+      "normalized": "Dan 8:14",
+      "themes": [
+        "二千三百日",
+        "圣所",
+        "审判",
+        "1844"
+      ],
+      "related_bible": [
+        "但以理书7:9-10",
+        "但以理书9:24-27",
+        "利未记16章",
+        "希伯来书8章",
+        "希伯来书9章",
+        "启示录14:6-7"
+      ],
+      "egw_ids": [
+        "CIHS-2300",
+        "EW-VISIONS"
+      ]
+    },
+    {
+      "bible_ref": "启示录14:6-12",
+      "normalized": "Rev 14:6-12",
+      "themes": [
+        "永远的福音",
+        "审判的时候",
+        "敬拜创造主",
+        "巴比伦",
+        "兽与兽像",
+        "上帝诫命",
+        "耶稣真道"
+      ],
+      "related_bible": [
+        "创世记2:1-3",
+        "出埃及记20:8-11",
+        "但以理书7:9-10",
+        "启示录13章",
+        "启示录18:1-4"
+      ],
+      "egw_ids": [
+        "EW-VISIONS",
+        "EV-08-DISTINCTIVE"
+      ]
+    },
+    {
+      "bible_ref": "出埃及记20:8-11",
+      "normalized": "Exod 20:8-11",
+      "themes": [
+        "安息日",
+        "十诫",
+        "创造",
+        "敬拜"
+      ],
+      "related_bible": [
+        "创世记2:1-3",
+        "以赛亚书58:13-14",
+        "马可福音2:27-28",
+        "启示录14:7"
+      ],
+      "egw_ids": [
+        "DA-29-SABBATH",
+        "ED-29-SABBATH",
+        "CGE-79-SABBATH",
+        "CCH-47-SABBATH",
+        "6T-44-SABBATH",
+        "9MR-665-SABBATH"
+      ]
+    },
+    {
+      "bible_ref": "创世记2:1-3",
+      "normalized": "Gen 2:1-3",
+      "themes": [
+        "创造",
+        "第七日",
+        "安息",
+        "祝福",
+        "分别为圣"
+      ],
+      "related_bible": [
+        "出埃及记20:8-11",
+        "马可福音2:27-28",
+        "希伯来书4:1-11"
+      ],
+      "egw_ids": [
+        "DA-29-SABBATH",
+        "ED-29-SABBATH",
+        "9MR-665-SABBATH"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音14:1-3",
+      "normalized": "John 14:1-3",
+      "themes": [
+        "基督复临",
+        "盼望",
+        "预备地方"
+      ],
+      "related_bible": [
+        "帖撒罗尼迦前书4:13-18",
+        "启示录1:7",
+        "启示录22:12"
+      ],
+      "egw_ids": [
+        "FHC-SECOND-COMING",
+        "9MR-847-SECOND-COMING",
+        "FHC-375-SECOND-COMING",
+        "FHC-369-SECOND-COMING"
+      ]
+    },
+    {
+      "bible_ref": "帖撒罗尼迦前书4:13-18",
+      "normalized": "1 Thess 4:13-18",
+      "themes": [
+        "基督复临",
+        "复活",
+        "盼望"
+      ],
+      "related_bible": [
+        "约翰福音14:1-3",
+        "哥林多前书15:51-54",
+        "启示录1:7"
+      ],
+      "egw_ids": [
+        "FHC-SECOND-COMING",
+        "9MR-847-SECOND-COMING",
+        "FHC-375-SECOND-COMING",
+        "FHC-369-SECOND-COMING"
+      ]
+    },
+    {
+      "bible_ref": "路加福音11:1",
+      "normalized": "Luke 11:1",
+      "themes": [
+        "祷告",
+        "主祷文",
+        "门徒训练"
+      ],
+      "related_bible": [
+        "马太福音6:5-13",
+        "马太福音7:7",
+        "路加福音18:1"
+      ],
+      "egw_ids": [
+        "FHC-019-PRAYER-EXAMPLE"
+      ]
+    },
+    {
+      "bible_ref": "马太福音6:7",
+      "normalized": "Matt 6:7",
+      "themes": [
+        "祷告",
+        "真诚",
+        "信心",
+        "敬拜"
+      ],
+      "related_bible": [
+        "路加福音18:13",
+        "路加福音11:1-4",
+        "马太福音7:7-11"
+      ],
+      "egw_ids": [
+        "FHC-023-PRAYER-FAITH"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音15:7",
+      "normalized": "John 15:7",
+      "themes": [
+        "祷告",
+        "常在基督里",
+        "信心",
+        "应许"
+      ],
+      "related_bible": [
+        "约翰福音15:4-8",
+        "创世记32:24-30",
+        "但以理书6:10"
+      ],
+      "egw_ids": [
+        "FHC-022-PRAYER-MODELS"
+      ]
+    },
+    {
+      "bible_ref": "诗篇119:27",
+      "normalized": "Ps 119:27",
+      "themes": [
+        "圣经研究",
+        "默想",
+        "真理",
+        "个人研经"
+      ],
+      "related_bible": [
+        "诗篇119:18",
+        "提摩太后书3:16-17",
+        "使徒行传17:11"
+      ],
+      "egw_ids": [
+        "FHC-031-BIBLE-STUDY"
+      ]
+    },
+    {
+      "bible_ref": "创世记3:15",
+      "normalized": "Gen 3:15",
+      "themes": [
+        "善恶之争",
+        "救赎计划",
+        "基督与撒但",
+        "末世"
+      ],
+      "related_bible": [
+        "启示录12:7-12",
+        "罗马书16:20",
+        "启示录20:10"
+      ],
+      "egw_ids": [
+        "CTRS-028-GREAT-CONTROVERSY"
+      ]
+    },
+    {
+      "bible_ref": "提多书2:12-13",
+      "normalized": "Titus 2:12-13",
+      "themes": [
+        "基督复临",
+        "所盼望的福",
+        "敬虔",
+        "警醒"
+      ],
+      "related_bible": [
+        "马太福音24:33-36",
+        "启示录22:20",
+        "帖撒罗尼迦前书5:4-6"
+      ],
+      "egw_ids": [
+        "FHC-375-SECOND-COMING"
+      ]
+    },
+    {
+      "bible_ref": "马太福音24:31",
+      "normalized": "Matt 24:31",
+      "themes": [
+        "基督复临",
+        "天使",
+        "招聚选民",
+        "末世"
+      ],
+      "related_bible": [
+        "帖撒罗尼迦前书4:16-17",
+        "启示录7:9-17",
+        "启示录14:14-16"
+      ],
+      "egw_ids": [
+        "FHC-369-SECOND-COMING"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音3:1-17",
+      "normalized": "John 3:1-17",
+      "themes": [
+        "尼哥底母",
+        "重生",
+        "救恩",
+        "夜间求见"
+      ],
+      "related_bible": [
+        "民数记21:8-9",
+        "以西结书36:25-27"
+      ],
+      "egw_ids": [
+        "DA-17-NICODEMUS",
+        "CCS-291-NICODEMUS",
+        "CCS-293-NEW-BIRTH",
+        "FHC-258-NICODEMUS"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音3:3",
+      "normalized": "John 3:3",
+      "themes": [
+        "重生",
+        "见上帝的国"
+      ],
+      "related_bible": [
+        "约翰福音3:5",
+        "约翰福音3:7"
+      ],
+      "egw_ids": [
+        "DA-17-NICODEMUS",
+        "FHC-258-NICODEMUS",
+        "CCS-291-NICODEMUS"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音3:5",
+      "normalized": "John 3:5",
+      "themes": [
+        "水和圣灵",
+        "进上帝的国"
+      ],
+      "related_bible": [
+        "约翰福音3:3"
+      ],
+      "egw_ids": [
+        "DA-17-NICODEMUS",
+        "FHC-258-NICODEMUS"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音3:14-15",
+      "normalized": "John 3:14-15",
+      "themes": [
+        "举蛇",
+        "人子被举起来",
+        "信心得永生"
+      ],
+      "related_bible": [
+        "民数记21:8-9"
+      ],
+      "egw_ids": [
+        "DA-17-NICODEMUS",
+        "CCS-293-NEW-BIRTH"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音3:16",
+      "normalized": "John 3:16",
+      "themes": [
+        "神爱世人",
+        "独生子",
+        "永生"
+      ],
+      "related_bible": [
+        "约翰福音3:14-15"
+      ],
+      "egw_ids": [
+        "DA-17-NICODEMUS"
+      ]
+    }
   ]
 }

@@ -2,7 +2,7 @@
   'use strict';
   const detail=document.getElementById('detail'),body=document.getElementById('detailBody'),type=document.getElementById('detailType'),actions=document.getElementById('detailActions');
   if(!detail||!body||!type||!actions)return;
-  let index=[],books=[],current=null,scrollTimer=0,openSeq=0;
+  let index=[],books=[],current=null,scrollTimer=0,openSeq=0,paraObserver=null,visibleParagraph=null,visibleOffset=0;
   const READING_KEY='jg_v10_reading',FAVORITES_KEY='jg_v10_favorites',POSITION_KEY='jg_v10_egw_position';
   fetch('./data/egw-index.json',{cache:'no-store'}).then(r=>r.json()).then(j=>{index=j.records||[]}).catch(()=>{});
   const booksReady=fetch('./data/egw-official-books.json',{cache:'no-store'}).then(r=>r.json()).then(j=>{books=j.books||[];return books}).catch(()=>books);
@@ -29,7 +29,30 @@
   function isFavorite(item){const id=itemId(item);return read(FAVORITES_KEY).some(x=>itemId(x)===id)}
   function renderActions(){if(current)actions.innerHTML=`<button data-egw-native-favorite>${isFavorite(current)?'★ 已收藏':'☆ 收藏本章'}</button><button data-official-source="${esc(current.native_url)}">核验官方原始出处</button>`}
   function toggleFavorite(){if(!current)return;const id=itemId(current),items=read(FAVORITES_KEY);write(FAVORITES_KEY,items.some(x=>itemId(x)===id)?items.filter(x=>itemId(x)!==id):[{...current,at:Date.now()},...items]);renderActions()}
+  function disconnectParaObserver(){
+    if(paraObserver){paraObserver.disconnect();paraObserver=null}
+  }
+  function observeParagraphs(){
+    disconnectParaObserver();
+    visibleParagraph=null;visibleOffset=0;
+    const paras=[...body.querySelectorAll('.egwParagraph')];
+    if(!paras.length||typeof IntersectionObserver!=='function')return;
+    paraObserver=new IntersectionObserver(entries=>{
+      // Prefer the most visible intersecting paragraph near the upper reading band.
+      let best=null,bestRatio=-1;
+      for(const entry of entries){
+        if(!entry.isIntersecting)continue;
+        if(entry.intersectionRatio>=bestRatio){bestRatio=entry.intersectionRatio;best=entry.target}
+      }
+      if(!best)return;
+      const i=+best.dataset.egwParagraph;
+      if(Number.isFinite(i)){visibleParagraph=i;visibleOffset=0}
+    },{root:detail,threshold:[0.2,0.4,0.6,0.8],rootMargin:'-12% 0px -55% 0px'});
+    paras.forEach(p=>paraObserver.observe(p));
+  }
   function positionSnapshot(){
+    // Prefer IntersectionObserver-tracked paragraph to avoid offsetTop layout thrash while scrolling.
+    if(Number.isFinite(visibleParagraph))return {paragraph:visibleParagraph,offset:+(+visibleOffset||0).toFixed(3)};
     const paras=[...body.querySelectorAll('.egwParagraph')];
     if(!paras.length)return null;
     const y=(detail.scrollTop||0)+Math.min(140,Math.max(72,detail.clientHeight*.18));
@@ -44,10 +67,26 @@
     const paras=[...body.querySelectorAll('.egwParagraph')],p=paras[Math.max(0,Math.min(paras.length-1,+saved.paragraph||0))];
     p?.closest('.egwParagraphWrap')?.classList.add('readingMark');
   }
-  function savePosition(){
+  function refineOffset(paragraphIndex){
+    const paras=body.querySelectorAll('.egwParagraph');
+    const p=paras[paragraphIndex];
+    if(!p)return 0;
+    // Single layout read after scroll rests — not on every scroll frame.
+    const y=(detail.scrollTop||0)+Math.min(140,Math.max(72,detail.clientHeight*.18));
+    const height=Math.max(1,p.offsetHeight);
+    return +Math.max(0,Math.min(1,(y-p.offsetTop)/height)).toFixed(3);
+  }
+  function savePosition(opts={}){
     if(!current||!detail.open)return;
-    const snap=positionSnapshot();if(!snap)return;
-    const positions=read(POSITION_KEY,{});positions[itemId(current)]=snap;write(POSITION_KEY,positions);markParagraph(snap);
+    let snap=positionSnapshot();if(!snap)return;
+    // When resting after scroll, refine in-paragraph offset once.
+    if(opts.refineOffset&&Number.isFinite(snap.paragraph)){
+      snap={paragraph:snap.paragraph,offset:refineOffset(snap.paragraph)};
+      visibleOffset=snap.offset;
+    }
+    const positions=read(POSITION_KEY,{});positions[itemId(current)]=snap;write(POSITION_KEY,positions);
+    // Avoid class thrash while the user is still scrolling (causes jank on scroll-up).
+    if(!opts.silent)markParagraph(snap);
   }
   function restoreSnapshot(saved){
     requestAnimationFrame(()=>{
@@ -63,6 +102,7 @@
     detail.dataset.readerKind='egw-reader';
     detail.dataset.readingKey='';
     type.textContent='正在读取';
+    disconnectParaObserver();visibleParagraph=null;
     body.innerHTML=`<div class="egwLoading"><div>${esc(title)}</div><span>正在读取原文章节…</span></div>`;
     actions.innerHTML='';
     if(!detail.open)detail.showModal();
@@ -107,7 +147,7 @@
       const bottomNav=(j.prev||j.next)?`<nav class="egwChapterPager" aria-label="章节导航">${j.prev?`<button data-egw-native-url="${esc(j.prev.url)}" ${navMeta} data-egw-chapter="${esc(j.prev.title||'')}"><small>上一章</small><span>‹ ${esc(j.prev.title)}</span></button>`:'<span></span>'}${j.next?`<button data-egw-native-url="${esc(j.next.url)}" ${navMeta} data-egw-chapter="${esc(j.next.title||'')}"><small>下一章</small><span>${esc(j.next.title)} ›</span></button>`:'<span></span>'}</nav>`:'';
       body.innerHTML=`<article class="egwReaderArticle"><header class="egwReaderIntro"><div class="egwBookName">${esc(bookTitle)}</div><h1>${esc(chapterTitle)}</h1></header><div class="reading egwReading">${renderBlocks(j)}</div>${bottomNav}</article>`;
       current={type:'egw',native_url:url,title:bookTitle,chapter:chapterTitle,locator:meta.locator||previous?.locator||'',bookId,tocUrl};
-      remember(current);renderActions();window.jgRefreshReadAloud?.();restorePosition();
+      remember(current);renderActions();window.jgRefreshReadAloud?.();observeParagraphs();restorePosition();
       try{localStorage.setItem('jg_last_egw_native',JSON.stringify({url,title:bookTitle,chapter:chapterTitle,bookId,tocUrl,at:Date.now()}))}catch(_){}
       return true;
     }catch(e){
@@ -136,7 +176,15 @@
       e.preventDefault();e.stopImmediatePropagation();openUrl(official.dataset.officialUrl,{title:official.closest('.card')?.querySelector('.title')?.textContent||'怀爱伦著作'});
     }
   },true);
-  detail.addEventListener('scroll',()=>{clearTimeout(scrollTimer);scrollTimer=setTimeout(savePosition,220)},{passive:true});
+  detail.addEventListener('scroll',()=>{
+    if(!detail.classList.contains('is-scrolling'))detail.classList.add('is-scrolling');
+    clearTimeout(scrollTimer);
+    scrollTimer=setTimeout(()=>{
+      detail.classList.remove('is-scrolling');
+      // After rest: one offset layout read + silent persist. No .readingMark writes.
+      savePosition({silent:true,refineOffset:true});
+    },300);
+  },{passive:true});
   document.querySelector('.fontTools')?.addEventListener('click',event=>{
     if(detail.dataset.readerKind!=='egw-reader'||!event.target.closest('[data-font]'))return;
     const saved=positionSnapshot();
@@ -144,8 +192,8 @@
   },true);
   detail.addEventListener('cancel',savePosition);
   detail.addEventListener('close',()=>{openSeq+=1;savePosition();if(detail.dataset.readerKind==='egw-reader')delete detail.dataset.readerKind});
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')savePosition()});
-  window.addEventListener('pagehide',savePosition);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')savePosition({silent:true})});
+  window.addEventListener('pagehide',()=>savePosition({silent:true}));
   const style=document.createElement('style');style.textContent=`
     .egwReaderArticle{max-width:720px;margin:0 auto;padding:18px 18px 34px}
     .egwReaderIntro{padding:8px 0 22px;border-bottom:1px solid var(--line);text-align:center}
@@ -173,6 +221,8 @@
       #detail[data-reader-kind="egw-reader"]>header{gap:5px;padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right))}#detail[data-reader-kind="egw-reader"]>header>#back{min-width:58px;padding-left:0;padding-right:4px}#detail[data-reader-kind="egw-reader"]>header>#detailType{font-size:12px}#detail[data-reader-kind="egw-reader"]>header>.fontTools{gap:0}#detail[data-reader-kind="egw-reader"]>header>.fontTools button{min-width:42px;font-size:12px}
     }
     @media(max-width:390px){.egwReaderArticle{padding-left:12px;padding-right:12px}.egwReaderIntro h1{font-size:20px}#detail[data-reader-kind="egw-reader"]>header>#back{min-width:52px;font-size:12px}#detail[data-reader-kind="egw-reader"]>header>.fontTools button{min-width:38px;font-size:11px}#detail[data-reader-kind="egw-reader"]>header>#detailType{font-size:11.5px}}
+  
+    #detail.is-scrolling .readerQuickBar,#detail.is-scrolling #readerCrossIndex,#detail.is-scrolling>footer{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:color-mix(in srgb,var(--surface) 96%,transparent)!important}
   `;document.head.appendChild(style);
   window.jgOpenNativeEgw=openUrl;
 })();

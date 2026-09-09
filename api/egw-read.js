@@ -171,20 +171,26 @@ export default async function handler(req,res){
     if(toc){
       const t=await getToc(input);
       if(!t.chapters.length)return res.status(422).json({ok:false,error:'no_chapters_found',official_url:input,debug_book_id:bookIdFrom(input)});
-      res.setHeader('Cache-Control','public, s-maxage=1800, stale-while-revalidate=86400');
+      res.setHeader('Cache-Control','public, s-maxage=86400, stale-while-revalidate=604800');
       return res.status(200).json({ok:true,title:title(t.html),chapters:t.chapters,official_url:input,source_url:t.url});
     }
     let url=input;
     const mobile=input.match(/\/zh\/book\/(\d+)\.(\d+)/i);
     if(mobile)url=`https://text.egwwritings.org/read/${mobile[1]}.${mobile[2]}`;
-    const html=await fetchHtml(url),pageTitle=title(html),structured=blocks(html),subtitle=chapterSubtitle(structured,pageTitle),displayTitle=subtitle?`${pageTitle} ${subtitle}`:pageTitle;
+    // Parallelize chapter HTML + TOC. Await both so prev/next always populate
+    // even on cold serverless starts (in-memory tocCache is empty then).
+    // Keep strong edge cache so repeat opens stay cheap.
+    const htmlPromise=fetchHtml(url);
+    const tocPromise=meta?null:getToc(url).catch(err=>{console.warn('egw toc fetch failed',err);return null});
+    const html=await htmlPromise,pageTitle=title(html),structured=blocks(html),subtitle=chapterSubtitle(structured,pageTitle),displayTitle=subtitle?`${pageTitle} ${subtitle}`:pageTitle;
     if(meta){
       res.setHeader('Cache-Control','public, s-maxage=86400, stale-while-revalidate=604800');
       return res.status(200).json({ok:true,title:pageTitle,subtitle,display_title:displayTitle,official_url:input,source_url:url});
     }
-    const parts=structured.filter(x=>x.type==='paragraph').map(x=>x.text+(x.locator?' '+x.locator:'')),tocData=await getToc(url),nav=adjacentChapters(tocData.html,url),chapterTitle=nav.current?.title||pageTitle,chapterLead=chapterSubtitle(structured,chapterTitle),chapterDisplayTitle=chapterLead?`${chapterTitle} ${chapterLead}`:chapterTitle;
+    const tocData=await tocPromise;
+    const parts=structured.filter(x=>x.type==='paragraph').map(x=>x.text+(x.locator?' '+x.locator:'')),nav=tocData?adjacentChapters(tocData.html,url):{current:null,prev:null,next:null},chapterTitle=nav.current?.title||pageTitle,chapterLead=chapterSubtitle(structured,chapterTitle),chapterDisplayTitle=chapterLead?`${chapterTitle} ${chapterLead}`:chapterTitle;
     if(!parts.length)return res.status(422).json({ok:false,error:'no_readable_text',official_url:input,title:chapterTitle});
-    res.setHeader('Cache-Control','public, s-maxage=3600, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control','public, s-maxage=86400, stale-while-revalidate=604800');
     return res.status(200).json({ok:true,title:chapterTitle,subtitle:chapterLead,display_title:chapterDisplayTitle,blocks:structured,paragraphs:parts,prev:nav.prev,next:nav.next,official_url:input,source_url:url});
   }catch(e){
     return res.status(502).json({ok:false,error:'official_reader_unavailable',detail:String(e?.message||e),official_url:input});

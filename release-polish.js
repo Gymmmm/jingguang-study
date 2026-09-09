@@ -169,6 +169,10 @@
   }
 
   function reasonForEgw(record, bibleRef) {
+    if (record?.evidence?.why) {
+      const kind = record.evidence.kind ? `【${record.evidence.kind}】` : '';
+      return `关联依据：${kind}${record.evidence.why}`;
+    }
     const direct = (record?.bible_refs || []).filter(v => sameChapter(parseRef(v), bibleRef));
     if (direct.length) return `关联依据：该怀著资料明确标注 ${direct.slice(0,2).join('、')}`;
     const linked = relations.filter(rel => sameChapter(parseRef(rel.bible_ref), bibleRef) && (rel.egw_ids || []).includes(record?.id));
@@ -255,6 +259,12 @@
         const record = egwRecords.find(r => r.id === row.dataset.crossEgw);
         const host = row.querySelector('span');
         if (!record || !host || host.querySelector('.crossIndexWhy')) return;
+        if (record.evidence?.kind && !host.querySelector('.crossIndexBadge')) {
+          const badge = document.createElement('small');
+          badge.className = 'crossIndexBadge';
+          badge.textContent = record.evidence.kind;
+          host.prepend(badge);
+        }
         if (record.summary) {
           const summary = document.createElement('small');
           summary.className = 'crossIndexSummary';
