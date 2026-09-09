@@ -65,6 +65,47 @@
     return !!a && !!b && a.osis === b.osis && +a.chapter === +b.chapter;
   }
 
+  function overlapsVerse(parsed, verseNum) {
+    if (!parsed || !Number.isFinite(+verseNum)) return false;
+    const v = +verseNum;
+    if (!parsed.from) return false; // chapter-only refs belong to 整章, not 本节
+    const start = +parsed.from;
+    const end = Math.max(start, +(parsed.to || parsed.from));
+    return v >= start && v <= end;
+  }
+
+  function filterEgwForVerse(chapterRef, verseNum) {
+    if (!chapterRef || !Number.isFinite(+verseNum)) return relatedEgwForBible(chapterRef);
+    const ids = new Set();
+    for (const record of egwRecords) {
+      if ((record.bible_refs || []).some(v => {
+        const parsed = parseRef(v);
+        return sameChapter(parsed, chapterRef) && overlapsVerse(parsed, verseNum);
+      })) ids.add(record.id);
+    }
+    for (const rel of relations) {
+      const parsed = parseRef(rel.bible_ref);
+      if (sameChapter(parsed, chapterRef) && overlapsVerse(parsed, verseNum)) {
+        for (const id of rel.egw_ids || []) ids.add(id);
+      }
+    }
+    return [...ids].map(id => egwRecords.find(r => r.id === id)).filter(Boolean).slice(0,12);
+  }
+
+  function relatedBibleForEgwParagraph(paragraphEl) {
+    const refs = [];
+    const seen = new Set();
+    const add = ref => {
+      if (!ref) return;
+      const key = `${chapterKey(ref)}:${ref.from || 0}:${ref.to || 0}`;
+      if (!seen.has(key)) { seen.add(key); refs.push(ref); }
+    };
+    if (paragraphEl) extractRefs(paragraphEl.textContent || '').forEach(add);
+    const record = currentEgwRecord();
+    // Keep record-level refs that also appear in this paragraph text; if none, paragraph extracts only.
+    return refs.slice(0,16);
+  }
+
   function extractRefs(text) {
     if (!aliases.length || !text) return [];
     const pattern = aliases.map(rxEscape).join('|');
@@ -162,9 +203,18 @@
   function markBibleLinks(ref, records) {
     if (!ref) return;
     const refs = records.flatMap(record => (record.bible_refs || []).map(parseRef).filter(Boolean)).filter(r => sameChapter(r, ref) && r.from);
+    for (const rel of relations) {
+      const parsed = parseRef(rel.bible_ref);
+      if (sameChapter(parsed, ref) && parsed.from) refs.push(parsed);
+    }
+    const seen = new Set();
     for (const r of refs) {
       const start = Math.max(1, +r.from || 1), end = Math.max(start, +r.to || start);
-      for (let v = start; v <= end; v++) body.querySelector(`.reading>.verse[data-verse="${v}"]`)?.classList.add('crossLinked');
+      for (let v = start; v <= end; v++) {
+        if (seen.has(v)) continue;
+        seen.add(v);
+        body.querySelector(`.reading>.verse[data-verse="${v}"]`)?.classList.add('crossLinked');
+      }
     }
   }
 
@@ -267,13 +317,51 @@
     scheduleRestore(origin.scroll);
   }
 
+  function scopeToggleHtml(sheet, kind) {
+    const focusVerse = sheet._focusVerse;
+    const focusPara = sheet._focusPara;
+    if (kind === 'bible' && focusVerse) {
+      const scope = sheet._scope || 'verse';
+      return `<div class="crossIndexScope" role="tablist" aria-label="关联范围">`+
+        `<button type="button" data-cross-scope="verse" class="${scope==='verse'?'active':''}">本节 ${focusVerse}</button>`+
+        `<button type="button" data-cross-scope="chapter" class="${scope==='chapter'?'active':''}">整章</button>`+
+      `</div>`;
+    }
+    if (kind === 'egw' && focusPara) {
+      const scope = sheet._scope || 'paragraph';
+      return `<div class="crossIndexScope" role="tablist" aria-label="关联范围">`+
+        `<button type="button" data-cross-scope="paragraph" class="${scope==='paragraph'?'active':''}">本段</button>`+
+        `<button type="button" data-cross-scope="chapter" class="${scope==='chapter'?'active':''}">本章</button>`+
+      `</div>`;
+    }
+    return '';
+  }
+
   function renderSheet(items, kind, expanded=false) {
     const {sheet} = ensureUi();
     const list = sheet.querySelector('.crossIndexList');
     const back = sheet.querySelector('.crossIndexReturn');
-    back.innerHTML = navStack.length ? `<button type="button" data-cross-index-back>‹ 返回关联处</button>` : '';
+    const head = sheet.querySelector('.crossIndexPanel>header>div>b');
+    const note = sheet.querySelector('.crossIndexPanel>header small');
+    if (kind === 'bible' && sheet._focusVerse && sheet._scope === 'verse') {
+      if (head) head.textContent = `与第 ${sheet._focusVerse} 节相关`;
+      if (note) note.textContent = '可核验 · 本节优先';
+    } else if (kind === 'egw' && sheet._focusPara && sheet._scope === 'paragraph') {
+      if (head) head.textContent = '这段提到的经文';
+      if (note) note.textContent = '可核验 · 本段优先';
+    } else {
+      if (head) head.textContent = '关联';
+      if (note) note.textContent = '只显示可核验关联，并附依据';
+    }
+    back.innerHTML = (scopeToggleHtml(sheet, kind) || '') + (navStack.length ? `<button type="button" data-cross-index-back>‹ 返回关联处</button>` : '');
     if (!items.length) {
-      list.innerHTML = '<div class="crossIndexEmpty">本章暂无可核验关联。<br><small>索引仍在建设；可先从已覆盖章节或怀著侧试。</small></div>';
+      const emptyMain = (sheet._scope === 'verse' || sheet._scope === 'paragraph')
+        ? '此处暂无更精确的可核验关联。'
+        : '本章暂无可核验关联。';
+      const emptyHint = (sheet._scope === 'verse' || sheet._scope === 'paragraph')
+        ? '<small>可切换到整章/本章查看更宽范围。</small>'
+        : '<small>索引仍在建设；可先从已覆盖章节或怀著侧试。</small>';
+      list.innerHTML = `<div class="crossIndexEmpty">${emptyMain}<br>${emptyHint}</div>`;
       return;
     }
     const visible=expanded?items:items.slice(0,INITIAL_RESULT_LIMIT);
@@ -289,16 +377,38 @@
     }
   }
 
-  function openSheet() {
+  function itemsForSheet(sheet, kind) {
+    if (kind === 'bible') {
+      const chapterRef = currentBibleRef();
+      if (sheet._scope === 'verse' && sheet._focusVerse) return filterEgwForVerse(chapterRef, sheet._focusVerse);
+      return relatedEgwForBible(chapterRef);
+    }
+    if (sheet._scope === 'paragraph' && sheet._focusPara) return relatedBibleForEgwParagraph(sheet._focusPara);
+    return relatedBibleForEgw();
+  }
+
+  function openSheet(focus) {
     const kind = detail.dataset.readerKind;
     if (kind !== 'bible-reader' && kind !== 'egw-reader') return;
-    const items = kind === 'bible-reader' ? relatedEgwForBible(currentBibleRef()) : relatedBibleForEgw();
     const ui = ensureUi();
-    renderSheet(items, kind === 'bible-reader' ? 'bible' : 'egw');
-    ui.sheet.hidden = false;
-    ui.sheet.dataset.kind = kind;
-    ui.sheet._crossItems = items;
-    ui.sheet._crossExpanded = false;
+    const sheet = ui.sheet;
+    const mode = kind === 'bible-reader' ? 'bible' : 'egw';
+    sheet._crossExpanded = false;
+    sheet._focusVerse = null;
+    sheet._focusPara = null;
+    sheet._scope = 'chapter';
+    if (mode === 'bible' && focus && Number.isFinite(+focus.verse)) {
+      sheet._focusVerse = +focus.verse;
+      sheet._scope = 'verse';
+    } else if (mode === 'egw' && focus?.paragraphEl) {
+      sheet._focusPara = focus.paragraphEl;
+      sheet._scope = 'paragraph';
+    }
+    const items = itemsForSheet(sheet, mode);
+    renderSheet(items, mode);
+    sheet.hidden = false;
+    sheet.dataset.kind = kind;
+    sheet._crossItems = items;
   }
 
   window.jgOpenCrossIndex = openSheet;
@@ -331,11 +441,24 @@
     handle.hidden = count === 0 && navStack.length === 0;
     handle.querySelector('b').textContent = count ? `关联 ${count}` : '返回';
     handle.setAttribute('aria-label', count ? `打开关联，共 ${count} 条` : '返回关联位置');
-    if (!sheet.hidden) openSheet();
+    if (!sheet.hidden) openSheet(sheet._focusVerse ? {verse: sheet._focusVerse} : sheet._focusPara ? {paragraphEl: sheet._focusPara} : null);
   }
 
   detail.addEventListener('click', e => {
-    if (e.target.closest('[data-cross-index-open]')) { e.preventDefault(); openSheet(); return; }
+    if (e.target.closest('[data-cross-index-open]')) { e.preventDefault(); openSheet(null); return; }
+    const scopeBtn = e.target.closest('[data-cross-scope]');
+    if (scopeBtn) {
+      e.preventDefault();
+      const sheet = detail.querySelector('.crossIndexSheet');
+      if (!sheet) return;
+      sheet._scope = scopeBtn.dataset.crossScope;
+      sheet._crossExpanded = false;
+      const mode = sheet.dataset.kind === 'bible-reader' ? 'bible' : 'egw';
+      const items = itemsForSheet(sheet, mode);
+      sheet._crossItems = items;
+      renderSheet(items, mode);
+      return;
+    }
     if (e.target.closest('[data-cross-index-close]')) { e.preventDefault(); closeSheet(); return; }
     if (e.target.closest('[data-cross-index-all]')) {
       e.preventDefault();
@@ -373,7 +496,7 @@
     touchStart = null;
     const selection = window.getSelection?.();
     if (selection && !selection.isCollapsed) return;
-    if (startedAwayFromEdge && dx > 72 && Math.abs(dy) < 58) openSheet();
+    if (startedAwayFromEdge && dx > 72 && Math.abs(dy) < 58) openSheet(null);
     else if (dx < -72 && Math.abs(dy) < 58 && !detail.querySelector('.crossIndexSheet')?.hidden) closeSheet();
   }, {passive:true});
 
@@ -404,6 +527,9 @@
     .crossIndexPanel>header{position:static!important;display:flex!important;align-items:center!important;justify-content:space-between!important;padding:2px 0 10px!important;border:0!important;background:transparent!important;backdrop-filter:none!important}
     .crossIndexPanel>header>div{display:flex;flex-direction:column;gap:2px}.crossIndexPanel>header b{font-size:15px}.crossIndexPanel>header small{color:var(--muted);font-size:9.5px}.crossIndexPanel>header>button{min-width:34px!important;min-height:34px!important;padding:0!important;border:0!important;background:transparent!important;color:var(--muted)!important;font-size:22px!important}
     .crossIndexReturn{margin:0 0 5px}.crossIndexReturn:empty{display:none}.crossIndexReturn button{min-height:34px!important;padding:0 2px!important;border:0!important;background:transparent!important;color:var(--accent)!important;font-size:11px!important;font-weight:700!important}
+    .crossIndexScope{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 8px}
+    .crossIndexScope button{min-height:34px!important;border:1px solid var(--line)!important;border-radius:999px!important;background:transparent!important;color:var(--muted)!important;font-size:11px!important}
+    .crossIndexScope button.active{border-color:color-mix(in srgb,var(--accent) 40%,var(--line))!important;background:color-mix(in srgb,var(--accent) 10%,var(--surface))!important;color:var(--accent)!important;font-weight:750!important}
     .crossIndexList h3{margin:8px 0 5px;color:var(--muted);font-size:10.5px;font-weight:700;letter-spacing:.03em}
     .crossIndexRow{width:100%;min-height:54px!important;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent!important;color:var(--text)!important;text-align:left;box-shadow:none!important}
     .crossIndexRow>span{min-width:0;display:flex;flex-direction:column;gap:3px}.crossIndexRow b{font-size:14px;font-weight:650;line-height:1.35}.crossIndexRow small{color:var(--muted);font-size:9.5px;line-height:1.35}.crossIndexRow i{flex:0 0 auto;color:var(--muted);font-size:22px;font-style:normal;font-weight:400}
