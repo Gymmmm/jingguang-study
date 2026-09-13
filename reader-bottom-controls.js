@@ -33,7 +33,9 @@
       <button type="button" class="readerQuickChapter readerQuickPrev" data-reader-quick="prev" aria-label="上一章">
         <span aria-hidden="true">‹</span><b>上一章</b>
       </button>
-      <span class="readerQuickChapterLabel" aria-hidden="true">章节导航</span>
+      <button type="button" class="readerQuickPlay" data-reader-quick="tts" aria-label="开始朗读">
+        <span class="readerQuickPlayIcon" aria-hidden="true">▶</span><small>朗读</small>
+      </button>
       <button type="button" class="readerQuickChapter readerQuickNext" data-reader-quick="next" aria-label="下一章">
         <b>下一章</b><span aria-hidden="true">›</span>
       </button>`;
@@ -116,6 +118,8 @@
     .readerQuickBar[hidden]{display:none!important}
     .readerQuickBar{position:fixed;z-index:30;left:50%;bottom:0;transform:translateX(-50%);width:min(720px,100%);display:grid;grid-template-columns:minmax(0,1fr) minmax(70px,.7fr) minmax(0,1fr);align-items:center;gap:8px;padding:7px 14px calc(7px + env(safe-area-inset-bottom));border-top:1px solid color-mix(in srgb,var(--line) 72%,transparent);background:color-mix(in srgb,var(--surface) 95%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
     .readerQuickBar button{border:0!important;background:transparent!important;box-shadow:none!important;color:var(--accent)!important;-webkit-tap-highlight-color:transparent}
+    .readerQuickPlay{width:52px;height:52px;min-height:52px!important;justify-self:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0!important;border-radius:50%!important;background:var(--accent)!important;color:var(--surface)!important;box-shadow:0 5px 14px color-mix(in srgb,var(--accent) 22%,transparent)!important}
+    .readerQuickPlayIcon{font-size:16px;line-height:1;font-weight:800}.readerQuickPlay small{font-size:8px;line-height:1;font-weight:700}.readerQuickPlay[data-playing="1"] .readerQuickPlayIcon{font-size:14px}
     .readerQuickChapter{min-width:0;min-height:42px!important;display:flex;align-items:center;gap:4px;padding:4px 2px!important;font-size:13px!important;font-weight:700!important;line-height:1.3;text-align:left}
     .readerQuickPrev{justify-content:flex-start}.readerQuickNext{justify-content:flex-end;text-align:right}
     .readerQuickChapter>span{flex:0 0 auto;font-size:22px;line-height:1}.readerQuickChapter>b{font:inherit;overflow-wrap:anywhere}.readerQuickChapter:disabled{opacity:.35}
