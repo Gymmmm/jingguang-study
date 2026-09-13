@@ -33,10 +33,7 @@
       <button type="button" class="readerQuickChapter readerQuickPrev" data-reader-quick="prev" aria-label="上一章">
         <span aria-hidden="true">‹</span><b>上一章</b>
       </button>
-      <button type="button" class="readerQuickPlay" data-reader-quick="tts" aria-label="开始朗读">
-        <span class="readerQuickPlayIcon" aria-hidden="true">▶</span>
-        <small>朗读</small>
-      </button>
+      <span class="readerQuickChapterLabel" aria-hidden="true">章节导航</span>
       <button type="button" class="readerQuickChapter readerQuickNext" data-reader-quick="next" aria-label="下一章">
         <b>下一章</b><span aria-hidden="true">›</span>
       </button>`;
@@ -117,22 +114,23 @@
   const style = document.createElement('style');
   style.textContent = `
     .readerQuickBar[hidden]{display:none!important}
-    .readerQuickBar{position:fixed;z-index:30;left:50%;bottom:0;transform:translateX(-50%);width:min(720px,100%);display:grid;grid-template-columns:1fr 72px 1fr;align-items:center;gap:6px;padding:6px 16px calc(6px + env(safe-area-inset-bottom));border-top:1px solid color-mix(in srgb,var(--line) 72%,transparent);background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
-    .readerQuickBar button{border:0!important;background:transparent!important;box-shadow:none!important;color:var(--muted)!important;-webkit-tap-highlight-color:transparent}
-    .readerQuickChapter{min-height:42px!important;display:flex;align-items:center;gap:4px;padding:0 4px!important;font-size:11px!important;font-weight:560!important}
-    .readerQuickPrev{justify-content:flex-start}.readerQuickNext{justify-content:flex-end}
-    .readerQuickChapter>span{font-size:19px;line-height:1}.readerQuickChapter>b{font:inherit}.readerQuickChapter:disabled{opacity:.18}
-    .readerQuickPlay{width:50px;height:50px;min-height:50px!important;justify-self:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0!important;border-radius:50%!important;background:var(--accent)!important;color:var(--surface)!important;box-shadow:0 4px 13px color-mix(in srgb,var(--accent) 17%,transparent)!important}
-    .readerQuickPlayIcon{font-size:17px;font-weight:800;line-height:1;transform:translateX(1px)}.readerQuickPlay[data-playing="1"] .readerQuickPlayIcon{transform:none;font-size:16px;letter-spacing:-2px}.readerQuickPlay small{font-size:8px;line-height:1;color:inherit}
-    #detail.hasReaderQuickBar #detailBody{padding-bottom:78px!important}
-    /* One chapter control surface on mobile: sticky quick bar wins. */
+    .readerQuickBar{position:fixed;z-index:30;left:50%;bottom:0;transform:translateX(-50%);width:min(720px,100%);display:grid;grid-template-columns:minmax(0,1fr) minmax(70px,.7fr) minmax(0,1fr);align-items:center;gap:8px;padding:7px 14px calc(7px + env(safe-area-inset-bottom));border-top:1px solid color-mix(in srgb,var(--line) 72%,transparent);background:color-mix(in srgb,var(--surface) 95%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+    .readerQuickBar button{border:0!important;background:transparent!important;box-shadow:none!important;color:var(--accent)!important;-webkit-tap-highlight-color:transparent}
+    .readerQuickChapter{min-width:0;min-height:42px!important;display:flex;align-items:center;gap:4px;padding:4px 2px!important;font-size:13px!important;font-weight:700!important;line-height:1.3;text-align:left}
+    .readerQuickPrev{justify-content:flex-start}.readerQuickNext{justify-content:flex-end;text-align:right}
+    .readerQuickChapter>span{flex:0 0 auto;font-size:22px;line-height:1}.readerQuickChapter>b{font:inherit;overflow-wrap:anywhere}.readerQuickChapter:disabled{opacity:.35}
+    .readerQuickChapterLabel{color:var(--muted);font-size:10px;text-align:center;white-space:nowrap}
+    #detail.hasReaderQuickBar #detailBody{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
     #detail.hasReaderQuickBar #readerBottomNav{display:none!important}
     #detail.hasReaderQuickBar .readerNav,
     #detail.hasReaderQuickBar .egwChapterPager{display:none!important}
     @media(max-width:720px){
       #detail.hasReaderQuickBar .readAloudBar{display:none!important}
+      #detail.hasReaderQuickBar #detailActions{position:fixed;z-index:29;left:50%;bottom:calc(62px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(720px,100%);margin:0;padding:5px 12px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--surface) 95%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+      #detail.hasReaderQuickBar #detailBody{padding-bottom:calc(132px + env(safe-area-inset-bottom))!important}
     }
-    @media(max-width:390px){.readerQuickBar{grid-template-columns:1fr 64px 1fr;padding-left:12px;padding-right:12px}.readerQuickPlay{width:48px;height:48px;min-height:48px!important}.readerQuickChapter{font-size:11px!important}}
+    @media(max-width:390px){.readerQuickBar{grid-template-columns:minmax(0,1fr) 58px minmax(0,1fr);padding-left:10px;padding-right:10px}.readerQuickChapter{font-size:12px!important}.readerQuickChapterLabel{font-size:9px}}
+    @media(min-width:721px){#detail.hasReaderQuickBar #detailActions{position:fixed;z-index:29;left:50%;bottom:calc(62px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(720px,100%);margin:0;padding:5px 12px;background:color-mix(in srgb,var(--surface) 95%,transparent)}}
   `;
   document.head.appendChild(style);
   ensureBar();
