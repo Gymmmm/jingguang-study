@@ -243,12 +243,20 @@
     emitState();
   }
 
+  function toggle() {
+    if (speaking && !paused) pause(); else start();
+    return { speaking, paused, rate, index, count: units.length };
+  }
+
   detail.addEventListener('click', e => {
     const btn = e.target.closest('[data-tts]');
     if (!btn) return;
-    if (btn.dataset.tts === 'toggle') {
-      if (speaking && !paused) pause(); else start();
-    } else if (btn.dataset.tts === 'rate') cycleRate();
+    if (btn.dataset.tts === 'toggle') toggle();
+    else if (btn.dataset.tts === 'rate') cycleRate();
+  });
+
+  detail.addEventListener('open', () => {
+    if (readablePage()) collectUnits();
   });
 
   detail.addEventListener('close', () => {
@@ -260,6 +268,7 @@
   detail.addEventListener('cancel', () => stop(false));
 
   window.jgRefreshReadAloud = refresh;
+  window.jgReadAloudToggle = toggle;
   window.jgReadAloudVoiceName = () => '系统默认中文语音';
   window.jgReadAloudStep = step;
   window.jgSetReadAloudRate = setRate;
