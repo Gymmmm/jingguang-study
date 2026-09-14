@@ -83,3 +83,8 @@ button,input,select,textarea{touch-action:manipulation}.app button:not(.egwAlpha
   .bookGrid button{padding-right:24px;font-size:14.5px}
   .logo{font-size:16px}
 }
+
+/* redesign: single-col catalog */
+.bookGrid{grid-template-columns:1fr!important}
+.bookGrid.chapters{grid-template-columns:repeat(6,1fr)!important}
+.app>nav{background:color-mix(in srgb,var(--surface) 96%,transparent)!important}

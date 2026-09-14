@@ -3,26 +3,26 @@
    Reader bottom chrome / EGW shelf / 关联 sheet stay in their dedicated CSS/JS layers. */
 
 :root{
-  --bg:#f6f3ea;
-  --surface:#fffdf8;
-  --elevated:#fffcf6;
-  --line:#e0e5dc;
-  --strong:#c9d2c8;
-  --text:#243129;
-  --muted:#6f7972;
-  --accent:#285c46;
-  --accent-soft:#e8f1eb;
-  --soft:#eaf2ec;
-  --bible:#85572d;
-  --biblebg:#f4eadc;
-  --egw:#365d69;
-  --egwbg:#e4eff0;
-  --shadow:0 10px 28px rgba(32,55,42,.06);
-  --shadow-soft:0 4px 14px rgba(32,55,42,.04);
+  --bg:#FAF8F5;
+  --surface:#FFFFFF;
+  --elevated:#FFFcf9;
+  --line:#EAE5DD;
+  --strong:#ddd6cb;
+  --text:#2C302E;
+  --muted:#7A827E;
+  --accent:#1C402E;
+  --accent-soft:#EFF4F1;
+  --soft:#F3EFEA;
+  --bible:#1C402E;
+  --biblebg:#EBF3ED;
+  --egw:#8C6239;
+  --egwbg:#F5EFE6;
+  --shadow:0 10px 28px rgba(28,64,46,.06);
+  --shadow-soft:0 4px 14px rgba(28,64,46,.04);
   --radius:14px;
   --radius-sm:10px;
   --radius-pill:999px;
-  --font-ui:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;
+  --font-ui:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
   --font-reading:"Songti SC","STSong","Noto Serif CJK SC","Noto Serif SC",Georgia,serif;
   --app-max:760px;
 }
@@ -75,6 +75,7 @@ small{color:var(--muted)}
   -webkit-backdrop-filter:blur(16px);
 }
 .logo{
+  position:relative;
   border:0;
   background:none;
   color:var(--accent);
@@ -83,6 +84,18 @@ small{color:var(--muted)}
   font-weight:700;
   letter-spacing:.06em;
   white-space:nowrap;
+  padding-bottom:6px;
+}
+.logo::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:0;
+  width:32px;
+  height:3px;
+  border-radius:2px;
+  background:var(--accent);
+  transform:translateX(-50%);
 }
 .headerTools{display:flex;align-items:center;gap:8px;min-width:0}
 .headerTools>small{
@@ -180,6 +193,29 @@ small{color:var(--muted)}
 }
 h2{margin:22px 2px 10px;font-size:15px}
 p{color:var(--muted);font-size:14px;line-height:1.65}
+
+
+.app>nav button{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+}
+.app>nav .navIcon{
+  width:20px;
+  height:20px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:1.85;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.app>nav button.active .navIcon,
+.app[data-open-shelf="bible"]>nav button[data-open-shelf="bible"] .navIcon,
+.app[data-open-shelf="egw"]>nav button[data-open-shelf="egw"] .navIcon{
+  stroke-width:2.1;
+}
 
 /* ---------- Shared components ---------- */
 input,select,textarea{
@@ -326,11 +362,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   letter-spacing:.06em;
 }
 .homeIntro h1{
-  margin:14px 0 6px;
+  margin:10px 0 4px;
   font-family:var(--font-reading);
-  font-size:clamp(26px,7vw,34px);
+  font-size:clamp(22px,6vw,28px);
   letter-spacing:-.02em;
   line-height:1.25;
+  color:var(--text);
 }
 .homeIntro p{
   margin:0;
@@ -381,13 +418,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   flex-direction:column;
   align-items:flex-start;
   gap:0;
-  min-height:118px;
-  padding:14px 14px 16px;
+  min-height:76px;
+  padding:12px 13px;
   text-align:left;
   border:1px solid var(--line);
-  border-radius:16px;
+  border-radius:12px;
   background:var(--surface);
-  box-shadow:var(--shadow-soft);
+  box-shadow:none;
   color:var(--text);
   transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
 }
@@ -409,9 +446,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .doorBadge.egw{background:var(--egwbg);color:var(--egw)}
 .homeDoors strong{
   display:block;
-  margin-top:14px;
+  margin-top:8px;
   font-family:var(--font-reading);
-  font-size:17px;
+  font-size:15px;
   font-weight:700;
   line-height:1.3;
   letter-spacing:.01em;
@@ -430,11 +467,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   align-items:center;
   justify-content:space-between;
   gap:12px;
-  margin-top:12px;
-  padding:12px 14px;
+  margin-top:16px;
+  padding:14px 15px;
   border:1px solid var(--line);
   border-radius:14px;
-  background:color-mix(in srgb,var(--soft) 70%,var(--surface));
+  background:linear-gradient(145deg,var(--surface),var(--accent-soft));
   color:var(--text);
   box-shadow:none;
 }
@@ -474,12 +511,29 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .homeSectionTitle,
 #home>h2,
 #favoritePreview>h2{
-  margin:26px 2px 10px;
-  font-family:var(--font-reading);
-  font-size:17px;
+  margin:22px 2px 8px;
+  font-family:var(--font-ui);
+  font-size:15px;
   font-weight:700;
-  color:var(--text);
+  color:var(--accent);
   letter-spacing:.01em;
+}
+.homeSectionHead{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  margin:22px 2px 8px;
+}
+.homeSectionHead .homeSectionTitle{margin:0}
+.homeSectionMore{
+  border:0;
+  background:none;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:500;
+  min-height:auto!important;
+  padding:0!important;
 }
 
 #recentReading,
@@ -1043,8 +1097,8 @@ dialog>footer>*,
   .headerTools{gap:6px}
   .homeIntro h1{font-size:28px}
   .homeDoors{gap:9px}
-  .homeDoors button{min-height:108px;padding:13px}
-  .homeDoors strong{font-size:16px;margin-top:12px}
+  .homeDoors button{min-height:72px;padding:11px}
+  .homeDoors strong{font-size:14.5px;margin-top:7px}
   .studyPrompt{align-items:flex-start;flex-direction:column}
   .studyPrompt button{align-self:flex-end}
   #detailBody{padding:20px 16px 110px}
@@ -1068,4 +1122,68 @@ dialog>footer>*,
 }
 @media(min-width:761px){
   dialog{border-radius:16px}
+}
+
+
+/* ---------- Catalog list polish (ref 1/2) ---------- */
+.bookGrid{
+  grid-template-columns:1fr!important;
+  gap:0!important;
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow:hidden;
+  background:var(--surface);
+}
+.bookGrid button{
+  min-height:52px!important;
+  padding:13px 16px!important;
+  border:0!important;
+  border-bottom:1px solid var(--line)!important;
+  border-radius:0!important;
+  background:transparent!important;
+  text-align:left!important;
+  font-size:14.5px!important;
+  font-weight:550!important;
+}
+.bookGrid button:last-child{border-bottom:0!important}
+.bookGrid button.reading-current{
+  background:var(--accent-soft)!important;
+  color:var(--accent)!important;
+  font-weight:700!important;
+}
+.bookGrid button .catalogTag{
+  display:block;
+  margin-top:4px;
+  padding:2px 6px;
+  border:1px solid var(--line);
+  border-radius:4px;
+  background:var(--surface);
+  color:var(--accent);
+  font-size:11px;
+  font-weight:600;
+}
+.bibleChapterRow.reading-current{
+  background:var(--accent-soft);
+}
+.bibleChapterRow .catalogTag{
+  display:block;
+  margin-top:3px;
+  color:var(--accent);
+  font-size:11px;
+  font-weight:600;
+}
+
+/* Home: recent list first visual weight */
+#home .homeDoors{margin-top:14px;order:0}
+#home.page.active{display:flex;flex-direction:column}
+#home .homeIntro{order:1}
+#home .homeSearch{order:2}
+#home .studyPrompt{order:3}
+#home .homeRecentBlock{order:4}
+#home .homeDoors{order:5}
+#home #favoritePreview{order:6}
+
+@media(max-width:600px){
+  .homeDoors button{min-height:72px!important;padding:11px 12px!important}
+  .homeDoors strong{font-size:14.5px!important;margin-top:7px!important}
 }
