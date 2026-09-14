@@ -952,6 +952,439 @@
         "kind": "资料索引",
         "why": "本章标题「受试探」，对应马太福音4:1-11与路加福音4平行经文；出处见本章 DAL 段落。"
       }
+    },
+    {
+      "id": "DA-11-BAPTISM",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第11章 受洗",
+      "locator": "DAL 1.285–1.303",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.297",
+      "bible_refs": [
+        "马太福音3:13-17",
+        "马可福音1:9-11"
+      ],
+      "topics": [
+        "受洗",
+        "约翰",
+        "天开了"
+      ],
+      "summary": "记述耶稣受洗，对应马太福音3:13-17。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「受洗」，对应马太福音3:13-17与马可福音1平行经文；出处 DAL 1.285 起。"
+      }
+    },
+    {
+      "id": "DA-19-JACOBS-WELL",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第19章 在雅各井旁",
+      "locator": "DAL 1.548–1.592",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.568",
+      "bible_refs": [
+        "约翰福音4:7-26",
+        "约翰福音4:1-42"
+      ],
+      "topics": [
+        "活水",
+        "撒玛利亚妇人",
+        "敬拜"
+      ],
+      "summary": "记述雅各井旁与撒玛利亚妇人的谈话，对应约翰福音4章。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「在雅各井旁」，对应约翰福音4章；出处 DAL 1.548 起。"
+      }
+    },
+    {
+      "id": "DA-34-INVITATION",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第34章 救主的邀请",
+      "locator": "DAL 1.1082–1.1098",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.1117",
+      "bible_refs": [
+        "马太福音11:28-30"
+      ],
+      "topics": [
+        "邀请",
+        "负轭",
+        "安息"
+      ],
+      "summary": "展开「凡劳苦担重担的人可以到我这里来」，对应太11:28-30。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「救主的邀请」，对应马太福音11:28-30；出处 DAL 1.1082 起。"
+      }
+    },
+    {
+      "id": "DA-65-TEMPLE",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第65章 再洁净圣殿",
+      "locator": "DAL 1.1967–1.2007",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.2033",
+      "bible_refs": [
+        "马太福音21:12-13",
+        "约翰福音2:13-17"
+      ],
+      "topics": [
+        "圣殿",
+        "洁净",
+        "敬拜"
+      ],
+      "summary": "记述再次洁净圣殿，对应太21与约2圣殿叙事。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「再洁净圣殿」，对应马太福音21:12-13；出处 DAL 1.1967 起。"
+      }
+    },
+    {
+      "id": "DA-70-LEAST",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第70章 “我这弟兄中一个最小的”",
+      "locator": "DAL 1.2136–1.2159",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.2207",
+      "bible_refs": [
+        "马太福音25:31-46"
+      ],
+      "topics": [
+        "审判",
+        "复临",
+        "怜悯",
+        "最小的"
+      ],
+      "summary": "讲解绵羊山羊的比喻，对应太25:31-46与复临审判。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题引自太25:40；正文展开太25:31-46；出处 DAL 1.2136 起。"
+      }
+    },
+    {
+      "id": "DA-72-REMEMBRANCE",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第72章 “为的是记念我”",
+      "locator": "DAL 1.2193–1.2225",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.2266",
+      "bible_refs": [
+        "马太福音26:26-29",
+        "哥林多前书11:23-26"
+      ],
+      "topics": [
+        "圣餐",
+        "记念",
+        "新约"
+      ],
+      "summary": "记述设立圣餐，对应太26与林前11。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「为的是记念我」，对应圣餐设立（太26:26-29、林前11:23-26）；出处 DAL 1.2193 起。"
+      }
+    },
+    {
+      "id": "DA-73-LET-NOT",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第73章 “你们心里不要忧愁”",
+      "locator": "DAL 1.2226–1.2297",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.2300",
+      "bible_refs": [
+        "约翰福音14:1-3",
+        "约翰福音14:1-31",
+        "约翰福音15:1-17"
+      ],
+      "topics": [
+        "基督复临",
+        "安慰",
+        "保惠师",
+        "常在"
+      ],
+      "summary": "展开约翰福音14章安慰与复临应许，以及常在基督里。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题引自约14:1；正文展开预备地方与复临应许；出处 DAL 1.2226 起。"
+      }
+    },
+    {
+      "id": "DA-86-GO-TEACH",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第86章 “去使万民作我的门徒”",
+      "locator": "DAL 1.2737–1.2778",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.2824",
+      "bible_refs": [
+        "马太福音28:18-20",
+        "马可福音16:15-16"
+      ],
+      "topics": [
+        "大使命",
+        "门徒",
+        "奉差遣"
+      ],
+      "summary": "展开大使命，对应太28:18-20。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题引自太28:19；对应大使命；出处 DAL 1.2737 起。"
+      }
+    },
+    {
+      "id": "GC-22-PROPHECY",
+      "author": "Ellen G. White",
+      "title": "The Great Controversy",
+      "title_cn": "善恶之争",
+      "book_code": "GC",
+      "chapter": "第22章 预言的应验",
+      "locator": "GCS 1.1080–1.1124",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14504.1104",
+      "bible_refs": [
+        "但以理书8:14",
+        "但以理书9:24-27",
+        "启示录10:1-11"
+      ],
+      "topics": [
+        "预言",
+        "1844",
+        "圣所",
+        "二千三百日"
+      ],
+      "summary": "论述预言应验与圣所信息的历史转折。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「预言的应验」，衔接但8:14与1844年信息；出处 GCS 1.1080 起。"
+      }
+    },
+    {
+      "id": "GC-23-SANCTUARY",
+      "author": "Ellen G. White",
+      "title": "The Great Controversy",
+      "title_cn": "善恶之争",
+      "book_code": "GC",
+      "chapter": "第23章 何为圣所？",
+      "locator": "GCS 1.1125–1.1165",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14504.1150",
+      "bible_refs": [
+        "希伯来书8:1-5",
+        "希伯来书9:1-12",
+        "出埃及记25:8",
+        "但以理书8:14"
+      ],
+      "topics": [
+        "圣所",
+        "天上圣所",
+        "预表",
+        "赎罪"
+      ],
+      "summary": "说明地上圣所与天上圣所，对应希伯来书8–9章。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「何为圣所？」，专论圣所真理；出处 GCS 1.1125 起。"
+      }
+    },
+    {
+      "id": "GC-24-MOST-HOLY",
+      "author": "Ellen G. White",
+      "title": "The Great Controversy",
+      "title_cn": "善恶之争",
+      "book_code": "GC",
+      "chapter": "第24章 在至圣所",
+      "locator": "GCS 1.1166–1.1189",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14504.1192",
+      "bible_refs": [
+        "希伯来书9:11-12",
+        "希伯来书9:24",
+        "利未记16章",
+        "但以理书7:9-10"
+      ],
+      "topics": [
+        "至圣所",
+        "查案审判",
+        "大祭司",
+        "赎罪日"
+      ],
+      "summary": "论述基督进入至圣所的工作，对应赎罪日与希伯来书9章。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「在至圣所」，专论至圣所侍奉与审判；出处 GCS 1.1166 起。"
+      }
+    },
+    {
+      "id": "GC-25-ETERNAL-LAW",
+      "author": "Ellen G. White",
+      "title": "The Great Controversy",
+      "title_cn": "善恶之争",
+      "book_code": "GC",
+      "chapter": "第25章 上帝永恒的律法",
+      "locator": "GCS 1.1190–1.1236",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14504.1217",
+      "bible_refs": [
+        "出埃及记20:8-11",
+        "启示录14:12",
+        "雅各书2:10-12",
+        "马太福音5:17-19"
+      ],
+      "topics": [
+        "十诫",
+        "安息日",
+        "律法",
+        "恩典"
+      ],
+      "summary": "论述上帝律法的永恒性与安息日，衔接登山宝训与末世忠诚。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「上帝永恒的律法」，专论十诫与安息日；出处 GCS 1.1190 起。"
+      }
+    },
+    {
+      "id": "GC-40-DELIVERANCE",
+      "author": "Ellen G. White",
+      "title": "The Great Controversy",
+      "title_cn": "善恶之争",
+      "book_code": "GC",
+      "chapter": "第40章 上帝的子民蒙拯救",
+      "locator": "GCS 1.1740–1.1784",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14504.1782",
+      "bible_refs": [
+        "帖撒罗尼迦前书4:16-17",
+        "启示录1:7",
+        "马太福音24:30-31",
+        "使徒行传1:9-11"
+      ],
+      "topics": [
+        "基督复临",
+        "拯救",
+        "复活",
+        "末世"
+      ],
+      "summary": "描绘上帝子民得拯救与基督复临的场面。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「上帝的子民蒙拯救」，专论复临与拯救；出处 GCS 1.1740 起。"
+      }
+    },
+    {
+      "id": "CIHS-TYPE-SHADOW",
+      "author": "Ellen G. White",
+      "title_cn": "基督在祂的圣所中",
+      "book_code": "CIHS",
+      "chapter": "天上圣所的缩影",
+      "locator": "CIHSJ 1.109–1.182",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14479.113",
+      "bible_refs": [
+        "出埃及记25:8-9",
+        "希伯来书8:5",
+        "希伯来书9:23"
+      ],
+      "topics": [
+        "圣所",
+        "预表",
+        "天上圣所"
+      ],
+      "summary": "说明地上圣所为天上圣所的缩影，对应出25与来8。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「天上圣所的缩影」；出处 CIHSJ 1.109 起。"
+      }
+    },
+    {
+      "id": "CIHS-HIGH-PRIEST",
+      "author": "Ellen G. White",
+      "title_cn": "基督在祂的圣所中",
+      "book_code": "CIHS",
+      "chapter": "我们的大祭司在至圣所中",
+      "locator": "CIHSJ 1.431–1.481",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14479.441",
+      "bible_refs": [
+        "希伯来书4:14-16",
+        "希伯来书9:11-12",
+        "希伯来书9:24"
+      ],
+      "topics": [
+        "大祭司",
+        "至圣所",
+        "中保",
+        "圣所"
+      ],
+      "summary": "论述基督为大祭司在至圣所的工作。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「我们的大祭司在至圣所中」；出处 CIHSJ 1.431 起。"
+      }
+    },
+    {
+      "id": "CIHS-FINAL-WORK",
+      "author": "Ellen G. White",
+      "title_cn": "基督在祂的圣所中",
+      "book_code": "CIHS",
+      "chapter": "基督在天上圣所最后的工作",
+      "locator": "CIHSJ 1.482–1.540",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14479.493",
+      "bible_refs": [
+        "利未记16:29-34",
+        "但以理书8:14",
+        "启示录14:6-7"
+      ],
+      "topics": [
+        "圣所",
+        "最后工作",
+        "审判",
+        "赎罪日"
+      ],
+      "summary": "论述基督在天上圣所的最后工作与赎罪日主题。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「基督在天上圣所最后的工作」；出处 CIHSJ 1.482 起。"
+      }
     }
   ]
 }

@@ -405,6 +405,72 @@
     window.search?.(retry.dataset.searchRetry || lastSearchQuery);
   }, true);
 
+
+  /* Light top-bar page context (not a brand name). */
+  function setHeaderContext(label) {
+    const el = document.getElementById('headerContextTitle');
+    if (!el) return;
+    const text = String(label || '').trim();
+    // egw-library-ui owns the logo while on the EGW shelf (search affordance).
+    const egwShelf = document.querySelector('.app')?.classList.contains('egwShelfContext');
+    if (egwShelf && (!text || text === '怀著')) {
+      el.hidden = false;
+      el.removeAttribute('aria-hidden');
+      if (!el.textContent) el.textContent = '怀著';
+      return;
+    }
+    if (!text) {
+      el.hidden = true;
+      el.setAttribute('aria-hidden', 'true');
+      el.textContent = '';
+      document.querySelector('.app')?.classList.remove('hasHeaderContext');
+      return;
+    }
+    el.hidden = false;
+    el.removeAttribute('aria-hidden');
+    el.textContent = text;
+    document.querySelector('.app')?.classList.add('hasHeaderContext');
+  }
+  window.jgSetHeaderContext = setHeaderContext;
+
+  function syncHeaderContextFromRoute() {
+    const active = document.querySelector('.page.active')?.id || '';
+    const app = document.querySelector('.app');
+    const shelf = app?.getAttribute('data-open-shelf') || '';
+    if (active === 'library' && shelf === 'bible') return setHeaderContext('圣经');
+    if (active === 'library' && shelf === 'egw') return setHeaderContext('怀著');
+    if (active === 'study') return setHeaderContext('搜索');
+    if (active === 'favorites') return setHeaderContext('收藏');
+    if (active === 'home') return setHeaderContext('');
+    if (active === 'basket' || active === 'projects') return setHeaderContext('');
+    setHeaderContext('');
+  }
+
+  if (typeof window.page === 'function' && !window.page.__jgHeaderContext) {
+    const base = window.page;
+    const wrapped = function (id) {
+      const out = base.apply(this, arguments);
+      queueMicrotask(syncHeaderContextFromRoute);
+      return out;
+    };
+    wrapped.__jgHeaderContext = true;
+    wrapped.__jgStablePage = base.__jgStablePage;
+    window.page = wrapped;
+  }
+  if (typeof window.openShelf === 'function' && !window.openShelf.__jgHeaderContext) {
+    const base = window.openShelf;
+    const wrapped = function (kind) {
+      const out = base.apply(this, arguments);
+      queueMicrotask(syncHeaderContextFromRoute);
+      return out;
+    };
+    wrapped.__jgHeaderContext = true;
+    wrapped.__jgStableShelf = base.__jgStableShelf;
+    window.openShelf = wrapped;
+  }
+  document.addEventListener('click', () => queueMicrotask(syncHeaderContextFromRoute), true);
+  syncHeaderContextFromRoute();
+
   /* Keep narration simple: browser/system default Chinese voice only. */
   function forceSystemVoice() {
     localStorage.setItem('jg_read_aloud_voice_mode', 'system');
@@ -437,6 +503,15 @@
     .crossIndexContent .crossIndexBlockBody{color:var(--muted)!important;font-size:12px!important}
     .crossIndexLimited{padding:10px 2px;color:var(--muted);font-size:9.5px;text-align:center}
     .readAloudBar .ttsVoice,[data-tts-voice]{display:none!important}
+    .app.hasHeaderContext>header{justify-content:space-between}
+    .app.hasHeaderContext>#headerContextTitle,.app.hasHeaderContext>header #headerContextTitle{display:inline-block}
+    .detailSecondaryLink{border:0!important;background:transparent!important;color:var(--muted)!important;font-size:12px!important;font-weight:500!important;text-decoration:underline;text-underline-offset:3px;min-height:36px!important;box-shadow:none!important}
+    .detailSecondaryLink:disabled{opacity:.55;text-decoration:none}
+    #detailActions .detailSecondaryLink{order:9}
+    .studyPromptQuiet{opacity:.92}
+    .studyPromptQuiet strong{font-size:15px}
+    .readerHeaderAction{min-width:40px!important;padding:0 6px!important;border:0!important;background:transparent!important;color:var(--text)!important;font-size:12px!important;font-weight:650!important}
+    .readerHeaderAction[hidden]{display:none!important}
   `;
   document.head.appendChild(style);
 })();

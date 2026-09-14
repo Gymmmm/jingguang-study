@@ -78,8 +78,15 @@
     const el = units[index]?.el;
     if (!el) return;
     el.classList.add('ttsSpeaking');
-    el.closest?.('.verse,.egwParagraphWrap')?.classList.add('ttsSpeaking');
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const anchor = el.closest?.('.verse,.egwParagraphWrap') || el;
+    anchor.classList.add('ttsSpeaking');
+    // Keep reading position stable while the current segment is still visible.
+    const root = detail.getBoundingClientRect();
+    const rect = anchor.getBoundingClientRect();
+    const intersecting = rect.bottom > root.top && rect.top < root.bottom;
+    if (!intersecting) {
+      anchor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }
 
   function emitState() {

@@ -21,14 +21,36 @@
     const tools = q('.fontTools');
     if (!tools) return null;
     let btn = tools.querySelector('[data-reader-settings-open]');
-    if (btn) return btn;
-    btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'readerSettingsTrigger';
-    btn.dataset.readerSettingsOpen = '1';
-    btn.setAttribute('aria-label', '阅读设置');
-    btn.textContent = 'Aa';
-    tools.prepend(btn);
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'readerSettingsTrigger';
+      btn.dataset.readerSettingsOpen = '1';
+      btn.setAttribute('aria-label', '阅读设置');
+      btn.textContent = 'Aa';
+      tools.prepend(btn);
+    }
+    // Discoverable 目录 / 收藏 next to Aa (same actions as settings「更多」).
+    let toc = tools.querySelector('[data-reader-header-toc]');
+    if (!toc) {
+      toc = document.createElement('button');
+      toc.type = 'button';
+      toc.className = 'readerHeaderAction';
+      toc.dataset.readerHeaderToc = '1';
+      toc.setAttribute('aria-label', '目录');
+      toc.textContent = '目录';
+      btn.insertAdjacentElement('afterend', toc);
+    }
+    let fav = tools.querySelector('[data-reader-header-favorite]');
+    if (!fav) {
+      fav = document.createElement('button');
+      fav.type = 'button';
+      fav.className = 'readerHeaderAction';
+      fav.dataset.readerHeaderFavorite = '1';
+      fav.setAttribute('aria-label', '收藏');
+      fav.textContent = '收藏';
+      toc.insertAdjacentElement('afterend', fav);
+    }
     // Keep a single Aa affordance; hide any leftover overflow trigger.
     tools.querySelectorAll('[data-reader-more]').forEach(el => { el.hidden = true; });
     return btn;
@@ -58,14 +80,14 @@
         <div class="readerSettingsGroup">
           <h3>朗读</h3>
           <div class="readerAudioControl">
-            <button type="button" data-reader-audio-step="-1" aria-label="后退">
-              <span class="readerSkipIcon">↺15</span>
+            <button type="button" data-reader-audio-step="-1" aria-label="上一段">
+              <span class="readerSkipIcon">上一段</span>
             </button>
             <button type="button" class="readerSheetPlay" data-reader-sheet-tts aria-label="朗读">
               <span>▶</span>
             </button>
-            <button type="button" data-reader-audio-step="1" aria-label="前进">
-              <span class="readerSkipIcon">↻15</span>
+            <button type="button" data-reader-audio-step="1" aria-label="下一段">
+              <span class="readerSkipIcon">下一段</span>
             </button>
           </div>
           <div class="readerRateRow" aria-label="朗读速度">
@@ -133,6 +155,20 @@
     const sheet = ensureSheet();
     const show = detail.open && readable();
     if (trigger) trigger.hidden = !show;
+    const headerToc = q('.fontTools [data-reader-header-toc]');
+    const headerFav = q('.fontTools [data-reader-header-favorite]');
+    if (headerToc) {
+      headerToc.hidden = !show;
+      headerToc.setAttribute('aria-label', detail.dataset.readerKind === 'egw-reader' ? '本书目录' : '本章目录');
+    }
+    if (headerFav) {
+      const src = favoriteSource();
+      const on = /已收藏|★/.test(String(src?.textContent || ''));
+      headerFav.hidden = !show;
+      headerFav.textContent = on ? '★' : '收藏';
+      headerFav.setAttribute('aria-label', on ? '取消收藏' : '收藏本章');
+      headerFav.disabled = !src;
+    }
     const more = q('.readerMoreTrigger');
     if (more) more.hidden = true;
     if (!show) sheet.hidden = true;
@@ -184,7 +220,7 @@
     }
     const tocBtn = q('[data-reader-sheet-toc]', sheet);
     if (tocBtn) {
-      tocBtn.setAttribute('aria-label', detail.dataset.readerKind === 'egw-reader' ? '返回本书目录' : '返回目录');
+      tocBtn.setAttribute('aria-label', detail.dataset.readerKind === 'egw-reader' ? '本书目录' : '本章目录');
     }
   }
 
@@ -236,12 +272,23 @@
       }
       return;
     }
-    if (event.target.closest?.('[data-reader-sheet-toc]')) {
+    if (event.target.closest?.('[data-reader-sheet-toc], [data-reader-header-toc]')) {
       ensureSheet().hidden = true;
-      detail.querySelector('#back')?.click();
+      const kind = detail.dataset.readerKind || '';
+      if (kind === 'egw-reader') {
+        if (typeof window.jgEgwReturnToToc === 'function') window.jgEgwReturnToToc();
+        return;
+      }
+      if (kind === 'bible-reader') {
+        const m = String(detail.dataset.readingKey || '').match(/^bible:([^:]+):/);
+        if (m && typeof window.jgOpenBibleChapterPicker === 'function') {
+          window.jgOpenBibleChapterPicker(m[1]);
+        }
+        return;
+      }
       return;
     }
-    if (event.target.closest?.('[data-reader-sheet-favorite]')) {
+    if (event.target.closest?.('[data-reader-sheet-favorite], [data-reader-header-favorite]')) {
       const src = favoriteSource();
       if (src) {
         src.click();
@@ -293,6 +340,9 @@
     .fontTools>[data-font]{display:none!important}
     .readerSettingsTrigger[hidden],.readerMoreTrigger[hidden],.readerSettingsBackdrop[hidden]{display:none!important}
     .readerSettingsTrigger{font-size:15px!important;letter-spacing:-.02em;min-width:40px!important}
+    .fontTools .readerHeaderAction{min-width:40px!important;padding:0 5px!important;border:0!important;background:transparent!important;color:var(--text)!important;font-size:12px!important;font-weight:650!important;letter-spacing:0}
+    .fontTools .readerHeaderAction:disabled{opacity:.28}
+    @media(max-width:390px){.fontTools .readerHeaderAction{min-width:34px!important;font-size:11px!important;padding:0 3px!important}}
     .readerMoreTrigger{display:none!important}
     .readerSettingsBackdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;background:rgba(22,24,22,.36)}
     .readerSettingsSheet{width:min(720px,100%);max-height:86%;margin:0 auto;padding:8px 18px calc(22px + env(safe-area-inset-bottom));overflow:auto;border-radius:22px 22px 0 0;background:var(--surface);color:var(--text);box-shadow:0 -18px 48px rgba(20,24,21,.13)}
@@ -308,7 +358,7 @@
     .readerAudioControl{display:grid;grid-template-columns:1fr 64px 1fr;align-items:center;margin:0 0 12px}
     .readerAudioControl button{border:0!important;background:transparent!important;color:var(--text)!important;display:flex;align-items:center;justify-content:center;min-height:48px!important}
     .readerAudioControl button:disabled{opacity:.24}
-    .readerSkipIcon{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1.5px solid var(--line);border-radius:50%;font-size:12px;font-weight:700;color:var(--text)}
+    .readerSkipIcon{display:inline-flex;align-items:center;justify-content:center;min-width:64px;height:40px;padding:0 10px;border:1.5px solid var(--line);border-radius:999px;font-size:12px;font-weight:700;color:var(--text);white-space:nowrap}
     .readerSettingsSheet button.readerSheetPlay{width:58px;height:58px;min-height:58px!important;justify-self:center;border:0!important;border-radius:50%!important;background:var(--accent)!important;color:#fff!important;box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 28%,transparent)}
     .readerSettingsSheet button.readerSheetPlay>span{font-size:18px!important;font-weight:800;color:#fff!important}
     .readerRateRow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
@@ -329,6 +379,10 @@
     .bibleReaderIntro h1{margin:0;font-family:var(--font-reading);font-size:22px;line-height:1.35;font-weight:700;color:var(--text)}
     #detail[data-reader-kind="bible-reader"]>header>#back,
     #detail[data-reader-kind="egw-reader"]>header>#back{font-weight:600}
+    .readerBibleToc{margin-top:0}
+    .readerBibleToc .bibleChapterRow{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;background:transparent;border:0;border-bottom:1px solid color-mix(in srgb,var(--line) 88%,transparent);border-radius:0;padding:8px 4px;font:inherit;min-height:56px;cursor:pointer;color:var(--text)}
+    .readerBibleToc .bibleChapterRow.currentReading{background:color-mix(in srgb,var(--soft) 55%,transparent);box-shadow:inset 2px 0 0 var(--accent)}
+    .readerBibleToc .bibleChapterRow>b{flex:0 0 auto;font-size:23px;color:color-mix(in srgb,var(--muted) 70%,transparent);font-weight:400;line-height:1}
     @media(max-width:390px){.readerSettingsSheet{padding-left:14px;padding-right:14px}.readerThemeRow,.readerRateRow{gap:5px}.bibleReaderIntro h1{font-size:20px}}
   `;
   document.head.appendChild(style);
