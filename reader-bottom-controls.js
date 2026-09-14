@@ -36,7 +36,7 @@
       <button type="button" class="readerQuickPlay" data-reader-quick="tts" aria-label="开始朗读">
         <span class="readerQuickPlayIcon" aria-hidden="true">▶</span>
       </button>
-      <span class="readerQuickBalance" aria-hidden="true"></span>`;
+      <span class="readerQuickChapterGroup"><button type="button" class="readerQuickChapter readerQuickPrev" data-reader-quick="prev" aria-label="上一章">‹</button><button type="button" class="readerQuickChapter readerQuickNext" data-reader-quick="next" aria-label="下一章">›</button></span>`;
     detail.appendChild(bar);
     return bar;
   }
@@ -131,7 +131,7 @@
     .readerQuickPlayIcon{font-size:19px;line-height:1;font-weight:800;transform:translateX(1px)}
     .readerQuickPlay[data-state="playing"] .readerQuickPlayIcon{font-size:17px;transform:none}
     .readerQuickPlay[data-state="paused"]{background:color-mix(in srgb,var(--accent) 86%,black)!important}
-    .readerQuickBalance{display:block;min-height:44px}
+    .readerQuickChapterGroup{display:flex;justify-content:flex-end;gap:4px}.readerQuickChapter{width:36px;min-height:40px!important;padding:0!important;border:1px solid var(--line)!important;border-radius:9px!important;font-size:22px!important}.readerQuickChapter:disabled{opacity:.35}.readerQuickBalance{display:block;min-height:44px}
     @media(max-width:390px){.readerQuickBar{grid-template-columns:1fr 64px 1fr;padding-left:14px;padding-right:14px}.readerQuickPlay{width:54px;height:54px;min-height:54px!important}.readerQuickToc{font-size:12px!important}}
     #detail.hasReaderQuickBar #detailBody{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
     #detail.hasReaderQuickBar #readerBottomNav{display:none!important}

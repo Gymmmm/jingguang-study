@@ -389,6 +389,9 @@
   color:var(--egw-ink-3)!important;
   font-size:18px!important;
 }
+#detail .crossIndexScope{display:flex;gap:6px;padding:8px 18px 2px;border-bottom:1px solid var(--egw-line)}
+#detail .crossIndexScope button{border:1px solid var(--egw-line);border-radius:999px;background:transparent;color:var(--egw-ink-3);padding:6px 13px;font-size:11px}
+#detail .crossIndexScope button:first-child{background:color-mix(in srgb,var(--egw-accent) 10%,transparent);color:var(--egw-accent);border-color:color-mix(in srgb,var(--egw-accent) 35%,var(--egw-line))}
 #detail .crossIndexReturn{padding:0 18px!important}
 #detail .crossIndexReturn button{
   min-height:36px!important;
@@ -488,7 +491,7 @@
   #egwShelf .egwBookRow{min-height:56px;font-size:15.5px}
   #detail[data-reader-kind="egw-toc"] .egwChapterRow{min-height:62px}
   #detail[data-reader-kind="egw-reader"]>header{grid-template-columns:68px minmax(0,1fr) 68px;padding-left:8px;padding-right:8px}
-  #detail[data-reader-kind="egw-reader"] .egwReaderArticle{padding:12px 18px 22px}
+  #detail[data-reader-kind="egw-reader"] .egwReaderArticle{padding:calc(18px + env(safe-area-inset-top)) 18px calc(112px + env(safe-area-inset-bottom))}
   #detail[data-reader-kind="egw-reader"] .egwReaderIntro h1{font-size:20px}
   #detail[data-reader-kind="egw-reader"] .egwReading .egwParagraph{line-height:1.84}
   #detail[data-reader-kind="egw-reader"] .readAloudBar{padding-left:18px;padding-right:18px}

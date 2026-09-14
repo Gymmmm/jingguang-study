@@ -49,7 +49,27 @@
       const chapter = +m[1], from = m[2] ? +m[2] : null, to = m[3] ? +m[3] : from;
       return {...book, chapter, from, to, focus:from};
     }
+    // Relations also carry OSIS refs (for example John 3:16 / JHN 3:16).
+    const osis = raw.toUpperCase().replace(/[：]/g, ':').match(/^([1-3]?[A-Z]{2,5})[ .](\d{1,3})(?::(\d{1,3})(?:-(\d{1,3}))?)?$/);
+    if (osis) {
+      const row = books.find(x => String(x[0]).toUpperCase() === osis[1]);
+      if (row) {
+        const from = osis[3] ? +osis[3] : null;
+        return {osis:row[0], full:row[1], short:row[2], chapter:+osis[2], from, to:osis[4] ? +osis[4] : from, focus:from};
+      }
+    }
     return null;
+  }
+
+  function relationFor(ref) {
+    return relations.find(rel => {
+      const candidate = parseRef(rel.bible_ref) || parseRef(rel.normalized);
+      return sameChapter(candidate, ref);
+    }) || null;
+  }
+
+  function overlapChapter(ref, target) {
+    return sameChapter(ref, target) || (ref && target && ref.osis === target.osis && +ref.chapter === +target.chapter);
   }
 
   function refLabel(ref) {
@@ -89,7 +109,8 @@
     const m = String(detail.dataset.readingKey || '').match(/^bible:([^:]+):(\d+)$/);
     if (!m) return null;
     const row = books.find(x => x[0] === m[1]);
-    return row ? {osis:row[0], full:row[1], short:row[2], chapter:+m[2], from:null, to:null, focus:null} : null;
+    const focus = detail.dataset.crossFocus ? +detail.dataset.crossFocus : null;
+    return row ? {osis:row[0], full:row[1], short:row[2], chapter:+m[2], from:focus, to:focus, focus} : null;
   }
 
   function lastEgw() {
@@ -122,10 +143,11 @@
     if (!ref) return [];
     const ids = new Set();
     for (const record of egwRecords) {
-      if ((record.bible_refs || []).some(v => sameChapter(parseRef(v), ref))) ids.add(record.id);
+      if ((record.bible_refs || []).some(v => overlapChapter(parseRef(v), ref))) ids.add(record.id);
     }
     for (const rel of relations) {
-      if (sameChapter(parseRef(rel.bible_ref), ref)) for (const id of rel.egw_ids || []) ids.add(id);
+      const relRef = parseRef(rel.bible_ref) || parseRef(rel.normalized);
+      if (overlapChapter(relRef, ref)) for (const id of rel.egw_ids || []) ids.add(id);
     }
     const rows = [...ids].map(id => egwRecords.find(r => r.id === id)).filter(Boolean);
     const top = navStack[navStack.length - 1];
@@ -184,7 +206,7 @@
       sheet = document.createElement('div');
       sheet.className = 'crossIndexSheet';
       sheet.hidden = true;
-      sheet.innerHTML = `<button class="crossIndexBackdrop" type="button" data-cross-index-close aria-label="关闭关联"></button><section class="crossIndexPanel" aria-label="关联"><header><div><b>关联</b><small>只显示可核验关联，并附依据</small></div><button type="button" data-cross-index-close aria-label="关闭">×</button></header><div class="crossIndexReturn"></div><div class="crossIndexList"></div></section>`;
+      sheet.innerHTML = `<button class="crossIndexBackdrop" type="button" data-cross-index-close aria-label="关闭关联"></button><section class="crossIndexPanel" aria-label="关联"><header><div><b>关联</b><small>只显示可核验关联，并附依据</small></div><button type="button" data-cross-index-close aria-label="关闭">×</button></header><div class="crossIndexScope" role="tablist"><button type="button" data-cross-scope="focus">本节</button><button type="button" data-cross-scope="chapter">整章</button></div><div class="crossIndexReturn"></div><div class="crossIndexList"></div></section>`;
       detail.appendChild(sheet);
     }
     return {handle, sheet};
@@ -280,12 +302,14 @@
     const more=!expanded&&items.length>visible.length?`<button type="button" class="crossIndexMore" data-cross-index-all>查看全部 ${items.length} 条</button>`:'';
     if (kind === 'bible') {
       list.innerHTML = `<h3>关联怀著</h3>${visible.map(r => {
+        const rel = relationFor(currentBibleRef());
+        const reason = r.evidence?.why || rel?.why || rel?.reason || (rel?.themes || []).slice(0,2).join('、') || r.summary || r.locator || '出处定位：该资料已被索引到本章';
         const badge = r.evidence?.kind ? `<small class="crossIndexBadge">${esc(r.evidence.kind)}</small>` : '';
-        const why = r.evidence?.why ? `<small class="crossIndexWhy">关联依据：${esc(r.evidence.why)}</small>` : '';
-        return `<button type="button" class="crossIndexRow" data-cross-egw="${esc(r.id)}"><span>${badge}<b>《${esc(r.title_cn || '怀爱伦著作')}》</b><small>${esc(r.chapter || '')}${r.locator ? ' · ' + esc(r.locator) : ''}</small>${why}</span><i>›</i></button>`;
+        return `<button type="button" class="crossIndexRow" data-cross-egw="${esc(r.id)}"><span>${badge}<b>《${esc(r.title_cn || '怀爱伦著作')}》</b><small>${esc(r.chapter || '')}${r.locator ? ' · ' + esc(r.locator) : ''}</small><small class="crossIndexWhy">关联依据：${esc(reason)}</small></span><i>›</i></button>`;
       }).join('')}${more}`;
     } else {
-      list.innerHTML = `<h3>相关经文</h3>${visible.map((r,i) => `<button type="button" class="crossIndexRow" data-cross-bible="${i}"><span><b>${esc(refLabel(r))}</b><small>打开整章${r.focus ? ` · 定位第 ${r.focus} 节` : ''}</small></span><i>›</i></button>`).join('')}${more}`;
+      const focus = detail.dataset.crossFocus ? ` · 定位第 ${esc(detail.dataset.crossFocus)} 节` : '';
+      list.innerHTML = `<h3>相关经文</h3>${visible.map((r,i) => { const rel = relationFor(r); const reason = rel?.why || rel?.reason || (rel?.themes || []).slice(0,2).join('、') || '出处定位：该经文已被索引到本段'; return `<button type="button" class="crossIndexRow" data-cross-bible="${i}"><span><b>${esc(refLabel(r))}</b><small>打开${detail.dataset.readerKind === 'egw-reader' ? '本章' : '整章'}${r.focus ? ` · 定位第 ${r.focus} 节` : focus}</small><small class="crossIndexWhy">关联依据：${esc(reason)}</small></span><i>›</i></button>`; }).join('')}${more}`;
     }
   }
 
@@ -295,6 +319,7 @@
     const items = kind === 'bible-reader' ? relatedEgwForBible(currentBibleRef()) : relatedBibleForEgw();
     const ui = ensureUi();
     renderSheet(items, kind === 'bible-reader' ? 'bible' : 'egw');
+    ui.handle.hidden = true;
     ui.sheet.hidden = false;
     ui.sheet.dataset.kind = kind;
     ui.sheet._crossItems = items;
@@ -337,6 +362,10 @@
   detail.addEventListener('click', e => {
     if (e.target.closest('[data-cross-index-open]')) { e.preventDefault(); openSheet(); return; }
     if (e.target.closest('[data-cross-index-close]')) { e.preventDefault(); closeSheet(); return; }
+    const scope = e.target.closest('[data-cross-scope]');
+    if (scope) { e.preventDefault(); detail.dataset.crossScope = scope.dataset.crossScope; const sheet = detail.querySelector('.crossIndexSheet'); if (sheet) renderSheet(sheet._crossItems || [], sheet.dataset.kind === 'bible-reader' ? 'bible' : 'egw', sheet._crossExpanded); return; }
+    const verse = e.target.closest('.reading>.verse.crossLinked');
+    if (verse) { detail.dataset.crossFocus = verse.dataset.verse || ''; openSheet(); return; }
     if (e.target.closest('[data-cross-index-all]')) {
       e.preventDefault();
       const sheet=detail.querySelector('.crossIndexSheet');
