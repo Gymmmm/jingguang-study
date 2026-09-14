@@ -499,22 +499,70 @@
     return '';
   }
 
+
+  function drawerTitle(kind, sheet) {
+    if (kind === 'bible') {
+      const ref = currentBibleRef();
+      if (!ref) return '关联';
+      if (sheet._scope === 'verse' && sheet._focusVerse) {
+        return `${ref.full} ${ref.chapter}:${sheet._focusVerse} 的关联`;
+      }
+      return `${ref.full} ${ref.chapter}章 的关联`;
+    }
+    const book = String(body.querySelector('.egwBookName')?.textContent || '').trim() || '怀爱伦著作';
+    const bookLabel = book.startsWith('《') ? book : `《${book.replace(/^[《]|[》]$/g, '')}》`;
+    if (kind === 'egw' && sheet._scope === 'paragraph' && sheet._focusPara) {
+      const locator = String(sheet._focusPara.closest('.egwParagraphWrap')?.querySelector('.egwLocator')?.textContent
+        || sheet._focusPara.dataset?.locator
+        || '').trim();
+      if (locator) return `${bookLabel} · ${locator} 的关联`;
+      return `${bookLabel} · 本段 的关联`;
+    }
+    const chapter = String(document.getElementById('detailType')?.textContent || body.querySelector('.egwReaderIntro h1')?.textContent || '').trim();
+    if (chapter) return `${bookLabel} · ${chapter} 的关联`;
+    return `${bookLabel} · 本章 的关联`;
+  }
+
+  function rowSourceBlock(label, value) {
+    if (!value) return '';
+    return `<div class="crossIndexBlock crossIndexSource"><span class="crossIndexBlockLabel">出处</span><span class="crossIndexBlockBody">${esc(value)}</span></div>`;
+  }
+
+  function rowContentBlock(value) {
+    if (!value) return '';
+    return `<div class="crossIndexBlock crossIndexContent"><span class="crossIndexBlockLabel">内容</span><span class="crossIndexBlockBody">${esc(value)}</span></div>`;
+  }
+
+  function rowEvidenceBlock(type, why) {
+    const whyText = humanWhy(why) || why || '';
+    const badge = type ? `<small class="crossIndexBadge">${esc(type)}</small>` : '';
+    return `<div class="crossIndexBlock crossIndexEvidence"><span class="crossIndexBlockLabel">关联依据</span><span class="crossIndexBlockBody">${badge}${whyText ? `<small class="crossIndexWhy">${esc(whyText)}</small>` : ''}</span></div>`;
+  }
+
+  function egwSourceLabel(record) {
+    const title = `《${record.title_cn || '怀爱伦著作'}》`;
+    const parts = [title];
+    if (record.chapter) parts.push(record.chapter);
+    if (record.locator) parts.push(record.locator);
+    return parts.join(' · ');
+  }
+
   function renderSheet(items, kind, expanded=false) {
     const {sheet} = ensureUi();
     const list = sheet.querySelector('.crossIndexList');
     const back = sheet.querySelector('.crossIndexReturn');
     const head = sheet.querySelector('.crossIndexPanel>header>div>b');
     const note = sheet.querySelector('.crossIndexPanel>header small');
+    if (head) head.textContent = drawerTitle(kind, sheet);
     if (kind === 'bible' && sheet._focusVerse && sheet._scope === 'verse') {
-      if (head) head.textContent = `与第 ${sheet._focusVerse} 节相关`;
       if (note) note.textContent = '可核验 · 本节优先';
     } else if (kind === 'egw' && sheet._focusPara && sheet._scope === 'paragraph') {
-      if (head) head.textContent = '这段提到的经文';
       if (note) note.textContent = '可核验 · 本段优先';
     } else {
-      if (head) head.textContent = '关联';
       if (note) note.textContent = '只显示可核验关联，并附依据';
     }
+    const panel = sheet.querySelector('.crossIndexPanel');
+    if (panel) panel.setAttribute('aria-label', head?.textContent || '关联');
     back.innerHTML = (scopeToggleHtml(sheet, kind) || '') + (navStack.length ? `<button type="button" data-cross-index-back>‹ 返回关联处</button>` : '');
     if (!items.length) {
       if (sheet._scope === 'verse') {
@@ -535,16 +583,18 @@
       const focusVerse = sheet._scope === 'verse' ? sheet._focusVerse : null;
       list.innerHTML = `<h3>关联怀著</h3>${visible.map(r => {
         const type = evidenceTypeForRecord(r, chapterRef, focusVerse);
-        const badge = `<small class="crossIndexBadge">${esc(type)}</small>`;
         const why = evidenceWhyForRecord(r, chapterRef, focusVerse);
-        return `<button type="button" class="crossIndexRow" data-cross-egw="${esc(r.id)}"><span>${badge}<b>《${esc(r.title_cn || '怀爱伦著作')}》</b><small>${esc(r.chapter || '')}${r.locator ? ' · ' + esc(r.locator) : ''}</small><small class="crossIndexWhy">关联依据：${esc(humanWhy(why) || why)}</small></span><i>›</i></button>`;
+        const source = egwSourceLabel(r);
+        const content = String(r.summary || '').trim();
+        return `<button type="button" class="crossIndexRow" data-cross-egw="${esc(r.id)}"><span>${rowSourceBlock('出处', source)}${rowContentBlock(content)}${rowEvidenceBlock(type, why)}</span><i>›</i></button>`;
       }).join('')}${more}`;
     } else {
       list.innerHTML = `<h3>相关经文</h3>${visible.map((r,i) => {
         const type = evidenceTypeForBibleRef(r);
-        const badge = `<small class="crossIndexBadge">${esc(type)}</small>`;
         const why = evidenceWhyForBibleRef(r);
-        return `<button type="button" class="crossIndexRow" data-cross-bible="${i}"><span>${badge}<b>${esc(refLabel(r))}</b><small>打开整章${r.focus ? ` · 定位第 ${r.focus} 节` : ''}</small><small class="crossIndexWhy">关联依据：${esc(humanWhy(why) || why)}</small></span><i>›</i></button>`;
+        const source = refLabel(r);
+        const content = r.focus ? `打开整章 · 定位第 ${r.focus} 节` : '打开整章';
+        return `<button type="button" class="crossIndexRow" data-cross-bible="${i}"><span>${rowSourceBlock('出处', source)}${rowContentBlock(content)}${rowEvidenceBlock(type, why)}</span><i>›</i></button>`;
       }).join('')}${more}`;
     }
   }
@@ -724,8 +774,15 @@
     .crossIndexList h3{margin:8px 0 5px;color:var(--muted);font-size:10.5px;font-weight:700;letter-spacing:.03em}
     .crossIndexRow{width:100%;min-height:54px!important;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent!important;color:var(--text)!important;text-align:left;box-shadow:none!important}
     .crossIndexRow>span{min-width:0;display:flex;flex-direction:column;gap:3px}.crossIndexRow b{font-size:14px;font-weight:650;line-height:1.35}.crossIndexRow small{color:var(--muted);font-size:9.5px;line-height:1.35}.crossIndexRow i{flex:0 0 auto;color:var(--muted);font-size:22px;font-style:normal;font-weight:400}
-    .crossIndexBadge{display:inline-block;margin:0 0 4px;padding:1px 6px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:999px;color:var(--accent);font-size:9px;font-weight:700;line-height:1.4}
-    .crossIndexWhy{margin-top:2px;color:var(--accent);font-size:9.5px;line-height:1.45}
+    .crossIndexBadge{display:inline-block;margin:0 6px 0 0;padding:1px 6px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:999px;color:var(--accent);font-size:9px;font-weight:700;line-height:1.4;vertical-align:middle}
+    .crossIndexWhy{display:inline;margin:0;color:var(--accent);font-size:9.5px;line-height:1.45;vertical-align:middle}
+    .crossIndexBlock{display:grid;grid-template-columns:52px minmax(0,1fr);gap:6px;align-items:start;margin-top:6px}
+    .crossIndexBlock:first-child{margin-top:0}
+    .crossIndexBlockLabel{color:var(--muted);font-size:10px;font-weight:700;line-height:1.45;padding-top:1px}
+    .crossIndexBlockBody{min-width:0;color:var(--text);font-size:12.5px;line-height:1.5;font-weight:550}
+    .crossIndexContent .crossIndexBlockBody{color:var(--muted);font-weight:500;font-size:12px;line-height:1.55}
+    .crossIndexEvidence .crossIndexBlockBody{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+    .crossIndexPanel>header b{font-size:14px;line-height:1.35;max-width:min(78vw,520px)}
     .crossIndexEmpty{padding:20px 4px;color:var(--muted);font-size:12px;text-align:center;line-height:1.55}
     .crossIndexEmptyAction{display:inline-flex;align-items:center;justify-content:center;min-height:34px;margin-top:10px;padding:0 14px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line))!important;border-radius:999px!important;background:color-mix(in srgb,var(--accent) 10%,var(--surface))!important;color:var(--accent)!important;font-size:12px!important;font-weight:700!important}
     .egwParagraphWrap.crossLinked,.reading>.verse.crossLinked{position:relative}
