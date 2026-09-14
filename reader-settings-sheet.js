@@ -10,6 +10,7 @@
 
   function ttsMain() { return q('.readAloudBar [data-tts="toggle"]'); }
   function quick(direction) { return q(`[data-reader-quick="${direction}"]`); }
+  function favoriteSource() { return detail.querySelector('[data-egw-native-favorite], [data-favorite-bible]'); }
 
   function currentFont() {
     const raw = parseInt(localStorage.getItem(FONT_KEY) || getComputedStyle(document.documentElement).getPropertyValue('--reader-font') || '19', 10);
@@ -85,6 +86,8 @@
         <div class="readerSettingsGroup readerSettingsCompactGroup readerSettingsExtra" hidden>
           <h3>更多</h3>
           <div class="readerExtraActions">
+            <button type="button" data-reader-sheet-toc>目录</button>
+            <button type="button" data-reader-sheet-favorite>收藏</button>
             <button type="button" data-reader-sheet-nav="prev">‹ 上一章</button>
             <button type="button" data-reader-sheet-nav="next">下一章 ›</button>
             <button type="button" data-reader-verify hidden>核验官方原始出处</button>
@@ -138,8 +141,10 @@
     const play = q('[data-reader-sheet-tts]', sheet);
     if (play) {
       const span = q('span', play);
-      if (span) span.textContent = s.speaking && !s.paused ? 'Ⅱ' : '▶';
-      play.setAttribute('aria-label', s.speaking && !s.paused ? '暂停' : (s.paused ? '继续' : '朗读'));
+      const label = s.speaking && !s.paused ? '暂停' : (s.paused ? '继续' : '朗读');
+      if (span) span.textContent = s.speaking && !s.paused ? 'Ⅱ' : (s.paused ? '▶' : '▶');
+      play.setAttribute('aria-label', label);
+      play.title = label;
     }
 
     sheet.querySelectorAll('[data-reader-rate]').forEach(btn => {
@@ -168,6 +173,19 @@
     if (verify) {
       verify.hidden = !official;
     }
+
+    const favBtn = q('[data-reader-sheet-favorite]', sheet);
+    if (favBtn) {
+      const src = favoriteSource();
+      const on = /已收藏|★/.test(String(src?.textContent || ''));
+      favBtn.textContent = on ? '★ 已收藏' : '☆ 收藏';
+      favBtn.setAttribute('aria-label', on ? '取消收藏' : '收藏本章');
+      favBtn.disabled = !src;
+    }
+    const tocBtn = q('[data-reader-sheet-toc]', sheet);
+    if (tocBtn) {
+      tocBtn.setAttribute('aria-label', detail.dataset.readerKind === 'egw-reader' ? '返回本书目录' : '返回目录');
+    }
   }
 
   function setFontSize(n) {
@@ -190,7 +208,8 @@
       return;
     }
     if (event.target.closest?.('[data-reader-sheet-tts]')) {
-      ttsMain()?.click();
+      if (typeof window.jgReadAloudToggle === 'function') window.jgReadAloudToggle();
+      else ttsMain()?.click();
       return;
     }
     const step = event.target.closest?.('[data-reader-audio-step]');
@@ -214,6 +233,19 @@
       if (target && !target.disabled && !target.hidden) {
         ensureSheet().hidden = true;
         target.click();
+      }
+      return;
+    }
+    if (event.target.closest?.('[data-reader-sheet-toc]')) {
+      ensureSheet().hidden = true;
+      detail.querySelector('#back')?.click();
+      return;
+    }
+    if (event.target.closest?.('[data-reader-sheet-favorite]')) {
+      const src = favoriteSource();
+      if (src) {
+        src.click();
+        queueMicrotask(sync);
       }
       return;
     }
@@ -288,6 +320,8 @@
     .readerThemeIcon{font-size:18px;line-height:1;font-style:normal}
     .readerExtraActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .readerExtraActions button{min-height:42px!important;border:1px solid var(--line)!important;border-radius:10px!important;background:transparent!important;color:var(--text)!important;font-size:12px!important}
+    .readerExtraActions [data-reader-sheet-toc],
+    .readerExtraActions [data-reader-sheet-favorite]{font-weight:650!important}
     .readerExtraActions [data-reader-verify]{grid-column:1/-1;color:var(--accent)!important;font-weight:650!important}
     .readerExtraActions button:disabled{opacity:.28}
     .bibleReaderIntro{text-align:center;padding:6px 0 18px;border-bottom:1px solid var(--line);margin-bottom:14px}

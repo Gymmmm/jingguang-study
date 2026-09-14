@@ -21,29 +21,22 @@
     return detail.querySelector('.readAloudBar [data-tts="toggle"]');
   }
 
-  function favoriteSource() {
-    return detail.querySelector('[data-egw-native-favorite], [data-favorite-bible]');
-  }
-
   function ensureBar() {
     let bar = detail.querySelector('#readerQuickBar');
-    if (bar) return bar;
+    const legacy = bar && (bar.querySelector('[data-reader-quick="toc"],[data-reader-quick="favorite"]') || !bar.querySelector('[data-reader-quick="prev"]'));
+    if (bar && !legacy) return bar;
+    if (legacy) bar.remove();
     bar = document.createElement('nav');
     bar.id = 'readerQuickBar';
     bar.className = 'readerQuickBar';
-    bar.setAttribute('aria-label', '阅读快速控制');
+    bar.setAttribute('aria-label', '阅读章节与朗读');
     bar.hidden = true;
     bar.innerHTML = `
-      <button type="button" class="readerQuickToc" data-reader-quick="toc" aria-label="返回目录">
-        <span class="readerQuickTocIcon" aria-hidden="true">☰</span><b>目录</b>
-      </button>
+      <button type="button" class="readerQuickPrev" data-reader-quick="prev" aria-label="上一章">上一章</button>
       <button type="button" class="readerQuickPlay" data-reader-quick="tts" aria-label="开始朗读">
-        <span class="readerQuickPlayIcon" aria-hidden="true">▶</span>
-        <small class="readerQuickPlayLabel">朗读</small>
+        <span class="readerQuickPlayLabel">朗读</span>
       </button>
-      <button type="button" class="readerQuickFav" data-reader-quick="favorite" aria-label="收藏">
-        <span class="readerQuickFavIcon" aria-hidden="true">☆</span><b>收藏</b>
-      </button>`;
+      <button type="button" class="readerQuickNext" data-reader-quick="next" aria-label="下一章">下一章</button>`;
     detail.appendChild(bar);
     return bar;
   }
@@ -51,33 +44,29 @@
   function syncPlayState() {
     const bar = ensureBar();
     const quick = bar.querySelector('[data-reader-quick="tts"]');
-    const icon = quick?.querySelector('.readerQuickPlayIcon');
     const label = quick?.querySelector('.readerQuickPlayLabel');
-    if (!quick || !icon) return;
+    if (!quick || !label) return;
     const s = typeof window.jgReadAloudState === 'function'
       ? window.jgReadAloudState()
       : { speaking:false, paused:false };
     const active = !!s.speaking && !s.paused;
-    icon.textContent = active ? 'Ⅱ' : '▶';
-    if (label) label.textContent = active ? '暂停' : (s.paused ? '继续' : '朗读');
+    const text = active ? '暂停' : (s.paused ? '继续' : '朗读');
+    label.textContent = text;
     quick.setAttribute('aria-label', active ? '暂停朗读' : (s.paused ? '继续朗读' : '开始朗读'));
     quick.dataset.playing = active ? '1' : (s.paused ? 'paused' : 'idle');
     quick.dataset.state = s.paused ? 'paused' : (active ? 'playing' : 'idle');
   }
 
-  function syncFavoriteState() {
+  function syncChapterState() {
     const bar = ensureBar();
-    const fav = bar.querySelector('[data-reader-quick="favorite"]');
-    const icon = fav?.querySelector('.readerQuickFavIcon');
-    const label = fav?.querySelector('b');
-    if (!fav || !icon) return;
-    const src = favoriteSource();
-    const text = String(src?.textContent || '');
-    const on = /已收藏|★/.test(text);
-    icon.textContent = on ? '★' : '☆';
-    if (label) label.textContent = on ? '已藏' : '收藏';
-    fav.dataset.on = on ? '1' : '0';
-    fav.setAttribute('aria-label', on ? '取消收藏' : '收藏');
+    ['prev', 'next'].forEach(direction => {
+      const btn = bar.querySelector(`[data-reader-quick="${direction}"]`);
+      if (!btn) return;
+      const target = findChapterButton(direction);
+      const disabled = !target || !!target.disabled || target.hidden;
+      btn.disabled = disabled;
+      btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    });
   }
 
   function refresh() {
@@ -87,7 +76,7 @@
     detail.classList.toggle('hasReaderQuickBar', show);
     if (!show) return;
     syncPlayState();
-    syncFavoriteState();
+    syncChapterState();
   }
 
   detail.addEventListener('click', event => {
@@ -98,18 +87,6 @@
       if (typeof window.jgReadAloudToggle === 'function') window.jgReadAloudToggle();
       else ttsButton()?.click();
       syncPlayState();
-      return;
-    }
-    if (action === 'toc') {
-      detail.querySelector('#back')?.click();
-      return;
-    }
-    if (action === 'favorite') {
-      const src = favoriteSource();
-      if (src) {
-        src.click();
-        queueMicrotask(syncFavoriteState);
-      }
       return;
     }
     const target = findChapterButton(action);
@@ -138,27 +115,25 @@
   }
 
   const mo = new MutationObserver(() => {
-    if (detail.classList.contains('hasReaderQuickBar')) syncFavoriteState();
+    if (detail.classList.contains('hasReaderQuickBar')) syncChapterState();
   });
   mo.observe(detail, { childList: true, subtree: true, characterData: true });
 
   const style = document.createElement('style');
   style.textContent = `
     .readerQuickBar[hidden]{display:none!important}
-    .readerQuickBar{position:fixed;z-index:30;left:50%;bottom:0;transform:translateX(-50%);width:min(720px,100%);display:grid;grid-template-columns:1fr 72px 1fr;align-items:end;gap:8px;padding:6px 18px calc(6px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:color-mix(in srgb,var(--surface) 96%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
-    .readerQuickBar button{border:0!important;background:transparent!important;box-shadow:none!important;color:var(--muted)!important;-webkit-tap-highlight-color:transparent}
-    .readerQuickToc,.readerQuickFav{min-height:48px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 0!important;font-size:11px!important;font-weight:600!important;color:var(--muted)!important}
-    .readerQuickToc b,.readerQuickFav b{font-weight:600;color:var(--muted)}
-    .readerQuickTocIcon,.readerQuickFavIcon{font-size:18px;line-height:1;color:var(--text)}
-    .readerQuickFav[data-on="1"] .readerQuickFavIcon{color:var(--accent)}
-    .readerQuickBar button.readerQuickPlay{position:relative;width:58px;height:58px;min-height:58px!important;justify-self:center;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0!important;margin:0 0 14px;border-radius:50%!important;background:var(--accent)!important;color:#fff!important;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 28%,transparent)!important;transition:transform .16s ease,background .16s ease}
-    .readerQuickPlay:active{transform:scale(.94)}
-    .readerQuickBar button.readerQuickPlay .readerQuickPlayIcon{font-size:18px;line-height:1;font-weight:800;transform:translateX(1px);color:#fff!important}
-    .readerQuickBar button.readerQuickPlay .readerQuickPlayLabel{position:absolute;left:50%;bottom:-18px;transform:translateX(-50%);font-size:10px;font-weight:600;color:var(--muted)!important;white-space:nowrap}
-    .readerQuickPlay[data-state="playing"] .readerQuickPlayIcon{font-size:16px;transform:none}
-    .readerQuickPlay[data-state="paused"]{background:color-mix(in srgb,var(--accent) 86%,black)!important}
-    @media(max-width:390px){.readerQuickBar{grid-template-columns:1fr 64px 1fr;padding-left:12px;padding-right:12px}.readerQuickPlay{width:54px;height:54px;min-height:54px!important}}
-    #detail.hasReaderQuickBar #detailBody{padding-bottom:calc(88px + env(safe-area-inset-bottom))!important}
+    .readerQuickBar{position:fixed;z-index:30;left:50%;bottom:0;transform:translateX(-50%);width:min(720px,100%);display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;gap:4px;padding:8px 14px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:color-mix(in srgb,var(--surface) 96%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+    .readerQuickBar button{border:0!important;background:transparent!important;box-shadow:none!important;color:var(--text)!important;-webkit-tap-highlight-color:transparent;min-height:48px!important;padding:6px 4px!important;font-size:14px!important;font-weight:650!important}
+    .readerQuickBar button:disabled{opacity:.28!important;color:var(--muted)!important}
+    .readerQuickPrev{justify-self:start;text-align:left;color:var(--muted)!important}
+    .readerQuickNext{justify-self:end;text-align:right;color:var(--muted)!important}
+    .readerQuickBar button.readerQuickPlay{justify-self:center;min-width:88px;border-radius:999px!important;background:color-mix(in srgb,var(--accent) 12%,var(--surface))!important;color:var(--accent)!important;font-weight:750!important}
+    .readerQuickPlay[data-state="playing"],
+    .readerQuickPlay[data-state="paused"]{background:var(--accent)!important;color:#fff!important}
+    .readerQuickPlay .readerQuickPlayLabel{font-size:15px;font-weight:750;letter-spacing:.02em}
+    .readerQuickPlay:active{transform:scale(.97)}
+    @media(max-width:390px){.readerQuickBar{padding-left:10px;padding-right:10px}.readerQuickBar button{font-size:13px!important}.readerQuickPlay .readerQuickPlayLabel{font-size:14px}}
+    #detail.hasReaderQuickBar #detailBody{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
     #detail.hasReaderQuickBar #readerBottomNav,
     #detail.hasReaderQuickBar #detailActions,
     #detail.hasReaderQuickBar .readerNav,

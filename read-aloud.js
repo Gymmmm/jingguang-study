@@ -78,6 +78,7 @@
     const el = units[index]?.el;
     if (!el) return;
     el.classList.add('ttsSpeaking');
+    el.closest?.('.verse,.egwParagraphWrap')?.classList.add('ttsSpeaking');
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
@@ -282,7 +283,7 @@
     .readAloudBar .ttsMain{color:var(--accent)!important}
     .readAloudBar[data-active="1"] .ttsMain{font-weight:800!important}
     .readAloudBar .ttsRate{min-width:34px!important;color:color-mix(in srgb,var(--muted) 78%,transparent)!important;font-weight:550!important}
-    .ttsSpeaking{border-left:2px solid var(--accent)!important;background:transparent!important;box-shadow:none!important;transition:border-color .18s ease}
+    .ttsSpeaking{border-left:3px solid var(--accent)!important;background:color-mix(in srgb,var(--accent) 8%,transparent)!important;box-shadow:none!important;border-radius:4px;transition:border-color .18s ease,background .18s ease}
     @media(max-width:560px){.readAloudBar{padding:4px 12px 0}.readAloudBar button{font-size:10px!important}}
   `;
   document.head.appendChild(style);

@@ -450,12 +450,43 @@
   font-size:12.5px!important;
   line-height:1.62!important;
 }
+#detail .crossIndexList .crossIndexRow .crossIndexBlock{
+  display:grid!important;
+  grid-template-columns:52px minmax(0,1fr)!important;
+  gap:6px!important;
+  align-items:start!important;
+  margin-top:7px!important;
+}
+#detail .crossIndexList .crossIndexRow .crossIndexBlock:first-child{margin-top:0!important}
+#detail .crossIndexList .crossIndexRow .crossIndexBlockLabel{
+  color:var(--egw-ink-3)!important;
+  font-size:10px!important;
+  font-weight:700!important;
+  line-height:1.45!important;
+}
+#detail .crossIndexList .crossIndexRow .crossIndexBlockBody{
+  min-width:0;
+  color:var(--egw-ink)!important;
+  font-size:13px!important;
+  line-height:1.5!important;
+  font-weight:550!important;
+}
+#detail .crossIndexList .crossIndexRow .crossIndexContent .crossIndexBlockBody{
+  color:var(--egw-ink-2)!important;
+  font-size:12.5px!important;
+  font-weight:500!important;
+  line-height:1.62!important;
+}
 #detail .crossIndexList .crossIndexRow .crossIndexWhy{
-  margin-top:6px!important;
+  margin-top:0!important;
   color:var(--egw-accent)!important;
   opacity:.82!important;
   font-size:10.5px!important;
   line-height:1.5!important;
+}
+#detail .crossIndexSheet .crossIndexPanel>header b{
+  max-width:min(78vw,520px);
+  line-height:1.35!important;
 }
 #detail .crossIndexList .crossIndexRow i{
   color:var(--egw-ink-4)!important;

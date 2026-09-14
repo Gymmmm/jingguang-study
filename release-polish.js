@@ -237,15 +237,23 @@
         seen.add(refKey(ref));
         const index = items.length;
         items.push(ref);
+        const content = ref.from ? `打开整章 · 定位第 ${ref.from} 节` : '打开整章';
+        const why = reasonForBible(ref, currentEgwRecord(), paragraphRefs).replace(/^关联依据：/, '');
         list.insertAdjacentHTML('beforeend',
           `<button type="button" class="crossIndexRow" data-cross-bible="${index}">` +
-            `<span><b>${esc(refLabel(ref))}</b><small>打开整章 · 定位第 ${ref.from} 节</small></span><i>›</i>` +
+            `<span>` +
+              `<div class="crossIndexBlock crossIndexSource"><span class="crossIndexBlockLabel">出处</span><span class="crossIndexBlockBody">${esc(refLabel(ref))}</span></div>` +
+              `<div class="crossIndexBlock crossIndexContent"><span class="crossIndexBlockLabel">内容</span><span class="crossIndexBlockBody">${esc(content)}</span></div>` +
+              `<div class="crossIndexBlock crossIndexEvidence"><span class="crossIndexBlockLabel">关联依据</span><span class="crossIndexBlockBody"><small class="crossIndexWhy">${esc(why)}</small></span></div>` +
+            `</span><i>›</i>` +
           `</button>`
         );
       }
       sheet._crossItems = items;
+      // Structured rows from cross-index.js already include 出处/内容/关联依据; only backfill legacy rows.
       const record = currentEgwRecord();
       [...list.querySelectorAll('[data-cross-bible]')].forEach(row => {
+        if (row.querySelector('.crossIndexBlock')) return;
         const ref = items[+row.dataset.crossBible];
         if (!ref || row.querySelector('.crossIndexWhy')) return;
         const why = document.createElement('small');
@@ -261,6 +269,8 @@
           row.hidden = true;
           return;
         }
+        // Prefer structured blocks already rendered by cross-index.js
+        if (row.querySelector('.crossIndexBlock')) return;
         const record = egwRecords.find(r => r.id === row.dataset.crossEgw);
         const host = row.querySelector('span');
         if (!record || !host || host.querySelector('.crossIndexWhy')) return;
@@ -270,7 +280,7 @@
           badge.textContent = record.evidence.kind;
           host.prepend(badge);
         }
-        if (record.summary) {
+        if (record.summary && !host.querySelector('.crossIndexSummary,.crossIndexContent')) {
           const summary = document.createElement('small');
           summary.className = 'crossIndexSummary';
           summary.textContent = record.summary;
@@ -419,7 +429,12 @@
     .searchStateCard b{display:block;margin-bottom:6px;font-size:15px}.searchStateCard p{margin:0;color:var(--muted);font-size:12px;line-height:1.6}
     .searchStateCard button{margin-top:12px;min-height:40px;padding:0 16px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--accent);font-weight:700}
     .crossIndexSummary{margin-top:3px!important;color:var(--text)!important;opacity:.78;font-size:10.5px!important;line-height:1.5!important}
-    .crossIndexWhy{margin-top:2px!important;color:var(--accent)!important;font-size:9.5px!important;line-height:1.45!important}
+    .crossIndexWhy{margin-top:0!important;color:var(--accent)!important;font-size:9.5px!important;line-height:1.45!important}
+    .crossIndexBlock{display:grid!important;grid-template-columns:52px minmax(0,1fr)!important;gap:6px!important;align-items:start!important;margin-top:6px!important}
+    .crossIndexBlock:first-child{margin-top:0!important}
+    .crossIndexBlockLabel{color:var(--muted)!important;font-size:10px!important;font-weight:700!important}
+    .crossIndexBlockBody{min-width:0;color:var(--text)!important;font-size:12.5px!important;line-height:1.5!important}
+    .crossIndexContent .crossIndexBlockBody{color:var(--muted)!important;font-size:12px!important}
     .crossIndexLimited{padding:10px 2px;color:var(--muted);font-size:9.5px;text-align:center}
     .readAloudBar .ttsVoice,[data-tts-voice]{display:none!important}
   `;
