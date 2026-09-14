@@ -11,9 +11,11 @@
   let aliases = [];
   let aliasMap = new Map();
   const navStack = [];
-  const INITIAL_RESULT_LIMIT = 5;
+  const INITIAL_RESULT_LIMIT = 8;
   let touchStart = null;
   let pendingRestore = null;
+  let pendingJumpContext = null;
+  const verseTextCache = new Map();
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const norm = s => String(s || '').trim().toLowerCase().replace(/[\s《》〈〉“”"'，。！？；、·_]/g, '').replace(/：/g, ':').replace(/[–—]/g, '-');
@@ -69,6 +71,142 @@
   function refLabel(ref) {
     if (!ref) return '';
     return `${ref.full} ${ref.chapter}${ref.from ? ':' + ref.from + (ref.to && ref.to !== ref.from ? '-' + ref.to : '') : '章'}`;
+  }
+
+
+  function snippetText(value, maxLen = 96) {
+    const raw = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!raw) return '';
+    if (raw.length <= maxLen) return raw;
+    return raw.slice(0, maxLen).replace(/\s+\S*$/, '') + '…';
+  }
+
+  function egwContentPreview(record) {
+    const summary = snippetText(record?.summary, 110);
+    if (summary) return summary;
+    const parts = [];
+    if (record?.chapter) parts.push(record.chapter);
+    if (record?.locator) parts.push(`定位 ${record.locator}`);
+    return parts.length ? parts.join(' · ') : '打开怀著对照阅读';
+  }
+
+  function bibleFileUrl(osis) {
+    return `./data/bible/${encodeURIComponent(osis)}.json`;
+  }
+
+  async function loadBibleBook(osis) {
+    if (!osis) return null;
+    if (verseTextCache.has(osis)) return verseTextCache.get(osis);
+    const pending = fetch(bibleFileUrl(osis), {cache: 'force-cache'})
+      .then(r => (r.ok ? r.json() : null))
+      .catch(() => null);
+    verseTextCache.set(osis, pending);
+    const data = await pending;
+    verseTextCache.set(osis, data);
+    return data;
+  }
+
+  async function verseTextForRef(ref) {
+    if (!ref?.osis || !ref.from) return '';
+    const book = await loadBibleBook(ref.osis);
+    const verses = book?.chapters?.[ref.chapter - 1]?.verses || [];
+    if (!verses.length) return '';
+    const start = +ref.from;
+    const end = Math.max(start, +(ref.to || ref.from));
+    const parts = [];
+    for (const v of verses) {
+      if (+v.number < start || +v.number > end) continue;
+      const t = String(v.text || '').replace(/\s+/g, ' ').trim();
+      if (!t) continue;
+      parts.push(end > start ? `${v.number} ${t}` : t);
+      if (parts.length >= 3) break;
+    }
+    return snippetText(parts.join(' '), 140);
+  }
+
+  function associationChapterSuggestions(excludeRef, limit = 4) {
+    const counts = new Map();
+    for (const rel of relations) {
+      const parsed = parseRelationRef(rel);
+      if (!parsed) continue;
+      if (excludeRef && sameChapter(parsed, excludeRef)) continue;
+      const key = `${parsed.osis}:${parsed.chapter}`;
+      const row = counts.get(key) || {ref: {...parsed, from: null, to: null, focus: null}, n: 0, label: `${parsed.full} ${parsed.chapter}章`};
+      row.n += 1;
+      counts.set(key, row);
+    }
+    return [...counts.values()].sort((a, b) => b.n - a.n).slice(0, limit);
+  }
+
+  function emptySuggestionHtml(excludeRef) {
+    const tips = associationChapterSuggestions(excludeRef, 4);
+    if (!tips.length) return '';
+    return `<div class="crossIndexSuggest"><span class="crossIndexSuggestLabel">试试这些已有关联的章节</span><div class="crossIndexSuggestChips">${tips.map(t =>
+      `<button type="button" class="crossIndexSuggestChip" data-cross-suggest-bible="${esc(JSON.stringify({osis:t.ref.osis,full:t.ref.full,short:t.ref.short,chapter:t.ref.chapter,from:null,to:null,focus:null}))}">${esc(t.label)}</button>`
+    ).join('')}</div></div>`;
+  }
+
+  function rowOpenAffordance() {
+    return `<i class="crossIndexOpenHint">打开对照</i>`;
+  }
+
+  function showAssocJumpBanner(label) {
+    hideAssocJumpBanner();
+    if (!label) return;
+    const banner = document.createElement('div');
+    banner.className = 'crossIndexJumpBanner';
+    banner.setAttribute('role', 'status');
+    banner.innerHTML = `<span>来自关联：${esc(label)}</span><button type="button" data-cross-jump-dismiss aria-label="关闭">×</button>`;
+    detail.appendChild(banner);
+    clearTimeout(showAssocJumpBanner._timer);
+    showAssocJumpBanner._timer = setTimeout(() => hideAssocJumpBanner(), 12000);
+  }
+
+  function hideAssocJumpBanner() {
+    detail.querySelectorAll('.crossIndexJumpBanner').forEach(el => el.remove());
+  }
+
+  function briefHighlight(el) {
+    if (!el) return;
+    el.classList.add('crossJumpFlash');
+    setTimeout(() => el.classList.remove('crossJumpFlash'), 1600);
+  }
+
+  function applyPendingJumpFocus() {
+    const ctx = pendingJumpContext;
+    if (!ctx) return;
+    if (ctx.kind === 'egw' && !body.querySelector('.egwParagraphWrap')) return; // wait for native load
+    if (ctx.kind === 'bible') {
+      if (detail.dataset.readerKind !== 'bible-reader') return;
+      if (ctx.focus && !body.querySelector(`.reading>.verse[data-verse="${+ctx.focus}"]`)) return;
+    }
+    pendingJumpContext = null;
+    showAssocJumpBanner(ctx.label);
+    requestAnimationFrame(() => {
+      if (ctx.kind === 'bible') {
+        const verse = ctx.focus ? body.querySelector(`.reading>.verse[data-verse="${+ctx.focus}"]`) : null;
+        if (verse) {
+          verse.scrollIntoView({block: 'center', behavior: 'smooth'});
+          briefHighlight(verse);
+        }
+        return;
+      }
+      if (ctx.kind === 'egw') {
+        const needle = String(ctx.locator || '').split(/[–—-]/)[0].trim();
+        let target = null;
+        if (needle) {
+          body.querySelectorAll('.egwLocator').forEach(loc => {
+            if (target) return;
+            if (String(loc.textContent || '').includes(needle)) target = loc.closest('.egwParagraphWrap');
+          });
+        }
+        if (!target) target = body.querySelector('.egwParagraphWrap');
+        if (target) {
+          target.scrollIntoView({block: 'center', behavior: 'smooth'});
+          briefHighlight(target);
+        }
+      }
+    });
   }
 
   function humanWhy(why) {
@@ -304,7 +442,7 @@
   }
 
   function evidenceWhyForBibleRef(ref) {
-    // Allowed: explicit ref label, relation bible_ref/normalized, themes. Never summary/title.
+    // Allowed: evidence.why, explicit ref label, relation bible_ref/normalized, themes. Never summary/title.
     let best = null;
     for (const rel of relations) {
       const parsed = parseRelationRef(rel);
@@ -313,6 +451,7 @@
       best = rel;
       if (ref?.from && overlapsVerse(parsed, ref.from)) break;
     }
+    if (best?.evidence?.why) return humanWhy(best.evidence.why) || String(best.evidence.why);
     if (best?.bible_ref || best?.normalized) {
       const label = best.bible_ref || best.normalized;
       if (best.themes?.length) return `${label} · ${best.themes.slice(0, 3).join('、')}`;
@@ -459,20 +598,52 @@
   function jumpBible(ref) {
     const origin = captureOrigin();
     if (origin) navStack.push(origin);
+    pendingJumpContext = {
+      kind: 'bible',
+      label: refLabel(ref) || origin?.title || '关联',
+      focus: ref?.focus || ref?.from || null
+    };
     closeSheet();
     triggerBible(ref);
+    let tries = 0;
+    const tick = () => {
+      tries += 1;
+      if (!pendingJumpContext) return;
+      applyPendingJumpFocus();
+      if (pendingJumpContext && tries < 40) setTimeout(tick, 120);
+    };
+    setTimeout(tick, 160);
   }
 
   function jumpEgw(record) {
     const origin = captureOrigin();
     if (origin) navStack.push(origin);
+    pendingJumpContext = {
+      kind: 'egw',
+      label: egwSourceLabel(record) || record?.locator || '怀著关联',
+      locator: record?.locator || ''
+    };
     closeSheet();
     triggerEgw(record);
+    // EGW load is async; retry focus a few times.
+    let tries = 0;
+    const tick = () => {
+      tries += 1;
+      if (!pendingJumpContext) return;
+      if (body.querySelector('.egwParagraphWrap')) {
+        applyPendingJumpFocus();
+        return;
+      }
+      if (tries < 40) setTimeout(tick, 120);
+    };
+    setTimeout(tick, 220);
   }
 
   function goBack() {
     const origin = navStack.pop();
     if (!origin) return;
+    pendingJumpContext = null;
+    hideAssocJumpBanner();
     closeSheet();
     if (origin.kind === 'bible') triggerBible(origin.ref);
     else triggerEgw(origin);
@@ -565,15 +736,17 @@
     if (panel) panel.setAttribute('aria-label', head?.textContent || '关联');
     back.innerHTML = (scopeToggleHtml(sheet, kind) || '') + (navStack.length ? `<button type="button" data-cross-index-back>‹ 返回关联处</button>` : '');
     if (!items.length) {
+      const exclude = kind === 'bible' ? currentBibleRef() : null;
+      const tips = emptySuggestionHtml(exclude);
       if (sheet._scope === 'verse') {
-        list.innerHTML = `<div class="crossIndexEmpty">此节暂无精确关联，可查看整章<br><button type="button" class="crossIndexEmptyAction" data-cross-scope="chapter">查看整章</button></div>`;
+        list.innerHTML = `<div class="crossIndexEmpty">此节暂无精确关联，可查看整章<br><button type="button" class="crossIndexEmptyAction" data-cross-scope="chapter">查看整章</button>${tips}</div>`;
         return;
       }
       if (sheet._scope === 'paragraph') {
-        list.innerHTML = `<div class="crossIndexEmpty">此段暂无精确关联，可查看本章<br><button type="button" class="crossIndexEmptyAction" data-cross-scope="chapter">查看本章</button></div>`;
+        list.innerHTML = `<div class="crossIndexEmpty">此段暂无精确关联，可查看本章<br><button type="button" class="crossIndexEmptyAction" data-cross-scope="chapter">查看本章</button>${tips}</div>`;
         return;
       }
-      list.innerHTML = `<div class="crossIndexEmpty">本章暂无可核验关联。<br><small>索引仍在建设；可先从已覆盖章节或怀著侧试。</small></div>`;
+      list.innerHTML = `<div class="crossIndexEmpty">本章暂无可核验关联。<br><small>索引仍在建设；可先从已覆盖章节或怀著侧试。</small>${tips}</div>`;
       return;
     }
     const visible=expanded?items:items.slice(0,INITIAL_RESULT_LIMIT);
@@ -585,17 +758,28 @@
         const type = evidenceTypeForRecord(r, chapterRef, focusVerse);
         const why = evidenceWhyForRecord(r, chapterRef, focusVerse);
         const source = egwSourceLabel(r);
-        const content = String(r.summary || '').trim();
-        return `<button type="button" class="crossIndexRow" data-cross-egw="${esc(r.id)}"><span>${rowSourceBlock('出处', source)}${rowContentBlock(content)}${rowEvidenceBlock(type, why)}</span><i>›</i></button>`;
+        const content = egwContentPreview(r);
+        return `<button type="button" class="crossIndexRow" data-cross-egw="${esc(r.id)}" aria-label="打开对照：${esc(source)}"><span>${rowSourceBlock('出处', source)}${rowContentBlock(content)}${rowEvidenceBlock(type, why)}</span>${rowOpenAffordance()}</button>`;
       }).join('')}${more}`;
     } else {
       list.innerHTML = `<h3>相关经文</h3>${visible.map((r,i) => {
         const type = evidenceTypeForBibleRef(r);
         const why = evidenceWhyForBibleRef(r);
         const source = refLabel(r);
-        const content = r.focus ? `打开整章 · 定位第 ${r.focus} 节` : '打开整章';
-        return `<button type="button" class="crossIndexRow" data-cross-bible="${i}"><span>${rowSourceBlock('出处', source)}${rowContentBlock(content)}${rowEvidenceBlock(type, why)}</span><i>›</i></button>`;
+        const fallback = r.focus || r.from ? `经文 · 定位第 ${r.focus || r.from} 节` : '打开整章阅读';
+        return `<button type="button" class="crossIndexRow" data-cross-bible="${i}" data-verse-pending="${r.from ? '1' : ''}" aria-label="打开对照：${esc(source)}"><span>${rowSourceBlock('出处', source)}${rowContentBlock(fallback)}${rowEvidenceBlock(type, why)}</span>${rowOpenAffordance()}</button>`;
       }).join('')}${more}`;
+      // Fill 内容 with actual verse text when available (reuse local bible JSON cache).
+      visible.forEach((r, i) => {
+        if (!r?.from) return;
+        verseTextForRef(r).then(textValue => {
+          if (!textValue) return;
+          const sheetNow = detail.querySelector('.crossIndexSheet');
+          if (!sheetNow || sheetNow.hidden) return;
+          const row = sheetNow.querySelector(`.crossIndexRow[data-cross-bible="${i}"] .crossIndexContent .crossIndexBlockBody`);
+          if (row) row.textContent = textValue;
+        });
+      });
     }
   }
 
@@ -676,6 +860,7 @@
     } else {
       markEgwLinks();
     }
+    if (pendingJumpContext) queueMicrotask(applyPendingJumpFocus);
     if (wasOpen) {
       const focus = sheet._focusVerse ? {verse: sheet._focusVerse} : sheet._focusPara ? {paragraphEl: sheet._focusPara} : null;
       openSheet(focus);
@@ -697,6 +882,17 @@
       const items = itemsForSheet(sheet, mode);
       sheet._crossItems = items;
       renderSheet(items, mode);
+      return;
+    }
+    const dismiss = e.target.closest('[data-cross-jump-dismiss]');
+    if (dismiss) { e.preventDefault(); hideAssocJumpBanner(); return; }
+    const suggest = e.target.closest('[data-cross-suggest-bible]');
+    if (suggest) {
+      e.preventDefault();
+      try {
+        const ref = JSON.parse(suggest.dataset.crossSuggestBible || 'null');
+        if (ref) jumpBible(ref);
+      } catch (_) {}
       return;
     }
     if (e.target.closest('[data-cross-index-close]')) { e.preventDefault(); closeSheet(); return; }
@@ -740,7 +936,7 @@
     else if (dx < -72 && Math.abs(dy) < 58 && !detail.querySelector('.crossIndexSheet')?.hidden) closeSheet();
   }, {passive:true});
 
-  detail.addEventListener('close', () => { closeSheet(); });
+  detail.addEventListener('close', () => { closeSheet(); hideAssocJumpBanner(); pendingJumpContext = null; });
 
   const baseRefresh = window.jgRefreshReadAloud;
   if (typeof baseRefresh === 'function') {
@@ -787,6 +983,18 @@
     .crossIndexEmptyAction{display:inline-flex;align-items:center;justify-content:center;min-height:34px;margin-top:10px;padding:0 14px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line))!important;border-radius:999px!important;background:color-mix(in srgb,var(--accent) 10%,var(--surface))!important;color:var(--accent)!important;font-size:12px!important;font-weight:700!important}
     .egwParagraphWrap.crossLinked,.reading>.verse.crossLinked{position:relative;padding-right:46px;background:color-mix(in srgb,var(--accent) 8%,transparent);box-shadow:inset 3px 0 0 color-mix(in srgb,var(--accent) 72%,transparent);border-radius:4px}
     .egwParagraphWrap.crossLinked::after,.reading>.verse.crossLinked::after{content:'关联';position:absolute;right:4px;top:4px;padding:1px 7px;border:1px solid color-mix(in srgb,var(--accent) 38%,var(--line));border-radius:999px;background:color-mix(in srgb,var(--accent) 12%,var(--surface));color:var(--accent);font-family:system-ui,-apple-system,"PingFang SC",sans-serif;font-size:10px;font-weight:750;letter-spacing:.02em;line-height:1.45;opacity:.95}
+
+    .crossIndexOpenHint{flex:0 0 auto;color:var(--accent);font-size:11px;font-style:normal;font-weight:750;letter-spacing:.02em;white-space:nowrap;opacity:.92}
+    .crossIndexRow:active .crossIndexOpenHint,.crossIndexRow:focus-visible .crossIndexOpenHint{opacity:1}
+    .crossIndexSuggest{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);text-align:left}
+    .crossIndexSuggestLabel{display:block;margin:0 0 8px;color:var(--muted);font-size:11px;font-weight:700}
+    .crossIndexSuggestChips{display:flex;flex-wrap:wrap;gap:8px}
+    .crossIndexSuggestChip{min-height:32px!important;padding:0 12px!important;border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line))!important;border-radius:999px!important;background:color-mix(in srgb,var(--accent) 8%,var(--surface))!important;color:var(--accent)!important;font-size:12px!important;font-weight:700!important}
+    .crossIndexJumpBanner{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translateX(-50%);z-index:45;display:flex;align-items:center;gap:10px;max-width:min(92vw,520px);padding:8px 10px 8px 14px;border:1px solid color-mix(in srgb,var(--accent) 36%,var(--line));border-radius:999px;background:color-mix(in srgb,var(--surface) 94%,transparent);color:var(--text);box-shadow:0 8px 28px #0000001a;backdrop-filter:blur(10px);font-size:12.5px;font-weight:650}
+    .crossIndexJumpBanner span{min-width:0;line-height:1.35}
+    .crossIndexJumpBanner button{flex:0 0 auto;min-width:28px;min-height:28px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:18px;line-height:1}
+    .crossJumpFlash{animation:crossJumpFlash 1.4s ease;box-shadow:inset 3px 0 0 color-mix(in srgb,var(--accent) 80%,transparent);background:color-mix(in srgb,var(--accent) 14%,transparent)!important}
+    @keyframes crossJumpFlash{0%{background:color-mix(in srgb,var(--accent) 28%,transparent)}100%{background:color-mix(in srgb,var(--accent) 8%,transparent)}}
     @media(max-width:560px){.crossIndexPanel{padding-left:12px;padding-right:12px}.crossIndexHandle{right:6px;bottom:calc(46px + env(safe-area-inset-bottom))}.crossIndexRow{min-height:52px!important}}
   `;
   document.head.appendChild(style);
