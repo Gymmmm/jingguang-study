@@ -536,6 +536,422 @@
         "kind": "正文引用",
         "why": "官方页标题标明约3:1-21；题日经文约3:21；正文引用约3:14-15（摩西举蛇）。"
       }
+    },
+    {
+      "id": "DA-01-GOD-WITH-US",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第01章 “上帝与我们同在”",
+      "locator": "DAL 1.1–1.12",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.3",
+      "bible_refs": [
+        "约翰福音1:1-14",
+        "马太福音1:23",
+        "以赛亚书7:14"
+      ],
+      "topics": [
+        "道成肉身",
+        "以马内利",
+        "上帝与我们同在"
+      ],
+      "summary": "开篇阐释「上帝与我们同在」，连结约1道成肉身与太1:23以马内利。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题与正文展开「上帝与我们同在」；引用约1:1-14、太1:23等，出处 DAL 1.1 起。"
+      }
+    },
+    {
+      "id": "DA-15-CANA",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第15章 在娶亲的筵席上",
+      "locator": "DAL 1.419–1.430",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.435",
+      "bible_refs": [
+        "约翰福音2:1-11"
+      ],
+      "topics": [
+        "迦拿婚筵",
+        "神迹",
+        "喜乐"
+      ],
+      "summary": "记述迦拿婚筵变水为酒，对应约2:1-11。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "官方中文章节题注写明「根据约2:1-11」；出处 DAL 1.419 起。"
+      }
+    },
+    {
+      "id": "DA-21-BETHESDA",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第21章 毕士大与犹太公会",
+      "locator": "DAL 1.610–1.640",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.632",
+      "bible_refs": [
+        "约翰福音5:1-47",
+        "约翰福音5:24"
+      ],
+      "topics": [
+        "毕士大",
+        "医治",
+        "安息日"
+      ],
+      "summary": "讲述毕士大池旁医治与随后在公会前的见证，对应约5章。",
+      "evidence": {
+        "kind": "正文引用",
+        "why": "正文引用约5:24、约5:39等，讲述毕士大池旁的医治；出处 DAL 1.610 起。"
+      }
+    },
+    {
+      "id": "DA-31-SERMON-MOUNT",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第31章 山上宝训",
+      "locator": "DAL 1.1000–1.1040",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.1006",
+      "bible_refs": [
+        "马太福音5:1-12",
+        "马太福音5:1-48",
+        "马太福音7:24-25",
+        "路加福音6:17-19"
+      ],
+      "topics": [
+        "山上宝训",
+        "八福",
+        "天国"
+      ],
+      "summary": "专章讲解山上宝训与八福，主要对应太5–7章。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章专论山上宝训；正文引用太7:24-25、路6:17-19等，出处 DAL 1.1000 起。"
+      }
+    },
+    {
+      "id": "DA-49-TABERNACLES",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第49章 赴住棚节",
+      "locator": "DAL 1.1480–1.1510",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.1530",
+      "bible_refs": [
+        "约翰福音7:1-53",
+        "约翰福音7:37-39"
+      ],
+      "topics": [
+        "住棚节",
+        "活水",
+        "公开传道"
+      ],
+      "summary": "记述耶稣赴住棚节的教导，对应约7章。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「赴住棚节」，对应约翰福音7章住棚节叙事；出处 DAL 1.1480 起。"
+      }
+    },
+    {
+      "id": "DA-51-LIGHT-OF-LIFE",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第51章 “生命的光”",
+      "locator": "DAL 1.1542–1.1580",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.1594",
+      "bible_refs": [
+        "约翰福音8:12",
+        "约翰福音9:1-41"
+      ],
+      "topics": [
+        "生命的光",
+        "真自由",
+        "医治瞎子"
+      ],
+      "summary": "以「我是世界的光」展开，并连结医治生来瞎眼之人。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题即「生命的光」，对应约8:12；并涉及约9医治瞎子；出处 DAL 1.1542 起。"
+      }
+    },
+    {
+      "id": "DA-52-GOOD-SHEPHERD",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第52章 好牧人",
+      "locator": "DAL 1.1599–1.1620",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.1652",
+      "bible_refs": [
+        "约翰福音10:1-18"
+      ],
+      "topics": [
+        "好牧人",
+        "羊圈",
+        "舍命"
+      ],
+      "summary": "专论好牧人比喻，对应约10:1-18。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「好牧人」，对应约翰福音10章好牧人讲论；出处 DAL 1.1599 起。"
+      }
+    },
+    {
+      "id": "DA-58-LAZARUS",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第58章 “拉撒路出来！”",
+      "locator": "DAL 1.1751–1.1790",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.1810",
+      "bible_refs": [
+        "约翰福音11:1-44",
+        "路加福音10:38-42"
+      ],
+      "topics": [
+        "拉撒路",
+        "复活",
+        "伯大尼"
+      ],
+      "summary": "记述拉撒路复活，对应约11章；并关联马大马利亚的家。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "官方题注含路10:38-42；正文展开约11:1-44拉撒路复活；出处 DAL 1.1751 起。"
+      }
+    },
+    {
+      "id": "DA-67-WOES",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第67章 法利赛人的八祸",
+      "locator": "DAL 1.2041–1.2070",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.2109",
+      "bible_refs": [
+        "马太福音23:1-39"
+      ],
+      "topics": [
+        "法利赛人",
+        "八祸",
+        "假冒为善"
+      ],
+      "summary": "讲解对文士法利赛人的责备，对应太23章。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「法利赛人的八祸」，对应马太福音23章；出处 DAL 1.2041 起。"
+      }
+    },
+    {
+      "id": "DA-69-OLIVES",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第69章 在橄榄山上",
+      "locator": "DAL 1.2105–1.2140",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.2175",
+      "bible_refs": [
+        "马太福音24:1-51",
+        "马太福音24:3-14",
+        "马太福音24:31"
+      ],
+      "topics": [
+        "橄榄山讲论",
+        "末世征兆",
+        "复临"
+      ],
+      "summary": "橄榄山末世讲论，对应太24章。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「在橄榄山上」，对应马太福音24章末世讲论；出处 DAL 1.2105 起。"
+      }
+    },
+    {
+      "id": "DA-71-SERVANT",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第71章 仆人的仆人",
+      "locator": "DAL 1.2160–1.2185",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.2232",
+      "bible_refs": [
+        "约翰福音13:1-17"
+      ],
+      "topics": [
+        "洗脚礼",
+        "仆人",
+        "谦卑"
+      ],
+      "summary": "记述耶稣为门徒洗脚，对应约13:1-17。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「仆人的仆人」，讲述为门徒洗脚，对应约翰福音13章；出处 DAL 1.2160 起。"
+      }
+    },
+    {
+      "id": "DA-74-GETHSEMANE",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第74章 客西马尼",
+      "locator": "DAL 1.2298–1.2330",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.2373",
+      "bible_refs": [
+        "马太福音26:36-46",
+        "马可福音14:32-42"
+      ],
+      "topics": [
+        "客西马尼",
+        "祷告",
+        "降服"
+      ],
+      "summary": "记述客西马尼园的挣扎与顺服，对应太26 / 可14。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「客西马尼」，对应马太福音26:36-46与马可福音14平行经文；出处 DAL 1.2298 起。"
+      }
+    },
+    {
+      "id": "DA-78-CALVARY",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第78章 髑髅地",
+      "locator": "DAL 1.2502–1.2540",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.2581",
+      "bible_refs": [
+        "约翰福音19:16-30",
+        "马太福音27:33-50"
+      ],
+      "topics": [
+        "十字架",
+        "髑髅地",
+        "救赎"
+      ],
+      "summary": "记述髑髅地受难，对应约19与太27。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「髑髅地」，对应受难叙事（约19、太27）；出处 DAL 1.2502 起。"
+      }
+    },
+    {
+      "id": "DA-81-RISEN",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第81章 “主已复活”",
+      "locator": "DAL 1.2619–1.2645",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.2701",
+      "bible_refs": [
+        "马太福音28:1-10",
+        "约翰福音20:1-18"
+      ],
+      "topics": [
+        "复活",
+        "空坟墓",
+        "马利亚"
+      ],
+      "summary": "记述复活清晨的见证，对应太28与约20。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「主已复活」，对应太28与约20复活叙事；出处 DAL 1.2619 起。"
+      }
+    },
+    {
+      "id": "DA-87-TO-MY-FATHER",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第87章 “见我的父，也是你们的父”",
+      "locator": "DAL 1.2779–1.2800",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.2867",
+      "bible_refs": [
+        "约翰福音20:17",
+        "马太福音28:18-20"
+      ],
+      "topics": [
+        "升天",
+        "大使命",
+        "父"
+      ],
+      "summary": "收束于升天嘱咐与大使命，对应约20:17与太28:18-20。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题引自约20:17；并连结太28大使命；出处 DAL 1.2779 起。"
+      }
+    },
+    {
+      "id": "DA-12-TEMPTATION",
+      "author": "Ellen G. White",
+      "title": "The Desire of Ages",
+      "title_cn": "历代愿望",
+      "book_code": "DA",
+      "chapter": "第12章 受试探",
+      "locator": "DAL 1.297–1.340",
+      "language": "zh",
+      "source_type": "official_locator",
+      "source_url": "https://text.egwwritings.org/read/14492.317",
+      "bible_refs": [
+        "马太福音4:1-11",
+        "路加福音4:1-13"
+      ],
+      "topics": [
+        "受试探",
+        "旷野",
+        "圣经的话"
+      ],
+      "summary": "记述旷野受试探，对应太4与路4。",
+      "evidence": {
+        "kind": "资料索引",
+        "why": "本章标题「受试探」，对应马太福音4:1-11与路加福音4平行经文；出处见本章 DAL 段落。"
+      }
     }
   ]
 }

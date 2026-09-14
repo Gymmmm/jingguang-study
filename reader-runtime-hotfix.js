@@ -44,18 +44,26 @@
     catch (_) { return null; }
   }
 
+  function sheetIsOpen() {
+    const sheet = detail.querySelector('.crossIndexSheet');
+    return !!(sheet && !sheet.hidden);
+  }
+
   function setCrossButton() {
-    crossButton.hidden = !isReaderOpen();
+    // Hide floating ↔ while association sheet is open; cross-index restores on close.
+    crossButton.hidden = !isReaderOpen() || sheetIsOpen();
     if (!crossButton.hidden) {
-      crossButton.setAttribute('aria-label', '打开互相索引');
+      crossButton.setAttribute('aria-label', '打开关联');
       crossButton.querySelector('b').textContent = '关联';
     }
   }
 
-  function openCrossIndex() {
+  function openCrossIndex(focus) {
     try { window.jgRefreshCrossIndex?.(); } catch (_) {}
     if (typeof window.jgOpenCrossIndex === 'function') {
-      window.jgOpenCrossIndex();
+      // undefined → let cross-index prefer reading focus; explicit null → chapter scope
+      window.jgOpenCrossIndex(focus);
+      setCrossButton();
       return;
     }
     const tryOpen = () => {
@@ -63,14 +71,26 @@
       if (!handle) return false;
       handle.hidden = false;
       handle.click();
+      setCrossButton();
       return true;
     };
     if (!tryOpen()) setTimeout(tryOpen, 160);
   }
 
+  function focusFromLinked(linked) {
+    if (!linked) return null;
+    if (linked.matches?.('.reading>.verse, .verse') || linked.classList?.contains('verse')) {
+      const verse = +linked.dataset.verse;
+      return Number.isFinite(verse) ? {verse} : null;
+    }
+    const para = linked.querySelector?.('.egwParagraph') || (linked.classList?.contains('egwParagraph') ? linked : null);
+    return para ? {paragraphEl: para} : null;
+  }
+
   crossButton.addEventListener('click', event => {
     event.preventDefault();
     event.stopPropagation();
+    // Prefer reading focus (读到这里 / readingMark) when opening from FAB.
     openCrossIndex();
   });
 
@@ -78,7 +98,7 @@
     body.querySelectorAll('.egwParagraphWrap.crossLinked,.reading>.verse.crossLinked').forEach(row => {
       row.tabIndex = 0;
       row.setAttribute('role', 'button');
-      row.setAttribute('aria-label', '查看这一处的互相索引');
+      row.setAttribute('aria-label', '查看这一处的关联');
     });
   }
 
@@ -87,7 +107,7 @@
     const linked = event.target.closest('.egwParagraphWrap.crossLinked,.reading>.verse.crossLinked');
     if (!linked) return;
     event.preventDefault();
-    openCrossIndex();
+    openCrossIndex(focusFromLinked(linked));
   }, true);
 
   detail.addEventListener('keydown', event => {
@@ -95,7 +115,7 @@
     const linked = event.target.closest('.egwParagraphWrap.crossLinked,.reading>.verse.crossLinked');
     if (!linked) return;
     event.preventDefault();
-    openCrossIndex();
+    openCrossIndex(focusFromLinked(linked));
   });
 
   function clearBottomNav() {
