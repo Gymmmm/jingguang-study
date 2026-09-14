@@ -276,22 +276,29 @@
   line-height:1.55;
 }
 #detail[data-reader-kind="egw-reader"] .crossLinked{
-  background:transparent!important;
-  box-shadow:none!important;
+  background:color-mix(in srgb,var(--egw-accent,var(--accent)) 8%,transparent)!important;
+  box-shadow:inset 3px 0 0 color-mix(in srgb,var(--egw-accent,var(--accent)) 72%,transparent)!important;
 }
 #detail[data-reader-kind="egw-reader"] .egwParagraphWrap.crossLinked::after{
-  content:'↔'!important;
+  content:'关联'!important;
   position:absolute!important;
-  top:2px!important;
-  right:0!important;
+  top:4px!important;
+  right:4px!important;
   margin:0!important;
-  color:var(--egw-accent)!important;
-  opacity:.42!important;
+  padding:1px 7px!important;
+  border:1px solid color-mix(in srgb,var(--egw-accent,var(--accent)) 38%,var(--line))!important;
+  border-radius:999px!important;
+  background:color-mix(in srgb,var(--egw-accent,var(--accent)) 12%,var(--surface))!important;
+  color:var(--egw-accent,var(--accent))!important;
+  opacity:.95!important;
   font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif!important;
-  font-size:9px!important;
+  font-size:10px!important;
+  font-weight:750!important;
+  letter-spacing:.02em!important;
+  line-height:1.45!important;
   transform:none!important;
 }
-#detail[data-reader-kind="egw-reader"] .egwParagraphWrap.crossLinked{position:relative;padding-right:12px}
+#detail[data-reader-kind="egw-reader"] .egwParagraphWrap.crossLinked{position:relative;padding-right:46px}
 #detail[data-reader-kind="egw-reader"] .egwChapterPager{
   margin-top:42px;
   padding-top:17px;

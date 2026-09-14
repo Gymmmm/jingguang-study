@@ -254,4 +254,5 @@
     #detail.is-scrolling .readerQuickBar,#detail.is-scrolling #readerCrossIndex,#detail.is-scrolling>footer{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:color-mix(in srgb,var(--surface) 96%,transparent)!important}
   `;document.head.appendChild(style);
   window.jgOpenNativeEgw=openUrl;
+  window.jgEgwReturnToToc=returnToToc;
 })();

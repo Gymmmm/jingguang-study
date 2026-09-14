@@ -72,6 +72,34 @@ async function openBook(osis){const meta=S.books.find(x=>x[0]===osis),data=await
 function renderBookShelf(){$('bibleShelf').innerHTML='<h2>圣经 · 和合本简体</h2><input id="bibleBookSearch" placeholder="输入书名，例如：约翰福音、诗篇"><div id="bibleBooks"></div>';$('bibleBookSearch').addEventListener('input',renderBibleBooks);renderBibleBooks()}
 document.addEventListener('click',async e=>{const pageBtn=e.target.closest('[data-page]');if(pageBtn){e.preventDefault();page(pageBtn.dataset.page);return}const shelfBtn=e.target.closest('button[data-open-shelf]');if(shelfBtn){e.preventDefault();openShelf(shelfBtn.dataset.openShelf);return}const favBible=e.target.closest('[data-favorite-bible]');if(favBible){const ref=JSON.parse(favBible.dataset.favoriteBible),item={type:'bible',title:`${ref.full} ${ref.chapter}章`,ref};toggleFavorite(item);favBible.textContent=isFavorite(item)?'★ 已收藏':'☆ 收藏本章';return}const unfav=e.target.closest('[data-unfavorite]');if(unfav){write(K.favorites,read(K.favorites).filter(x=>itemId(x)!==unfav.dataset.unfavorite));renderFavorites();home();toast('已取消收藏');return}const clearRecent=e.target.closest('[data-clear-recent-searches]');if(clearRecent){write(K.recent,[]);renderRecentSearches();return}const bk=e.target.closest('[data-book]');if(bk){try{await openBook(bk.dataset.book)}catch{toast('打开书卷失败')}return}if(e.target.closest('[data-books]')){renderBookShelf();return}const q=e.target.closest('[data-query]');if(q){closeDetail();await search(q.dataset.query);return}const b=e.target.closest('[data-bible]');if(b){try{await bibleDetail(JSON.parse(b.dataset.bible))}catch{toast('中文圣经正文暂时读取失败')}return}const g=e.target.closest('[data-egw]');if(g){egwDetail(g.dataset.egw);return}const ab=e.target.closest('[data-add-bible]');if(ab){await addBible(JSON.parse(ab.dataset.addBible));ab.textContent='✓ 已加入材料篮';ab.disabled=true;return}const ag=e.target.closest('[data-add-egw]');if(ag){addEgw(ag.dataset.addEgw);ag.textContent='✓ 已加入材料篮';ag.disabled=true;return}const rm=e.target.closest('[data-remove]');if(rm){const a=read(K.basket);a.splice(+rm.dataset.remove,1);write(K.basket,a);renderBasket();return}const at=e.target.closest('[data-attach]');if(at)attach(at.dataset.attach)});
 window.jgAppNavigationReady=true;
+window.jgOpenBibleChapterPicker=async function(osis){
+  const meta=S.books.find(x=>x[0]===osis);
+  if(!meta)return false;
+  try{
+    saveReadingPosition();
+    const data=await book(osis);
+    const curMatch=String($('detail').dataset.readingKey||'').match(/^bible:[^:]+:(\d+)$/);
+    const curCh=curMatch?+curMatch[1]:null;
+    $('detail').dataset.readerKind='bible-toc';
+    $('detail').dataset.readingKey='';
+    $('detailType').textContent=meta[1]+' · 选择章节';
+    $('detailBody').innerHTML=`<div class="nativeBookHead"><h1>${esc(meta[1])}</h1></div><div class="bibleChapterList readerBibleToc">${data.chapters.map(c=>{
+      const current=c.chapter===curCh;
+      return `<button type="button" class="bibleChapterRow${current?' currentReading':''}" data-bible='${esc(JSON.stringify({osis,full:meta[1],short:meta[2],chapter:c.chapter,from:null,to:null}))}'><span class="egwChapterText"><span class="egwChapterNumber">第${String(c.chapter).padStart(2,'0')}章</span>${current?'<span class="currentReadingLabel">当前阅读</span>':''}</span><b aria-hidden="true">›</b></button>`;
+    }).join('')}</div>`;
+    $('detailActions').innerHTML='';
+    openDetail();
+    window.jgRefreshReadAloud?.();
+    const cur=document.querySelector('.readerBibleToc .currentReading');
+    if(cur)requestAnimationFrame(()=>cur.scrollIntoView({block:'center',behavior:'auto'}));
+    return true;
+  }catch(e){
+    console.warn('bible chapter picker failed',e);
+    toast('打开章节目录失败');
+    return false;
+  }
+};
+
 document.querySelector('.fontTools').addEventListener('click',e=>{const b=e.target.closest('[data-font]');if(!b)return;const d=$('detail');const keep=d.open&&d.dataset.readerKind==='bible-reader'?biblePositionSnapshot():null;bibleFont(+b.dataset.font);if(keep)requestAnimationFrame(()=>{const verses=[...d.querySelectorAll('.reading>.verse')],v=d.querySelector(`.reading>.verse[data-verse="${+keep.verse}"]`)||verses[+keep.index||0];if(!v)return;const offset=Math.max(0,Math.min(1,+keep.offset||0));d.scrollTop=Math.max(0,v.offsetTop+v.offsetHeight*offset-Math.min(140,Math.max(72,d.clientHeight*.18)));markBiblePosition(keep)})});$('detail').addEventListener('scroll',scheduleReadingPosition,{passive:true});$('detail').addEventListener('cancel',saveReadingPosition);
 let searchInputTimer=0,studyComposing=false;document.querySelectorAll('[data-search]').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();clearTimeout(searchInputTimer);search(new FormData(f).get('q'))}));const studyQ=$('studyQ');const scheduleStudySearch=e=>{clearTimeout(searchInputTimer);const q=e.target.value.trim();if(!q){search('');renderRecentSearches();return}searchInputTimer=setTimeout(()=>search(q),280)};studyQ.addEventListener('compositionstart',()=>{studyComposing=true;clearTimeout(searchInputTimer)});studyQ.addEventListener('compositionend',e=>{studyComposing=false;scheduleStudySearch(e)});studyQ.addEventListener('input',e=>{if(studyComposing)return;scheduleStudySearch(e)});$('projectForm').addEventListener('submit',e=>{e.preventDefault();createProject()});$('back').onclick=closeDetail;
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{S.filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('active',x===b));filter()});$('bibleBookSearch').addEventListener('input',renderBibleBooks);$('egwBookSearch').addEventListener('input',renderEgwBooks);$('themeSelect').addEventListener('change',e=>applyTheme(e.target.value));$('projectsList').addEventListener('change',e=>{if(e.target.dataset.notes){const a=projects(),p=a.find(x=>String(x.id)===e.target.dataset.notes);p.research_notes=e.target.value;p.updated_at=new Date().toISOString();write(K.projects,a);home()}});applyTheme();bibleFont();loadData();

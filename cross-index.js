@@ -785,8 +785,8 @@
     .crossIndexPanel>header b{font-size:14px;line-height:1.35;max-width:min(78vw,520px)}
     .crossIndexEmpty{padding:20px 4px;color:var(--muted);font-size:12px;text-align:center;line-height:1.55}
     .crossIndexEmptyAction{display:inline-flex;align-items:center;justify-content:center;min-height:34px;margin-top:10px;padding:0 14px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line))!important;border-radius:999px!important;background:color-mix(in srgb,var(--accent) 10%,var(--surface))!important;color:var(--accent)!important;font-size:12px!important;font-weight:700!important}
-    .egwParagraphWrap.crossLinked,.reading>.verse.crossLinked{position:relative}
-    .egwParagraphWrap.crossLinked::after,.reading>.verse.crossLinked::after{content:'↔';position:absolute;right:1px;top:2px;color:var(--accent);font-family:system-ui,sans-serif;font-size:8px;font-weight:700;opacity:.42}
+    .egwParagraphWrap.crossLinked,.reading>.verse.crossLinked{position:relative;padding-right:46px;background:color-mix(in srgb,var(--accent) 8%,transparent);box-shadow:inset 3px 0 0 color-mix(in srgb,var(--accent) 72%,transparent);border-radius:4px}
+    .egwParagraphWrap.crossLinked::after,.reading>.verse.crossLinked::after{content:'关联';position:absolute;right:4px;top:4px;padding:1px 7px;border:1px solid color-mix(in srgb,var(--accent) 38%,var(--line));border-radius:999px;background:color-mix(in srgb,var(--accent) 12%,var(--surface));color:var(--accent);font-family:system-ui,-apple-system,"PingFang SC",sans-serif;font-size:10px;font-weight:750;letter-spacing:.02em;line-height:1.45;opacity:.95}
     @media(max-width:560px){.crossIndexPanel{padding-left:12px;padding-right:12px}.crossIndexHandle{right:6px;bottom:calc(46px + env(safe-area-inset-bottom))}.crossIndexRow{min-height:52px!important}}
   `;
   document.head.appendChild(style);

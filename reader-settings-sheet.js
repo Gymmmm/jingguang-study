@@ -80,14 +80,14 @@
         <div class="readerSettingsGroup">
           <h3>朗读</h3>
           <div class="readerAudioControl">
-            <button type="button" data-reader-audio-step="-1" aria-label="后退">
-              <span class="readerSkipIcon">↺15</span>
+            <button type="button" data-reader-audio-step="-1" aria-label="上一段">
+              <span class="readerSkipIcon">上一段</span>
             </button>
             <button type="button" class="readerSheetPlay" data-reader-sheet-tts aria-label="朗读">
               <span>▶</span>
             </button>
-            <button type="button" data-reader-audio-step="1" aria-label="前进">
-              <span class="readerSkipIcon">↻15</span>
+            <button type="button" data-reader-audio-step="1" aria-label="下一段">
+              <span class="readerSkipIcon">下一段</span>
             </button>
           </div>
           <div class="readerRateRow" aria-label="朗读速度">
@@ -159,7 +159,7 @@
     const headerFav = q('.fontTools [data-reader-header-favorite]');
     if (headerToc) {
       headerToc.hidden = !show;
-      headerToc.setAttribute('aria-label', detail.dataset.readerKind === 'egw-reader' ? '返回本书目录' : '返回目录');
+      headerToc.setAttribute('aria-label', detail.dataset.readerKind === 'egw-reader' ? '本书目录' : '本章目录');
     }
     if (headerFav) {
       const src = favoriteSource();
@@ -220,7 +220,7 @@
     }
     const tocBtn = q('[data-reader-sheet-toc]', sheet);
     if (tocBtn) {
-      tocBtn.setAttribute('aria-label', detail.dataset.readerKind === 'egw-reader' ? '返回本书目录' : '返回目录');
+      tocBtn.setAttribute('aria-label', detail.dataset.readerKind === 'egw-reader' ? '本书目录' : '本章目录');
     }
   }
 
@@ -274,7 +274,18 @@
     }
     if (event.target.closest?.('[data-reader-sheet-toc], [data-reader-header-toc]')) {
       ensureSheet().hidden = true;
-      detail.querySelector('#back')?.click();
+      const kind = detail.dataset.readerKind || '';
+      if (kind === 'egw-reader') {
+        if (typeof window.jgEgwReturnToToc === 'function') window.jgEgwReturnToToc();
+        return;
+      }
+      if (kind === 'bible-reader') {
+        const m = String(detail.dataset.readingKey || '').match(/^bible:([^:]+):/);
+        if (m && typeof window.jgOpenBibleChapterPicker === 'function') {
+          window.jgOpenBibleChapterPicker(m[1]);
+        }
+        return;
+      }
       return;
     }
     if (event.target.closest?.('[data-reader-sheet-favorite], [data-reader-header-favorite]')) {
@@ -347,7 +358,7 @@
     .readerAudioControl{display:grid;grid-template-columns:1fr 64px 1fr;align-items:center;margin:0 0 12px}
     .readerAudioControl button{border:0!important;background:transparent!important;color:var(--text)!important;display:flex;align-items:center;justify-content:center;min-height:48px!important}
     .readerAudioControl button:disabled{opacity:.24}
-    .readerSkipIcon{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1.5px solid var(--line);border-radius:50%;font-size:12px;font-weight:700;color:var(--text)}
+    .readerSkipIcon{display:inline-flex;align-items:center;justify-content:center;min-width:64px;height:40px;padding:0 10px;border:1.5px solid var(--line);border-radius:999px;font-size:12px;font-weight:700;color:var(--text);white-space:nowrap}
     .readerSettingsSheet button.readerSheetPlay{width:58px;height:58px;min-height:58px!important;justify-self:center;border:0!important;border-radius:50%!important;background:var(--accent)!important;color:#fff!important;box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 28%,transparent)}
     .readerSettingsSheet button.readerSheetPlay>span{font-size:18px!important;font-weight:800;color:#fff!important}
     .readerRateRow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
@@ -368,6 +379,10 @@
     .bibleReaderIntro h1{margin:0;font-family:var(--font-reading);font-size:22px;line-height:1.35;font-weight:700;color:var(--text)}
     #detail[data-reader-kind="bible-reader"]>header>#back,
     #detail[data-reader-kind="egw-reader"]>header>#back{font-weight:600}
+    .readerBibleToc{margin-top:0}
+    .readerBibleToc .bibleChapterRow{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;background:transparent;border:0;border-bottom:1px solid color-mix(in srgb,var(--line) 88%,transparent);border-radius:0;padding:8px 4px;font:inherit;min-height:56px;cursor:pointer;color:var(--text)}
+    .readerBibleToc .bibleChapterRow.currentReading{background:color-mix(in srgb,var(--soft) 55%,transparent);box-shadow:inset 2px 0 0 var(--accent)}
+    .readerBibleToc .bibleChapterRow>b{flex:0 0 auto;font-size:23px;color:color-mix(in srgb,var(--muted) 70%,transparent);font-weight:400;line-height:1}
     @media(max-width:390px){.readerSettingsSheet{padding-left:14px;padding-right:14px}.readerThemeRow,.readerRateRow{gap:5px}.bibleReaderIntro h1{font-size:20px}}
   `;
   document.head.appendChild(style);
