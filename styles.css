@@ -1,4 +1,4 @@
-/* 救赎的历史 — unified study-desk design system (2026 redesign)
+/* 圣经与预言之灵研经 — unified study-desk design system (2026 redesign)
    Tokens + app shell + shared components + page surfaces.
    Reader bottom chrome / EGW shelf / 关联 sheet stay in their dedicated CSS/JS layers. */
 
@@ -1020,11 +1020,26 @@ dialog>footer>*,
   font-size:13px;
   font-weight:700;
 }
-#detailActions>*:last-child:not(:disabled){
+#detailActions>button.primary:not(:disabled),
+#detailActions>*:last-child:not(:disabled):not(.detailSecondaryLink){
   border-color:var(--accent);
   background:var(--accent);
   color:#fff;
 }
+#detailActions .detailSecondaryLink{
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:500;
+  text-decoration:underline;
+  text-underline-offset:3px;
+  box-shadow:none;
+}
+.app.hasHeaderContext>header{
+  justify-content:space-between;
+}
+.studyPromptQuiet strong{font-size:15px}
 #detailActions>*:disabled{opacity:.5}
 
 .app button:not(.egwAlphaRail button),dialog button{min-height:44px}

@@ -21,14 +21,36 @@
     const tools = q('.fontTools');
     if (!tools) return null;
     let btn = tools.querySelector('[data-reader-settings-open]');
-    if (btn) return btn;
-    btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'readerSettingsTrigger';
-    btn.dataset.readerSettingsOpen = '1';
-    btn.setAttribute('aria-label', '阅读设置');
-    btn.textContent = 'Aa';
-    tools.prepend(btn);
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'readerSettingsTrigger';
+      btn.dataset.readerSettingsOpen = '1';
+      btn.setAttribute('aria-label', '阅读设置');
+      btn.textContent = 'Aa';
+      tools.prepend(btn);
+    }
+    // Discoverable 目录 / 收藏 next to Aa (same actions as settings「更多」).
+    let toc = tools.querySelector('[data-reader-header-toc]');
+    if (!toc) {
+      toc = document.createElement('button');
+      toc.type = 'button';
+      toc.className = 'readerHeaderAction';
+      toc.dataset.readerHeaderToc = '1';
+      toc.setAttribute('aria-label', '目录');
+      toc.textContent = '目录';
+      btn.insertAdjacentElement('afterend', toc);
+    }
+    let fav = tools.querySelector('[data-reader-header-favorite]');
+    if (!fav) {
+      fav = document.createElement('button');
+      fav.type = 'button';
+      fav.className = 'readerHeaderAction';
+      fav.dataset.readerHeaderFavorite = '1';
+      fav.setAttribute('aria-label', '收藏');
+      fav.textContent = '收藏';
+      toc.insertAdjacentElement('afterend', fav);
+    }
     // Keep a single Aa affordance; hide any leftover overflow trigger.
     tools.querySelectorAll('[data-reader-more]').forEach(el => { el.hidden = true; });
     return btn;
@@ -133,6 +155,20 @@
     const sheet = ensureSheet();
     const show = detail.open && readable();
     if (trigger) trigger.hidden = !show;
+    const headerToc = q('.fontTools [data-reader-header-toc]');
+    const headerFav = q('.fontTools [data-reader-header-favorite]');
+    if (headerToc) {
+      headerToc.hidden = !show;
+      headerToc.setAttribute('aria-label', detail.dataset.readerKind === 'egw-reader' ? '返回本书目录' : '返回目录');
+    }
+    if (headerFav) {
+      const src = favoriteSource();
+      const on = /已收藏|★/.test(String(src?.textContent || ''));
+      headerFav.hidden = !show;
+      headerFav.textContent = on ? '★' : '收藏';
+      headerFav.setAttribute('aria-label', on ? '取消收藏' : '收藏本章');
+      headerFav.disabled = !src;
+    }
     const more = q('.readerMoreTrigger');
     if (more) more.hidden = true;
     if (!show) sheet.hidden = true;
@@ -236,12 +272,12 @@
       }
       return;
     }
-    if (event.target.closest?.('[data-reader-sheet-toc]')) {
+    if (event.target.closest?.('[data-reader-sheet-toc], [data-reader-header-toc]')) {
       ensureSheet().hidden = true;
       detail.querySelector('#back')?.click();
       return;
     }
-    if (event.target.closest?.('[data-reader-sheet-favorite]')) {
+    if (event.target.closest?.('[data-reader-sheet-favorite], [data-reader-header-favorite]')) {
       const src = favoriteSource();
       if (src) {
         src.click();
@@ -293,6 +329,9 @@
     .fontTools>[data-font]{display:none!important}
     .readerSettingsTrigger[hidden],.readerMoreTrigger[hidden],.readerSettingsBackdrop[hidden]{display:none!important}
     .readerSettingsTrigger{font-size:15px!important;letter-spacing:-.02em;min-width:40px!important}
+    .fontTools .readerHeaderAction{min-width:40px!important;padding:0 5px!important;border:0!important;background:transparent!important;color:var(--text)!important;font-size:12px!important;font-weight:650!important;letter-spacing:0}
+    .fontTools .readerHeaderAction:disabled{opacity:.28}
+    @media(max-width:390px){.fontTools .readerHeaderAction{min-width:34px!important;font-size:11px!important;padding:0 3px!important}}
     .readerMoreTrigger{display:none!important}
     .readerSettingsBackdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;background:rgba(22,24,22,.36)}
     .readerSettingsSheet{width:min(720px,100%);max-height:86%;margin:0 auto;padding:8px 18px calc(22px + env(safe-area-inset-bottom));overflow:auto;border-radius:22px 22px 0 0;background:var(--surface);color:var(--text);box-shadow:0 -18px 48px rgba(20,24,21,.13)}

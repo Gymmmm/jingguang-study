@@ -67,7 +67,7 @@
       if(active){
         appLogo.hidden=false;
         appLogo.removeAttribute('aria-hidden');
-        appLogo.textContent='预言之灵';
+        appLogo.textContent='怀著';
       }else{
         appLogo.hidden=true;
         appLogo.setAttribute('aria-hidden','true');

@@ -782,6 +782,491 @@
         "ED-29-SABBATH",
         "CCH-47-SABBATH"
       ]
+    },
+    {
+      "bible_ref": "马可福音2:27-28",
+      "normalized": "Mark 2:27-28",
+      "themes": [
+        "安息日",
+        "为人设立",
+        "主"
+      ],
+      "related_bible": [
+        "出埃及记20:8-11",
+        "马太福音12:8"
+      ],
+      "egw_ids": [
+        "DA-29-SABBATH",
+        "GC-25-ETERNAL-LAW",
+        "CCH-47-SABBATH"
+      ]
+    },
+    {
+      "bible_ref": "出埃及记31:13-17",
+      "normalized": "Exod 31:13-17",
+      "themes": [
+        "安息日",
+        "永约",
+        "分别为圣"
+      ],
+      "related_bible": [
+        "出埃及记20:8-11",
+        "以西结书20:12"
+      ],
+      "egw_ids": [
+        "DA-29-SABBATH",
+        "GC-25-ETERNAL-LAW",
+        "6T-44-SABBATH"
+      ]
+    },
+    {
+      "bible_ref": "以西结书20:12",
+      "normalized": "Ezek 20:12",
+      "themes": [
+        "安息日",
+        "记号",
+        "分别为圣"
+      ],
+      "related_bible": [
+        "出埃及记31:13",
+        "以西结书20:20"
+      ],
+      "egw_ids": [
+        "DA-29-SABBATH",
+        "GC-25-ETERNAL-LAW"
+      ]
+    },
+    {
+      "bible_ref": "希伯来书4:9-10",
+      "normalized": "Heb 4:9-10",
+      "themes": [
+        "安息日",
+        "安息",
+        "上帝的安息"
+      ],
+      "related_bible": [
+        "创世记2:1-3",
+        "出埃及记20:8-11"
+      ],
+      "egw_ids": [
+        "DA-29-SABBATH",
+        "ED-29-SABBATH",
+        "GC-25-ETERNAL-LAW"
+      ]
+    },
+    {
+      "bible_ref": "启示录14:12",
+      "normalized": "Rev 14:12",
+      "themes": [
+        "安息日",
+        "上帝诫命",
+        "耶稣真道",
+        "末世"
+      ],
+      "related_bible": [
+        "出埃及记20:8-11",
+        "启示录14:6-12"
+      ],
+      "egw_ids": [
+        "GC-25-ETERNAL-LAW",
+        "EW-VISIONS",
+        "EV-08-DISTINCTIVE"
+      ]
+    },
+    {
+      "bible_ref": "希伯来书8:1-5",
+      "normalized": "Heb 8:1-5",
+      "themes": [
+        "圣所",
+        "天上圣所",
+        "大祭司",
+        "预表"
+      ],
+      "related_bible": [
+        "出埃及记25:8",
+        "希伯来书9:11-12",
+        "但以理书8:14"
+      ],
+      "egw_ids": [
+        "GC-23-SANCTUARY",
+        "CIHS-TYPE-SHADOW",
+        "CIHS-HIGH-PRIEST"
+      ]
+    },
+    {
+      "bible_ref": "希伯来书9:11-12",
+      "normalized": "Heb 9:11-12",
+      "themes": [
+        "圣所",
+        "至圣所",
+        "血",
+        "一次献上"
+      ],
+      "related_bible": [
+        "希伯来书9:24",
+        "利未记16章"
+      ],
+      "egw_ids": [
+        "GC-23-SANCTUARY",
+        "GC-24-MOST-HOLY",
+        "CIHS-HIGH-PRIEST"
+      ]
+    },
+    {
+      "bible_ref": "希伯来书9:24",
+      "normalized": "Heb 9:24",
+      "themes": [
+        "圣所",
+        "真圣所",
+        "中保"
+      ],
+      "related_bible": [
+        "希伯来书8:1-5",
+        "希伯来书9:11-12"
+      ],
+      "egw_ids": [
+        "GC-24-MOST-HOLY",
+        "CIHS-HIGH-PRIEST"
+      ]
+    },
+    {
+      "bible_ref": "出埃及记25:8-9",
+      "normalized": "Exod 25:8-9",
+      "themes": [
+        "圣所",
+        "样式",
+        "同住"
+      ],
+      "related_bible": [
+        "希伯来书8:5",
+        "希伯来书9:23"
+      ],
+      "egw_ids": [
+        "GC-23-SANCTUARY",
+        "CIHS-TYPE-SHADOW"
+      ]
+    },
+    {
+      "bible_ref": "利未记16:29-34",
+      "normalized": "Lev 16:29-34",
+      "themes": [
+        "圣所",
+        "赎罪日",
+        "至圣所",
+        "洁净"
+      ],
+      "related_bible": [
+        "但以理书8:14",
+        "希伯来书9章"
+      ],
+      "egw_ids": [
+        "GC-24-MOST-HOLY",
+        "CIHS-FINAL-WORK",
+        "CIHS-2300"
+      ]
+    },
+    {
+      "bible_ref": "但以理书7:9-10",
+      "normalized": "Dan 7:9-10",
+      "themes": [
+        "圣所",
+        "审判",
+        "案卷",
+        "宝座"
+      ],
+      "related_bible": [
+        "但以理书8:14",
+        "启示录14:6-7"
+      ],
+      "egw_ids": [
+        "GC-24-MOST-HOLY",
+        "CIHS-2300",
+        "GC-22-PROPHECY"
+      ]
+    },
+    {
+      "bible_ref": "使徒行传1:9-11",
+      "normalized": "Acts 1:9-11",
+      "themes": [
+        "基督复临",
+        "升天",
+        "同样再来"
+      ],
+      "related_bible": [
+        "约翰福音14:1-3",
+        "帖撒罗尼迦前书4:16-17"
+      ],
+      "egw_ids": [
+        "DA-73-LET-NOT",
+        "GC-40-DELIVERANCE",
+        "FHC-SECOND-COMING"
+      ]
+    },
+    {
+      "bible_ref": "启示录1:7",
+      "normalized": "Rev 1:7",
+      "themes": [
+        "基督复临",
+        "众目看见",
+        "云彩"
+      ],
+      "related_bible": [
+        "马太福音24:30",
+        "使徒行传1:9-11"
+      ],
+      "egw_ids": [
+        "GC-40-DELIVERANCE",
+        "FHC-369-SECOND-COMING",
+        "DA-69-OLIVES"
+      ]
+    },
+    {
+      "bible_ref": "马太福音24:30",
+      "normalized": "Matt 24:30",
+      "themes": [
+        "基督复临",
+        "人子的兆头",
+        "地上万族"
+      ],
+      "related_bible": [
+        "启示录1:7",
+        "马太福音24:31"
+      ],
+      "egw_ids": [
+        "DA-69-OLIVES",
+        "GC-40-DELIVERANCE",
+        "FHC-369-SECOND-COMING"
+      ]
+    },
+    {
+      "bible_ref": "马太福音25:31-46",
+      "normalized": "Matt 25:31-46",
+      "themes": [
+        "基督复临",
+        "审判",
+        "怜悯",
+        "最小的"
+      ],
+      "related_bible": [
+        "马太福音24:30-31",
+        "约翰福音14:1-3"
+      ],
+      "egw_ids": [
+        "DA-70-LEAST",
+        "DA-69-OLIVES"
+      ]
+    },
+    {
+      "bible_ref": "帖撒罗尼迦前书4:16-17",
+      "normalized": "1Thess 4:16-17",
+      "themes": [
+        "基督复临",
+        "复活",
+        "被提",
+        "号筒"
+      ],
+      "related_bible": [
+        "使徒行传1:9-11",
+        "约翰福音14:1-3"
+      ],
+      "egw_ids": [
+        "GC-40-DELIVERANCE",
+        "FHC-SECOND-COMING",
+        "FHC-375-SECOND-COMING"
+      ]
+    },
+    {
+      "bible_ref": "马太福音5:13-16",
+      "normalized": "Matt 5:13-16",
+      "themes": [
+        "山上宝训",
+        "盐",
+        "光",
+        "见见证"
+      ],
+      "related_bible": [
+        "马太福音5:1-12",
+        "腓立比书2:15"
+      ],
+      "egw_ids": [
+        "DA-31-SERMON-MOUNT"
+      ]
+    },
+    {
+      "bible_ref": "马太福音5:17-20",
+      "normalized": "Matt 5:17-20",
+      "themes": [
+        "山上宝训",
+        "成全律法",
+        "天国"
+      ],
+      "related_bible": [
+        "马太福音5:1-12",
+        "出埃及记20:1-17"
+      ],
+      "egw_ids": [
+        "DA-31-SERMON-MOUNT",
+        "GC-25-ETERNAL-LAW"
+      ]
+    },
+    {
+      "bible_ref": "马太福音6:9-13",
+      "normalized": "Matt 6:9-13",
+      "themes": [
+        "山上宝训",
+        "主祷文",
+        "祷告"
+      ],
+      "related_bible": [
+        "路加福音11:1-4",
+        "马太福音6:7"
+      ],
+      "egw_ids": [
+        "DA-31-SERMON-MOUNT",
+        "FHC-019-PRAYER-EXAMPLE"
+      ]
+    },
+    {
+      "bible_ref": "马太福音6:33",
+      "normalized": "Matt 6:33",
+      "themes": [
+        "山上宝训",
+        "先求天国",
+        "义"
+      ],
+      "related_bible": [
+        "马太福音6:19-34",
+        "马太福音5:6"
+      ],
+      "egw_ids": [
+        "DA-31-SERMON-MOUNT"
+      ]
+    },
+    {
+      "bible_ref": "马太福音7:12",
+      "normalized": "Matt 7:12",
+      "themes": [
+        "山上宝训",
+        "金科玉律",
+        "律法和先知"
+      ],
+      "related_bible": [
+        "马太福音22:37-40",
+        "路加福音6:31"
+      ],
+      "egw_ids": [
+        "DA-31-SERMON-MOUNT"
+      ]
+    },
+    {
+      "bible_ref": "路加福音6:20-23",
+      "normalized": "Luke 6:20-23",
+      "themes": [
+        "山上宝训",
+        "八福",
+        "平原宝训"
+      ],
+      "related_bible": [
+        "马太福音5:1-12"
+      ],
+      "egw_ids": [
+        "DA-31-SERMON-MOUNT"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音4:7-26",
+      "normalized": "John 4:7-26",
+      "themes": [
+        "活水",
+        "敬拜",
+        "撒玛利亚妇人"
+      ],
+      "related_bible": [
+        "约翰福音4:1-42",
+        "约翰福音7:37-39"
+      ],
+      "egw_ids": [
+        "DA-19-JACOBS-WELL"
+      ]
+    },
+    {
+      "bible_ref": "马太福音11:28-30",
+      "normalized": "Matt 11:28-30",
+      "themes": [
+        "邀请",
+        "负轭",
+        "得安息"
+      ],
+      "related_bible": [
+        "马太福音11:25-30",
+        "希伯来书4:9-10"
+      ],
+      "egw_ids": [
+        "DA-34-INVITATION"
+      ]
+    },
+    {
+      "bible_ref": "马太福音3:13-17",
+      "normalized": "Matt 3:13-17",
+      "themes": [
+        "受洗",
+        "天开了",
+        "爱子"
+      ],
+      "related_bible": [
+        "马可福音1:9-11",
+        "约翰福音1:29-34"
+      ],
+      "egw_ids": [
+        "DA-11-BAPTISM"
+      ]
+    },
+    {
+      "bible_ref": "马太福音26:26-29",
+      "normalized": "Matt 26:26-29",
+      "themes": [
+        "圣餐",
+        "记念",
+        "新约"
+      ],
+      "related_bible": [
+        "哥林多前书11:23-26",
+        "路加福音22:19-20"
+      ],
+      "egw_ids": [
+        "DA-72-REMEMBRANCE"
+      ]
+    },
+    {
+      "bible_ref": "哥林多前书11:23-26",
+      "normalized": "1Cor 11:23-26",
+      "themes": [
+        "圣餐",
+        "记念",
+        "主的死"
+      ],
+      "related_bible": [
+        "马太福音26:26-29"
+      ],
+      "egw_ids": [
+        "DA-72-REMEMBRANCE"
+      ]
+    },
+    {
+      "bible_ref": "马太福音21:12-13",
+      "normalized": "Matt 21:12-13",
+      "themes": [
+        "圣殿",
+        "洁净",
+        "祷告的殿"
+      ],
+      "related_bible": [
+        "约翰福音2:13-17",
+        "以赛亚书56:7"
+      ],
+      "egw_ids": [
+        "DA-65-TEMPLE"
+      ]
     }
   ]
 }
