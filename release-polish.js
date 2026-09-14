@@ -171,7 +171,12 @@
   function reasonForEgw(record, bibleRef) {
     if (record?.evidence?.why) {
       const kind = record.evidence.kind ? `【${record.evidence.kind}】` : '';
-      return `关联依据：${kind}${record.evidence.why}`;
+      const why = record.evidence.why;
+      const label = typeof why === 'string' ? why
+        : (why && typeof why === 'object' && (why.full || why.osis)) ? refLabel(why)
+        : (why && typeof why === 'object' && (why.bible_ref || why.normalized || why.label)) ? String(why.bible_ref || why.normalized || why.label)
+        : '';
+      if (label) return `关联依据：${kind}${label}`;
     }
     const direct = (record?.bible_refs || []).filter(v => sameChapter(parseRef(v), bibleRef));
     if (direct.length) return `关联依据：该怀著资料明确标注 ${direct.slice(0,2).join('、')}`;

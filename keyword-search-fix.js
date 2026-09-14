@@ -129,6 +129,7 @@
     loading.dataset.kind='egw';
     loading.textContent=`正在搜索怀著全文：“${q}”…`;
     host.appendChild(loading);
+    if (typeof filter === 'function') filter();
     try{
       const r=await fetch(`/api/egw-search?q=${encodeURIComponent(q)}`);
       const j=await r.json();
@@ -143,10 +144,11 @@
       heading.dataset.kind='egw';
       heading.textContent=`怀著 · ${unique.length} 条结果`;
       host.appendChild(heading);
+      if (typeof filter === 'function') filter();
       if(!unique.length){
         const empty=document.createElement('div');empty.className='empty';empty.dataset.kind='egw';
         empty.textContent=`没有找到“${q}”的怀爱伦著作正文结果。`;
-        host.appendChild(empty);return;
+        host.appendChild(empty);if (typeof filter === 'function') filter();return;
       }
       unique.forEach((row,i)=>{
         const title=chineseResultText(row.title)||`怀爱伦著作结果 ${i+1}`,snippet=resultExcerpt(row.snippet,q),chapter=parseChapter(`${title} ${snippet}`);
@@ -155,12 +157,14 @@
         card.innerHTML=`<div class="top"><span class="badge egw">怀著</span><span class="title">${esc(title)}</span><span class="chevron">›</span></div>${chapter?`<div class="egwResultChapter">${esc(chapter)}</div>`:''}<div class="snippet">${highlight(snippet,q)}</div><div class="meta">点开阅读原文</div>`;
         host.appendChild(card);
       });
+      if (typeof filter === 'function') filter();
     }catch(e){
       loading.remove();
       if(requestId!==officialSearchSeq||!host.isConnected)return;
       const card=document.createElement('article');card.className='empty';card.dataset.kind='egw';card.dataset.egwOfficialSearch='1';
       card.textContent='怀爱伦著作正文暂时无法读取，请稍后在本站重试。';
       host.appendChild(card);
+      if (typeof filter === 'function') filter();
     }
   }
 
