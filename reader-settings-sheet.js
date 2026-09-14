@@ -28,17 +28,8 @@
     btn.setAttribute('aria-label', '阅读设置');
     btn.textContent = 'Aa';
     tools.prepend(btn);
-    // optional overflow affordance (visual only; Aa remains primary)
-    if (!tools.querySelector('[data-reader-more]')) {
-      const more = document.createElement('button');
-      more.type = 'button';
-      more.className = 'readerMoreTrigger';
-      more.dataset.readerMore = '1';
-      more.dataset.readerSettingsOpen = '1';
-      more.setAttribute('aria-label', '更多');
-      more.textContent = '···';
-      tools.appendChild(more);
-    }
+    // Keep a single Aa affordance; hide any leftover overflow trigger.
+    tools.querySelectorAll('[data-reader-more]').forEach(el => { el.hidden = true; });
     return btn;
   }
 
@@ -140,7 +131,7 @@
     const show = detail.open && readable();
     if (trigger) trigger.hidden = !show;
     const more = q('.readerMoreTrigger');
-    if (more) more.hidden = !show;
+    if (more) more.hidden = true;
     if (!show) sheet.hidden = true;
 
     const s = state();
@@ -269,8 +260,8 @@
   style.textContent = `
     .fontTools>[data-font]{display:none!important}
     .readerSettingsTrigger[hidden],.readerMoreTrigger[hidden],.readerSettingsBackdrop[hidden]{display:none!important}
-    .readerSettingsTrigger,.readerMoreTrigger{font-size:15px!important;letter-spacing:-.02em;min-width:40px!important}
-    .readerMoreTrigger{font-size:18px!important;letter-spacing:.04em;font-weight:700!important}
+    .readerSettingsTrigger{font-size:15px!important;letter-spacing:-.02em;min-width:40px!important}
+    .readerMoreTrigger{display:none!important}
     .readerSettingsBackdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;background:rgba(22,24,22,.36)}
     .readerSettingsSheet{width:min(720px,100%);max-height:86%;margin:0 auto;padding:8px 18px calc(22px + env(safe-area-inset-bottom));overflow:auto;border-radius:22px 22px 0 0;background:var(--surface);color:var(--text);box-shadow:0 -18px 48px rgba(20,24,21,.13)}
     .readerSettingsHandle{width:36px;height:4px;margin:0 auto 8px;border-radius:99px;background:var(--line)}

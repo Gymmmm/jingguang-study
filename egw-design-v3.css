@@ -45,6 +45,7 @@
   font-weight:700;
   letter-spacing:.035em;
 }
+.app.egwShelfContext>header .logo::after{display:none!important}
 .app.egwShelfContext>header .egwHeaderSearch{
   color:var(--egw-accent)!important;
 }
