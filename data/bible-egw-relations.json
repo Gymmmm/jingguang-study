@@ -339,6 +339,449 @@
       "egw_ids": [
         "DA-17-NICODEMUS"
       ]
+    },
+    {
+      "bible_ref": "约翰福音1:1-14",
+      "normalized": "John 1:1-14",
+      "themes": [
+        "道成肉身",
+        "以马内利",
+        "真光"
+      ],
+      "related_bible": [
+        "马太福音1:23",
+        "以赛亚书7:14",
+        "创世记1:1"
+      ],
+      "egw_ids": [
+        "DA-01-GOD-WITH-US",
+        "DA-29-SABBATH"
+      ]
+    },
+    {
+      "bible_ref": "马太福音1:23",
+      "normalized": "Matt 1:23",
+      "themes": [
+        "以马内利",
+        "上帝与我们同在"
+      ],
+      "related_bible": [
+        "约翰福音1:14",
+        "以赛亚书7:14"
+      ],
+      "egw_ids": [
+        "DA-01-GOD-WITH-US"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音2:1-11",
+      "normalized": "John 2:1-11",
+      "themes": [
+        "迦拿婚筵",
+        "神迹",
+        "荣耀"
+      ],
+      "related_bible": [
+        "约翰福音1:50"
+      ],
+      "egw_ids": [
+        "DA-15-CANA"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音5:1-47",
+      "normalized": "John 5:1-47",
+      "themes": [
+        "毕士大",
+        "医治",
+        "安息日"
+      ],
+      "related_bible": [
+        "约翰福音5:24",
+        "出埃及记20:8-11"
+      ],
+      "egw_ids": [
+        "DA-21-BETHESDA"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音5:24",
+      "normalized": "John 5:24",
+      "themes": [
+        "出死入生",
+        "听道信的人"
+      ],
+      "related_bible": [
+        "约翰福音3:16"
+      ],
+      "egw_ids": [
+        "DA-21-BETHESDA"
+      ]
+    },
+    {
+      "bible_ref": "马太福音5:1-12",
+      "normalized": "Matt 5:1-12",
+      "themes": [
+        "八福",
+        "山上宝训"
+      ],
+      "related_bible": [
+        "路加福音6:20-23",
+        "马太福音7:24-25"
+      ],
+      "egw_ids": [
+        "DA-31-SERMON-MOUNT"
+      ]
+    },
+    {
+      "bible_ref": "马太福音5:1-48",
+      "normalized": "Matt 5:1-48",
+      "themes": [
+        "山上宝训",
+        "天国律法"
+      ],
+      "related_bible": [
+        "马太福音6章",
+        "马太福音7章"
+      ],
+      "egw_ids": [
+        "DA-31-SERMON-MOUNT"
+      ]
+    },
+    {
+      "bible_ref": "马太福音7:24-25",
+      "normalized": "Matt 7:24-25",
+      "themes": [
+        "盘石上盖房",
+        "遵行主道"
+      ],
+      "related_bible": [
+        "马太福音5:1-12"
+      ],
+      "egw_ids": [
+        "DA-31-SERMON-MOUNT"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音7:37-39",
+      "normalized": "John 7:37-39",
+      "themes": [
+        "活水",
+        "圣灵",
+        "住棚节"
+      ],
+      "related_bible": [
+        "约翰福音4:14",
+        "以赛亚书55:1"
+      ],
+      "egw_ids": [
+        "DA-49-TABERNACLES"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音7:1-53",
+      "normalized": "John 7:1-53",
+      "themes": [
+        "住棚节",
+        "公开传道"
+      ],
+      "related_bible": [
+        "约翰福音7:37-39"
+      ],
+      "egw_ids": [
+        "DA-49-TABERNACLES"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音8:12",
+      "normalized": "John 8:12",
+      "themes": [
+        "世界的光",
+        "生命的光"
+      ],
+      "related_bible": [
+        "约翰福音9:5",
+        "以赛亚书9:2"
+      ],
+      "egw_ids": [
+        "DA-51-LIGHT-OF-LIFE"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音9:1-41",
+      "normalized": "John 9:1-41",
+      "themes": [
+        "医治瞎子",
+        "看见"
+      ],
+      "related_bible": [
+        "约翰福音8:12"
+      ],
+      "egw_ids": [
+        "DA-51-LIGHT-OF-LIFE"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音10:1-18",
+      "normalized": "John 10:1-18",
+      "themes": [
+        "好牧人",
+        "舍命",
+        "羊"
+      ],
+      "related_bible": [
+        "诗篇23章",
+        "以西结书34章"
+      ],
+      "egw_ids": [
+        "DA-52-GOOD-SHEPHERD"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音11:1-44",
+      "normalized": "John 11:1-44",
+      "themes": [
+        "拉撒路",
+        "复活",
+        "我是复活"
+      ],
+      "related_bible": [
+        "路加福音10:38-42",
+        "约翰福音5:28-29"
+      ],
+      "egw_ids": [
+        "DA-58-LAZARUS"
+      ]
+    },
+    {
+      "bible_ref": "马太福音23:1-39",
+      "normalized": "Matt 23:1-39",
+      "themes": [
+        "八祸",
+        "假冒为善",
+        "耶路撒冷"
+      ],
+      "related_bible": [
+        "马太福音24:1-2"
+      ],
+      "egw_ids": [
+        "DA-67-WOES"
+      ]
+    },
+    {
+      "bible_ref": "马太福音24:3-14",
+      "normalized": "Matt 24:3-14",
+      "themes": [
+        "末世征兆",
+        "福音传遍"
+      ],
+      "related_bible": [
+        "马太福音24:31",
+        "帖撒罗尼迦前书4:13-18"
+      ],
+      "egw_ids": [
+        "DA-69-OLIVES",
+        "FHC-369-SECOND-COMING"
+      ]
+    },
+    {
+      "bible_ref": "马太福音24:1-51",
+      "normalized": "Matt 24:1-51",
+      "themes": [
+        "橄榄山讲论",
+        "复临"
+      ],
+      "related_bible": [
+        "马太福音24:3-14",
+        "马太福音25章"
+      ],
+      "egw_ids": [
+        "DA-69-OLIVES"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音13:1-17",
+      "normalized": "John 13:1-17",
+      "themes": [
+        "洗脚礼",
+        "彼此相爱",
+        "仆人"
+      ],
+      "related_bible": [
+        "约翰福音13:34-35"
+      ],
+      "egw_ids": [
+        "DA-71-SERVANT"
+      ]
+    },
+    {
+      "bible_ref": "马太福音26:36-46",
+      "normalized": "Matt 26:36-46",
+      "themes": [
+        "客西马尼",
+        "祷告",
+        "愿你的旨意成就"
+      ],
+      "related_bible": [
+        "马可福音14:32-42",
+        "路加福音22:39-46"
+      ],
+      "egw_ids": [
+        "DA-74-GETHSEMANE"
+      ]
+    },
+    {
+      "bible_ref": "马可福音14:32-42",
+      "normalized": "Mark 14:32-42",
+      "themes": [
+        "客西马尼",
+        "儆醒"
+      ],
+      "related_bible": [
+        "马太福音26:36-46"
+      ],
+      "egw_ids": [
+        "DA-74-GETHSEMANE"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音19:16-30",
+      "normalized": "John 19:16-30",
+      "themes": [
+        "十字架",
+        "成了",
+        "髑髅地"
+      ],
+      "related_bible": [
+        "马太福音27:33-50",
+        "以赛亚书53章"
+      ],
+      "egw_ids": [
+        "DA-78-CALVARY"
+      ]
+    },
+    {
+      "bible_ref": "马太福音27:33-50",
+      "normalized": "Matt 27:33-50",
+      "themes": [
+        "十字架",
+        "受难"
+      ],
+      "related_bible": [
+        "约翰福音19:16-30"
+      ],
+      "egw_ids": [
+        "DA-78-CALVARY"
+      ]
+    },
+    {
+      "bible_ref": "马太福音28:1-10",
+      "normalized": "Matt 28:1-10",
+      "themes": [
+        "复活",
+        "空坟墓"
+      ],
+      "related_bible": [
+        "约翰福音20:1-18"
+      ],
+      "egw_ids": [
+        "DA-81-RISEN"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音20:1-18",
+      "normalized": "John 20:1-18",
+      "themes": [
+        "复活",
+        "马利亚",
+        "拉波尼"
+      ],
+      "related_bible": [
+        "马太福音28:1-10",
+        "约翰福音20:17"
+      ],
+      "egw_ids": [
+        "DA-81-RISEN",
+        "DA-87-TO-MY-FATHER"
+      ]
+    },
+    {
+      "bible_ref": "约翰福音20:17",
+      "normalized": "John 20:17",
+      "themes": [
+        "升天",
+        "我的父也是你们的父"
+      ],
+      "related_bible": [
+        "马太福音28:18-20"
+      ],
+      "egw_ids": [
+        "DA-87-TO-MY-FATHER"
+      ]
+    },
+    {
+      "bible_ref": "马太福音28:18-20",
+      "normalized": "Matt 28:18-20",
+      "themes": [
+        "大使命",
+        "权柄",
+        "同在"
+      ],
+      "related_bible": [
+        "约翰福音20:17",
+        "使徒行传1:8"
+      ],
+      "egw_ids": [
+        "DA-87-TO-MY-FATHER"
+      ]
+    },
+    {
+      "bible_ref": "马太福音4:1-11",
+      "normalized": "Matt 4:1-11",
+      "themes": [
+        "受试探",
+        "圣经的话",
+        "敬拜"
+      ],
+      "related_bible": [
+        "路加福音4:1-13",
+        "申命记8:3"
+      ],
+      "egw_ids": [
+        "DA-12-TEMPTATION"
+      ]
+    },
+    {
+      "bible_ref": "路加福音4:1-13",
+      "normalized": "Luke 4:1-13",
+      "themes": [
+        "受试探",
+        "旷野"
+      ],
+      "related_bible": [
+        "马太福音4:1-11"
+      ],
+      "egw_ids": [
+        "DA-12-TEMPTATION"
+      ]
+    },
+    {
+      "bible_ref": "以赛亚书58:13-14",
+      "normalized": "Isa 58:13-14",
+      "themes": [
+        "安息日",
+        "称为圣日",
+        "喜乐"
+      ],
+      "related_bible": [
+        "出埃及记20:8-11",
+        "创世记2:1-3"
+      ],
+      "egw_ids": [
+        "DA-29-SABBATH",
+        "ED-29-SABBATH",
+        "CCH-47-SABBATH"
+      ]
     }
   ]
 }
