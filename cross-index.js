@@ -390,7 +390,8 @@
   window.jgRefreshCrossIndex = refresh;
 
   const style = document.createElement('style');
-  style.textContent = `
+  style.textContent = `/* study-desk sheet */
+
     #detail[data-reader-kind="bible-reader"]>footer,#detail[data-reader-kind="egw-reader"]>footer{justify-content:flex-start!important;gap:8px!important;min-height:38px;padding:3px 11px calc(4px + env(safe-area-inset-bottom))!important;border-top:1px solid color-mix(in srgb,var(--line) 72%,transparent)!important;background:color-mix(in srgb,var(--surface) 92%,transparent)!important;backdrop-filter:blur(10px)}
     #detail[data-reader-kind="bible-reader"]>footer>*,#detail[data-reader-kind="egw-reader"]>footer>*{flex:0 0 auto!important;min-height:30px!important;padding:0 6px!important;border:0!important;border-radius:0!important;background:transparent!important;color:var(--muted)!important;font-size:10.5px!important;font-weight:600!important;box-shadow:none!important}
     #detail[data-reader-kind="bible-reader"]>footer>*:last-child,#detail[data-reader-kind="egw-reader"]>footer>*:last-child{margin-left:auto;color:color-mix(in srgb,var(--accent) 78%,var(--muted))!important}
