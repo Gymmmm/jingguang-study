@@ -707,6 +707,17 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   line-height:1.55;
 }
 .searchResults{display:grid;gap:9px;align-items:start}
+/* [hidden] must beat .searchResults>.card{display:flex} or tab filters leave wrong-kind cards visible */
+#studyResults [hidden],
+#studyResults .filterHidden,
+.searchResults>[hidden],
+.searchResults .filterHidden{display:none!important}
+#studyResults.searchResults{
+  padding-bottom:calc(28px + env(safe-area-inset-bottom,0px));
+}
+#study.page.searchPage{
+  padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+}
 .searchResults>.empty{grid-column:1/-1}
 .searchResults>.groupTitle{
   grid-column:1/-1;

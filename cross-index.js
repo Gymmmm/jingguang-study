@@ -71,6 +71,18 @@
     return `${ref.full} ${ref.chapter}${ref.from ? ':' + ref.from + (ref.to && ref.to !== ref.from ? '-' + ref.to : '') : '章'}`;
   }
 
+  function humanWhy(why) {
+    if (why == null || why === '') return '';
+    if (typeof why === 'string') return why;
+    if (typeof why === 'object') {
+      if (why.full || why.osis) return refLabel(why);
+      if (why.bible_ref || why.normalized) return String(why.bible_ref || why.normalized);
+      if (why.label || why.text || why.title) return String(why.label || why.text || why.title);
+    }
+    const s = String(why);
+    return /^\[object |^BibleRef\{/.test(s) ? '' : s;
+  }
+
   function chapterKey(ref) {
     return ref ? `${ref.osis}:${ref.chapter}` : '';
   }
@@ -253,7 +265,7 @@
   function evidenceWhyForRecord(record, chapterRef, focusVerse) {
     // Allowed: evidence.why, explicit bible_refs, relation bible_ref/normalized, themes, locator.
     // Forbidden: summary / title / guessed topics.
-    if (record?.evidence?.why) return record.evidence.why;
+    if (record?.evidence?.why) return humanWhy(record.evidence.why) || String(record.evidence.why);
     const refs = matchingRecordRefs(record, chapterRef, focusVerse);
     if (refs.length) return refs.map(refLabel).join('、');
     const relHits = relationHitsForRecord(record, chapterRef, focusVerse);
@@ -525,14 +537,14 @@
         const type = evidenceTypeForRecord(r, chapterRef, focusVerse);
         const badge = `<small class="crossIndexBadge">${esc(type)}</small>`;
         const why = evidenceWhyForRecord(r, chapterRef, focusVerse);
-        return `<button type="button" class="crossIndexRow" data-cross-egw="${esc(r.id)}"><span>${badge}<b>《${esc(r.title_cn || '怀爱伦著作')}》</b><small>${esc(r.chapter || '')}${r.locator ? ' · ' + esc(r.locator) : ''}</small><small class="crossIndexWhy">关联依据：${esc(why)}</small></span><i>›</i></button>`;
+        return `<button type="button" class="crossIndexRow" data-cross-egw="${esc(r.id)}"><span>${badge}<b>《${esc(r.title_cn || '怀爱伦著作')}》</b><small>${esc(r.chapter || '')}${r.locator ? ' · ' + esc(r.locator) : ''}</small><small class="crossIndexWhy">关联依据：${esc(humanWhy(why) || why)}</small></span><i>›</i></button>`;
       }).join('')}${more}`;
     } else {
       list.innerHTML = `<h3>相关经文</h3>${visible.map((r,i) => {
         const type = evidenceTypeForBibleRef(r);
         const badge = `<small class="crossIndexBadge">${esc(type)}</small>`;
         const why = evidenceWhyForBibleRef(r);
-        return `<button type="button" class="crossIndexRow" data-cross-bible="${i}"><span>${badge}<b>${esc(refLabel(r))}</b><small>打开整章${r.focus ? ` · 定位第 ${r.focus} 节` : ''}</small><small class="crossIndexWhy">关联依据：${esc(why)}</small></span><i>›</i></button>`;
+        return `<button type="button" class="crossIndexRow" data-cross-bible="${i}"><span>${badge}<b>${esc(refLabel(r))}</b><small>打开整章${r.focus ? ` · 定位第 ${r.focus} 节` : ''}</small><small class="crossIndexWhy">关联依据：${esc(humanWhy(why) || why)}</small></span><i>›</i></button>`;
       }).join('')}${more}`;
     }
   }
@@ -702,7 +714,7 @@
     .crossIndexMore{width:100%;min-height:44px;margin-top:6px;border:0!important;border-top:1px solid var(--line)!important;border-radius:0!important;background:transparent!important;color:var(--accent)!important;font-size:13px!important;font-weight:700!important}
     .crossIndexSheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center}
     .crossIndexBackdrop{position:absolute;inset:0;width:100%;height:100%;border:0!important;border-radius:0!important;background:#0004!important}
-    .crossIndexPanel{position:relative;width:min(720px,100%);max-height:min(62vh,560px);overflow:auto;padding:12px 14px calc(14px + env(safe-area-inset-bottom));border-radius:18px 18px 0 0;background:var(--surface);box-shadow:0 -14px 40px #0002}
+    .crossIndexPanel{position:relative;width:min(720px,100%);max-height:min(62vh,560px);overflow:auto;padding:12px 14px calc(48px + env(safe-area-inset-bottom,0px));border-radius:18px 18px 0 0;background:var(--surface);box-shadow:0 -14px 40px #0002}
     .crossIndexPanel>header{position:static!important;display:flex!important;align-items:center!important;justify-content:space-between!important;padding:2px 0 10px!important;border:0!important;background:transparent!important;backdrop-filter:none!important}
     .crossIndexPanel>header>div{display:flex;flex-direction:column;gap:2px}.crossIndexPanel>header b{font-size:15px}.crossIndexPanel>header small{color:var(--muted);font-size:9.5px}.crossIndexPanel>header>button{min-width:34px!important;min-height:34px!important;padding:0!important;border:0!important;background:transparent!important;color:var(--muted)!important;font-size:22px!important}
     .crossIndexReturn{margin:0 0 5px}.crossIndexReturn:empty{display:none}.crossIndexReturn button{min-height:34px!important;padding:0 2px!important;border:0!important;background:transparent!important;color:var(--accent)!important;font-size:11px!important;font-weight:700!important}
