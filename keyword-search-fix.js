@@ -51,7 +51,7 @@
     return score;
   };
 
-  egwSearch = function expandedEgwSearch(q, rel = relation(cleanKeyword(q) || q)) {
+  window.egwSearch = function expandedEgwSearch(q, rel = relation(cleanKeyword(q) || q)) {
     const needles = partsFor(q);
     const ref = parse(cleanKeyword(q) || q) || parse(q);
     return S.egw.map(e => {
@@ -68,7 +68,7 @@
     }).filter(x => x.s > 0).sort((a,b) => b.s - a.s).map(x => x.e);
   };
 
-  egwBookSearch = function expandedEgwBookSearch(q) {
+  window.egwBookSearch = function expandedEgwBookSearch(q) {
     const raw = norm(q);
     const generic = ['怀爱伦','怀著','怀师母','预言之灵','ellenwhite'].some(x => raw === norm(x));
     if (!raw || generic) return [...S.egwBooks];
@@ -164,7 +164,7 @@
     }
   }
 
-  search = async function keywordSearch(q) {
+  window.search = async function keywordSearch(q) {
     const raw = String(q || '').trim();
     const requestId=++officialSearchSeq;
     if (!raw) return;

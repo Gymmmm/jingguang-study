@@ -50,7 +50,7 @@
       ? window.jgReadAloudState()
       : { speaking:false, paused:false };
     const active = !!s.speaking && !s.paused;
-    icon.textContent = active ? 'Ⅱ' : (s.paused ? '▶' : '▶');
+    icon.textContent = active ? 'Ⅱ' : '▶';
     quick.setAttribute('aria-label', active ? '暂停朗读' : (s.paused ? '继续朗读' : '开始朗读'));
     quick.dataset.playing = active ? '1' : (s.paused ? 'paused' : 'idle');
     quick.dataset.state = s.paused ? 'paused' : (active ? 'playing' : 'idle');
@@ -85,7 +85,9 @@
     if (!control || control.disabled) return;
     const action = control.dataset.readerQuick;
     if (action === 'tts') {
-      ttsButton()?.click();
+      if (typeof window.jgReadAloudToggle === 'function') window.jgReadAloudToggle();
+      else ttsButton()?.click();
+      syncPlayState();
       return;
     }
     if (action === 'toc') {
@@ -97,6 +99,9 @@
   });
 
   detail.addEventListener('jg-read-aloud-state', syncPlayState);
+  detail.addEventListener('open', () => {
+    requestAnimationFrame(refresh);
+  });
   detail.addEventListener('close', () => {
     const bar = ensureBar();
     bar.hidden = true;
