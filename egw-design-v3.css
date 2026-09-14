@@ -1,4 +1,4 @@
-/* EGW design v3 — paper/ink reading system.
+/* EGW design v3 — paper/ink reading system (study-desk alignment).
    Visual-only layer. Keeps existing data, navigation, TOC and cross-index logic intact. */
 
 :root{
@@ -11,21 +11,21 @@
   --egw-ink-4:color-mix(in srgb,var(--muted) 66%,transparent);
   --egw-line:color-mix(in srgb,var(--line) 86%,transparent);
   --egw-line-strong:color-mix(in srgb,var(--strong) 82%,transparent);
-  --egw-accent:#6A5344;
-  --egw-accent-soft:rgba(106,83,68,.08);
+  --egw-accent:var(--accent);
+  --egw-accent-soft:color-mix(in srgb,var(--accent) 10%,transparent);
   --egw-overlay:rgba(28,24,20,.34);
 }
 [data-theme="sepia"]{
-  --egw-accent:#765A3D;
-  --egw-accent-soft:rgba(118,90,61,.09);
+  --egw-accent:var(--accent);
+  --egw-accent-soft:color-mix(in srgb,var(--accent) 12%,transparent);
 }
 [data-theme="green"]{
-  --egw-accent:#596A59;
-  --egw-accent-soft:rgba(89,106,89,.10);
+  --egw-accent:var(--accent);
+  --egw-accent-soft:color-mix(in srgb,var(--accent) 12%,transparent);
 }
 [data-theme="dark"]{
-  --egw-accent:#C6A792;
-  --egw-accent-soft:rgba(198,167,146,.11);
+  --egw-accent:var(--accent);
+  --egw-accent-soft:color-mix(in srgb,var(--accent) 14%,transparent);
   --egw-overlay:rgba(0,0,0,.48);
 }
 
@@ -45,6 +45,7 @@
   font-weight:700;
   letter-spacing:.035em;
 }
+.app.egwShelfContext>header .logo::after{display:none!important}
 .app.egwShelfContext>header .egwHeaderSearch{
   color:var(--egw-accent)!important;
 }

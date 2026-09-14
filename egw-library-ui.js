@@ -63,7 +63,17 @@
   function setShelfHeader(active){
     setupHeaderSearch();
     app?.classList.toggle('egwShelfContext',!!active);
-    if(appLogo)appLogo.textContent=active?'预言之灵':'救赎的历史';
+    if(appLogo){
+      if(active){
+        appLogo.hidden=false;
+        appLogo.removeAttribute('aria-hidden');
+        appLogo.textContent='预言之灵';
+      }else{
+        appLogo.hidden=true;
+        appLogo.setAttribute('aria-hidden','true');
+        appLogo.textContent='';
+      }
+    }
     const button=headerTools?.querySelector('.egwHeaderSearch');
     if(button)button.hidden=!active;
   }
@@ -316,7 +326,7 @@
     #egwShelf{position:relative;padding-right:18px}
     .egwHeaderSearch{display:none;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border:0!important;border-radius:0!important;background:transparent!important;color:var(--accent)!important}
     .app.egwShelfContext>header{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;padding-left:12px;padding-right:12px}
-    .app.egwShelfContext>header .logo{grid-column:2;justify-self:center;color:var(--text);font-size:18px;letter-spacing:0}
+    .app.egwShelfContext>header .logo{grid-column:2;justify-self:center;color:var(--text);font-size:18px;letter-spacing:0;padding-bottom:0}.app.egwShelfContext>header .logo::after{display:none}
     .app.egwShelfContext>header .headerTools{grid-column:3;justify-self:end;gap:0}
     .app.egwShelfContext>header .headerTools>small,.app.egwShelfContext>header .themePicker{display:none!important}
     .app.egwShelfContext>header .egwHeaderSearch{display:inline-flex}

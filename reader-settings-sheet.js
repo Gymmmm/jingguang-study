@@ -6,9 +6,15 @@
 
   const readable = () => ['bible-reader', 'egw-reader'].includes(detail.dataset.readerKind || '');
   const q = (sel, root = detail) => root.querySelector(sel);
+  const FONT_KEY = 'jg_v10_bible_font';
 
   function ttsMain() { return q('.readAloudBar [data-tts="toggle"]'); }
   function quick(direction) { return q(`[data-reader-quick="${direction}"]`); }
+
+  function currentFont() {
+    const raw = parseInt(localStorage.getItem(FONT_KEY) || getComputedStyle(document.documentElement).getPropertyValue('--reader-font') || '19', 10);
+    return Number.isFinite(raw) ? Math.max(14, Math.min(28, raw)) : 19;
+  }
 
   function ensureTrigger() {
     const tools = q('.fontTools');
@@ -22,6 +28,8 @@
     btn.setAttribute('aria-label', '阅读设置');
     btn.textContent = 'Aa';
     tools.prepend(btn);
+    // Keep a single Aa affordance; hide any leftover overflow trigger.
+    tools.querySelectorAll('[data-reader-more]').forEach(el => { el.hidden = true; });
     return btn;
   }
 
@@ -38,46 +46,77 @@
         <header class="readerSettingsHead"><h2>阅读设置</h2><button type="button" data-reader-settings-close aria-label="关闭">×</button></header>
 
         <div class="readerSettingsGroup readerSettingsFontGroup">
-          <h3>文字</h3>
-          <div class="readerFontControl">
-            <button type="button" data-reader-font-proxy="-1" aria-label="减小字号">A−</button>
-            <span>字号</span>
-            <button type="button" data-reader-font-proxy="1" aria-label="加大字号">A+</button>
+          <h3>字号</h3>
+          <div class="readerFontSliderRow">
+            <span aria-hidden="true">A−</span>
+            <input type="range" min="14" max="28" step="1" value="19" data-reader-font-slider aria-label="字号">
+            <span aria-hidden="true">A+</span>
           </div>
         </div>
 
         <div class="readerSettingsGroup">
-          <div class="readerSettingsTitleRow"><h3>朗读</h3><small>系统中文语音</small></div>
+          <h3>朗读</h3>
           <div class="readerAudioControl">
-            <button type="button" data-reader-audio-step="-1" aria-label="上一段"><span>‹</span><small>上一段</small></button>
-            <button type="button" class="readerSheetPlay" data-reader-sheet-tts><span>▶</span><small>朗读</small></button>
-            <button type="button" data-reader-audio-step="1" aria-label="下一段"><span>›</span><small>下一段</small></button>
+            <button type="button" data-reader-audio-step="-1" aria-label="后退">
+              <span class="readerSkipIcon">↺15</span>
+            </button>
+            <button type="button" class="readerSheetPlay" data-reader-sheet-tts aria-label="朗读">
+              <span>▶</span>
+            </button>
+            <button type="button" data-reader-audio-step="1" aria-label="前进">
+              <span class="readerSkipIcon">↻15</span>
+            </button>
           </div>
           <div class="readerRateRow" aria-label="朗读速度">
-            ${[0.8,1,1.2,1.5,2].map(v => `<button type="button" data-reader-rate="${v}">${v}×</button>`).join('')}
+            ${[0.8,1,1.2,1.5,2].map(v => `<button type="button" data-reader-rate="${v}">${v}x</button>`).join('')}
           </div>
         </div>
 
         <div class="readerSettingsGroup readerSettingsCompactGroup">
-          <h3>章节</h3>
-          <div class="readerChapterControl">
+          <h3>主题</h3>
+          <div class="readerThemeRow">
+            <button type="button" data-reader-theme="system"><i class="readerThemeIcon" aria-hidden="true">☼⚙</i><span>跟随系统</span></button>
+            <button type="button" data-reader-theme="paper"><i class="readerThemeIcon" aria-hidden="true">☀</i><span>浅色</span></button>
+            <button type="button" data-reader-theme="sepia"><i class="readerThemeIcon" aria-hidden="true">◉</i><span>护眼</span></button>
+            <button type="button" data-reader-theme="dark"><i class="readerThemeIcon" aria-hidden="true">☾</i><span>深色</span></button>
+          </div>
+        </div>
+
+        <div class="readerSettingsGroup readerSettingsCompactGroup readerSettingsExtra" hidden>
+          <h3>更多</h3>
+          <div class="readerExtraActions">
             <button type="button" data-reader-sheet-nav="prev">‹ 上一章</button>
             <button type="button" data-reader-sheet-nav="next">下一章 ›</button>
-          </div>
-        </div>
-
-        <div class="readerSettingsGroup readerSettingsCompactGroup">
-          <h3>背景</h3>
-          <div class="readerThemeRow">
-            <button type="button" data-reader-theme="paper"><i class="readerThemeDot readerThemePaper"></i><span>暖白</span></button>
-            <button type="button" data-reader-theme="sepia"><i class="readerThemeDot readerThemeSepia"></i><span>米黄</span></button>
-            <button type="button" data-reader-theme="green"><i class="readerThemeDot readerThemeGreen"></i><span>护眼</span></button>
-            <button type="button" data-reader-theme="dark"><i class="readerThemeDot readerThemeDark"></i><span>深色</span></button>
+            <button type="button" data-reader-verify hidden>核验官方原始出处</button>
           </div>
         </div>
       </section>`;
     detail.appendChild(backdrop);
     return backdrop;
+  }
+
+  function applySystemTheme() {
+    const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const value = dark ? 'dark' : 'paper';
+    const select = document.getElementById('themeSelect');
+    if (select) {
+      select.value = value;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    localStorage.setItem('jg_v10_theme_pref', 'system');
+  }
+
+  function setTheme(value) {
+    if (value === 'system') {
+      applySystemTheme();
+      return;
+    }
+    localStorage.setItem('jg_v10_theme_pref', value);
+    const select = document.getElementById('themeSelect');
+    if (select) {
+      select.value = value;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
   }
 
   function state() {
@@ -91,13 +130,16 @@
     const sheet = ensureSheet();
     const show = detail.open && readable();
     if (trigger) trigger.hidden = !show;
+    const more = q('.readerMoreTrigger');
+    if (more) more.hidden = true;
     if (!show) sheet.hidden = true;
 
     const s = state();
     const play = q('[data-reader-sheet-tts]', sheet);
     if (play) {
-      q('span', play).textContent = s.speaking && !s.paused ? 'Ⅱ' : '▶';
-      q('small', play).textContent = s.speaking && !s.paused ? '暂停' : (s.paused ? '继续' : '朗读');
+      const span = q('span', play);
+      if (span) span.textContent = s.speaking && !s.paused ? 'Ⅱ' : '▶';
+      play.setAttribute('aria-label', s.speaking && !s.paused ? '暂停' : (s.paused ? '继续' : '朗读'));
     }
 
     sheet.querySelectorAll('[data-reader-rate]').forEach(btn => {
@@ -109,15 +151,31 @@
     if (prevStep) prevStep.disabled = !s.count || s.index <= 0;
     if (nextStep) nextStep.disabled = !s.count || s.index >= s.count - 1;
 
-    const prev = quick('prev');
-    const next = quick('next');
-    const prevProxy = q('[data-reader-sheet-nav="prev"]', sheet);
-    const nextProxy = q('[data-reader-sheet-nav="next"]', sheet);
-    if (prevProxy) prevProxy.disabled = !prev || prev.disabled || prev.hidden;
-    if (nextProxy) nextProxy.disabled = !next || next.disabled || next.hidden;
+    const slider = q('[data-reader-font-slider]', sheet);
+    if (slider) slider.value = String(currentFont());
 
-    const theme = document.documentElement.dataset.theme || 'paper';
+    const pref = localStorage.getItem('jg_v10_theme_pref') || (document.documentElement.dataset.theme || 'paper');
+    const theme = pref === 'system' ? 'system' : (document.documentElement.dataset.theme || 'paper');
     sheet.querySelectorAll('[data-reader-theme]').forEach(btn => btn.classList.toggle('active', btn.dataset.readerTheme === theme));
+
+    const prev = quick('prev') || detail.querySelector('.readerNav button,.egwChapterPager button');
+    const next = detail.querySelectorAll('.readerNav button,.egwChapterPager button');
+    // Keep chapter nav available in sheet extras
+    const extra = q('.readerSettingsExtra', sheet);
+    if (extra) extra.hidden = false;
+    const verify = q('[data-reader-verify]', sheet);
+    const official = detail.querySelector('[data-official-source]');
+    if (verify) {
+      verify.hidden = !official;
+    }
+  }
+
+  function setFontSize(n) {
+    const size = Math.max(14, Math.min(28, Number(n) || 19));
+    document.documentElement.style.setProperty('--reader-font', size + 'px');
+    localStorage.setItem(FONT_KEY, String(size));
+    const slider = q('[data-reader-font-slider]');
+    if (slider) slider.value = String(size);
   }
 
   detail.addEventListener('click', event => {
@@ -129,11 +187,6 @@
     }
     if (event.target.id === 'readerSettingsBackdrop' || event.target.closest?.('[data-reader-settings-close]')) {
       ensureSheet().hidden = true;
-      return;
-    }
-    const font = event.target.closest?.('[data-reader-font-proxy]');
-    if (font) {
-      q(`[data-font="${font.dataset.readerFontProxy}"]`)?.click();
       return;
     }
     if (event.target.closest?.('[data-reader-sheet-tts]')) {
@@ -152,22 +205,33 @@
     }
     const nav = event.target.closest?.('[data-reader-sheet-nav]');
     if (nav) {
-      const target = quick(nav.dataset.readerSheetNav);
+      const dir = nav.dataset.readerSheetNav;
+      const label = dir === 'prev' ? '上一章' : '下一章';
+      const candidates = [
+        ...detail.querySelectorAll('#readerBottomNav button,.readerNav button,.egwChapterPager button')
+      ];
+      const target = candidates.find(btn => String(btn.textContent || '').includes(label));
       if (target && !target.disabled && !target.hidden) {
         ensureSheet().hidden = true;
         target.click();
       }
       return;
     }
+    const verify = event.target.closest?.('[data-reader-verify]');
+    if (verify) {
+      detail.querySelector('[data-official-source]')?.click();
+      return;
+    }
     const theme = event.target.closest?.('[data-reader-theme]');
     if (theme) {
-      const select = document.getElementById('themeSelect');
-      if (select) {
-        select.value = theme.dataset.readerTheme;
-        select.dispatchEvent(new Event('change', { bubbles:true }));
-      }
+      setTheme(theme.dataset.readerTheme);
       sync();
     }
+  });
+
+  detail.addEventListener('input', event => {
+    const slider = event.target.closest?.('[data-reader-font-slider]');
+    if (slider) setFontSize(slider.value);
   });
 
   detail.addEventListener('jg-read-aloud-state', sync);
@@ -184,28 +248,54 @@
     window.jgRefreshReadAloud = wrapped;
   }
 
+  if (window.matchMedia) {
+    try {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        if (localStorage.getItem('jg_v10_theme_pref') === 'system') applySystemTheme();
+      });
+    } catch (_) {}
+  }
+
   const style = document.createElement('style');
   style.textContent = `
     .fontTools>[data-font]{display:none!important}
-    .readerSettingsTrigger[hidden],.readerSettingsBackdrop[hidden]{display:none!important}
-    .readerSettingsTrigger{font-size:15px!important;letter-spacing:-.02em}
-    .readerSettingsBackdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;background:rgba(22,24,22,.32)}
-    .readerSettingsSheet{width:min(720px,100%);max-height:84%;margin:0 auto;padding:8px 18px calc(22px + env(safe-area-inset-bottom));overflow:auto;border-radius:22px 22px 0 0;background:var(--surface);color:var(--text);box-shadow:0 -18px 48px rgba(20,24,21,.13)}
+    .readerSettingsTrigger[hidden],.readerMoreTrigger[hidden],.readerSettingsBackdrop[hidden]{display:none!important}
+    .readerSettingsTrigger{font-size:15px!important;letter-spacing:-.02em;min-width:40px!important}
+    .readerMoreTrigger{display:none!important}
+    .readerSettingsBackdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;background:rgba(22,24,22,.36)}
+    .readerSettingsSheet{width:min(720px,100%);max-height:86%;margin:0 auto;padding:8px 18px calc(22px + env(safe-area-inset-bottom));overflow:auto;border-radius:22px 22px 0 0;background:var(--surface);color:var(--text);box-shadow:0 -18px 48px rgba(20,24,21,.13)}
     .readerSettingsHandle{width:36px;height:4px;margin:0 auto 8px;border-radius:99px;background:var(--line)}
     .readerSettingsHead{position:static!important;display:flex!important;align-items:center!important;justify-content:space-between!important;padding:0 0 7px!important;border:0!important;background:transparent!important}
     .readerSettingsHead h2{margin:0;font-size:17px;font-weight:700}.readerSettingsHead button{width:40px;min-width:40px!important;min-height:40px!important;border:0!important;background:transparent!important;color:var(--muted)!important;font-size:25px!important;font-weight:300!important}
-    .readerSettingsGroup{padding:11px 0;border-top:1px solid var(--line)}.readerSettingsGroup:first-of-type{border-top:0}
-    .readerSettingsGroup h3{margin:0 0 8px;font-size:12px;font-weight:700;color:var(--muted)}
-    .readerSettingsTitleRow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.readerSettingsTitleRow h3{margin:0}.readerSettingsTitleRow small{color:var(--muted);font-size:9.5px}
-    .readerFontControl{display:grid;grid-template-columns:58px 1fr 58px;align-items:center;min-height:50px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
-    .readerFontControl span{text-align:center;color:var(--muted);font-size:11px}.readerFontControl button{border:0!important;background:transparent!important;color:var(--text)!important;font-size:18px!important}
-    .readerAudioControl{display:grid;grid-template-columns:1fr 70px 1fr;align-items:center;margin:0 0 9px}.readerAudioControl button{border:0!important;background:transparent!important;color:var(--text)!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.readerAudioControl button:disabled{opacity:.24}.readerAudioControl button>span{font-size:21px;line-height:1}.readerAudioControl button>small{font-size:9px}
-    .readerSheetPlay{width:58px;height:58px;min-height:58px!important;justify-self:center;border-radius:50%!important;background:var(--accent)!important;color:var(--surface)!important}.readerSheetPlay>span{font-size:19px!important;font-weight:800}.readerSheetPlay>small{font-size:9px!important}
-    .readerRateRow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.readerRateRow button{min-height:38px!important;border:1px solid transparent!important;border-radius:9px!important;background:var(--soft)!important;color:var(--muted)!important;font-size:10.5px!important}.readerRateRow button.active{border-color:color-mix(in srgb,var(--accent) 36%,var(--line))!important;background:color-mix(in srgb,var(--accent) 10%,var(--surface))!important;color:var(--accent)!important;font-weight:800!important}
-    .readerChapterControl{display:grid;grid-template-columns:1fr 1fr;gap:8px}.readerChapterControl button{min-height:42px!important;border:1px solid var(--line)!important;border-radius:10px!important;background:transparent!important;color:var(--text)!important;font-size:11px!important}.readerChapterControl button:disabled{opacity:.28}
-    .readerThemeRow{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.readerThemeRow button{min-height:50px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:1px solid transparent!important;border-radius:10px!important;background:transparent!important;color:var(--muted)!important;font-size:9.5px!important}.readerThemeRow button.active{border-color:var(--line)!important;background:var(--soft)!important;color:var(--text)!important;font-weight:700!important}
-    .readerThemeDot{display:block;width:22px;height:22px;border:1px solid #00000018;border-radius:50%;box-shadow:inset 0 0 0 1px #ffffff24}.readerThemePaper{background:#f8f6f0}.readerThemeSepia{background:#e9dfc8}.readerThemeGreen{background:#dce6d8}.readerThemeDark{background:#20211f}
-    @media(max-width:390px){.readerSettingsSheet{padding-left:14px;padding-right:14px}.readerThemeRow,.readerRateRow{gap:5px}}
+    .readerSettingsGroup{padding:14px 0;border-top:1px solid var(--line)}.readerSettingsGroup:first-of-type{border-top:0}
+    .readerSettingsGroup h3{margin:0 0 10px;font-size:13px;font-weight:700;color:var(--text)}
+    .readerFontSliderRow{display:grid;grid-template-columns:28px 1fr 28px;align-items:center;gap:10px}
+    .readerFontSliderRow span{text-align:center;color:var(--muted);font-size:14px;font-weight:700}
+    .readerFontSliderRow input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:99px;background:var(--line);outline:none}
+    .readerFontSliderRow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);border:0;box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 35%,transparent)}
+    .readerAudioControl{display:grid;grid-template-columns:1fr 64px 1fr;align-items:center;margin:0 0 12px}
+    .readerAudioControl button{border:0!important;background:transparent!important;color:var(--text)!important;display:flex;align-items:center;justify-content:center;min-height:48px!important}
+    .readerAudioControl button:disabled{opacity:.24}
+    .readerSkipIcon{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1.5px solid var(--line);border-radius:50%;font-size:12px;font-weight:700;color:var(--text)}
+    .readerSettingsSheet button.readerSheetPlay{width:58px;height:58px;min-height:58px!important;justify-self:center;border:0!important;border-radius:50%!important;background:var(--accent)!important;color:#fff!important;box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 28%,transparent)}
+    .readerSettingsSheet button.readerSheetPlay>span{font-size:18px!important;font-weight:800;color:#fff!important}
+    .readerRateRow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+    .readerRateRow button{min-height:36px!important;border:1px solid var(--line)!important;border-radius:9px!important;background:var(--soft)!important;color:var(--muted)!important;font-size:12px!important}
+    .readerRateRow button.active{border-color:var(--accent)!important;background:var(--accent)!important;color:#fff!important;font-weight:700!important}
+    .readerThemeRow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .readerThemeRow button{min-height:72px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1.5px solid var(--line)!important;border-radius:12px!important;background:var(--surface)!important;color:var(--muted)!important;font-size:11px!important;padding:8px 4px!important}
+    .readerThemeRow button.active{border-color:var(--accent)!important;background:var(--accent-soft)!important;color:var(--accent)!important;font-weight:700!important}
+    .readerThemeIcon{font-size:18px;line-height:1;font-style:normal}
+    .readerExtraActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .readerExtraActions button{min-height:42px!important;border:1px solid var(--line)!important;border-radius:10px!important;background:transparent!important;color:var(--text)!important;font-size:12px!important}
+    .readerExtraActions [data-reader-verify]{grid-column:1/-1;color:var(--accent)!important;font-weight:650!important}
+    .readerExtraActions button:disabled{opacity:.28}
+    .bibleReaderIntro{text-align:center;padding:6px 0 18px;border-bottom:1px solid var(--line);margin-bottom:14px}
+    .bibleReaderIntro .bibleBookName{color:var(--muted);font-size:12px;margin-bottom:4px}
+    .bibleReaderIntro h1{margin:0;font-family:var(--font-reading);font-size:22px;line-height:1.35;font-weight:700;color:var(--text)}
+    #detail[data-reader-kind="bible-reader"]>header>#back,
+    #detail[data-reader-kind="egw-reader"]>header>#back{font-weight:600}
+    @media(max-width:390px){.readerSettingsSheet{padding-left:14px;padding-right:14px}.readerThemeRow,.readerRateRow{gap:5px}.bibleReaderIntro h1{font-size:20px}}
   `;
   document.head.appendChild(style);
   ensureTrigger();

@@ -21,6 +21,10 @@
     return detail.querySelector('.readAloudBar [data-tts="toggle"]');
   }
 
+  function favoriteSource() {
+    return detail.querySelector('[data-egw-native-favorite], [data-favorite-bible]');
+  }
+
   function ensureBar() {
     let bar = detail.querySelector('#readerQuickBar');
     if (bar) return bar;
@@ -35,8 +39,11 @@
       </button>
       <button type="button" class="readerQuickPlay" data-reader-quick="tts" aria-label="开始朗读">
         <span class="readerQuickPlayIcon" aria-hidden="true">▶</span>
+        <small class="readerQuickPlayLabel">朗读</small>
       </button>
-      <span class="readerQuickBalance" aria-hidden="true"></span>`;
+      <button type="button" class="readerQuickFav" data-reader-quick="favorite" aria-label="收藏">
+        <span class="readerQuickFavIcon" aria-hidden="true">☆</span><b>收藏</b>
+      </button>`;
     detail.appendChild(bar);
     return bar;
   }
@@ -45,15 +52,32 @@
     const bar = ensureBar();
     const quick = bar.querySelector('[data-reader-quick="tts"]');
     const icon = quick?.querySelector('.readerQuickPlayIcon');
+    const label = quick?.querySelector('.readerQuickPlayLabel');
     if (!quick || !icon) return;
     const s = typeof window.jgReadAloudState === 'function'
       ? window.jgReadAloudState()
       : { speaking:false, paused:false };
     const active = !!s.speaking && !s.paused;
     icon.textContent = active ? 'Ⅱ' : '▶';
+    if (label) label.textContent = active ? '暂停' : (s.paused ? '继续' : '朗读');
     quick.setAttribute('aria-label', active ? '暂停朗读' : (s.paused ? '继续朗读' : '开始朗读'));
     quick.dataset.playing = active ? '1' : (s.paused ? 'paused' : 'idle');
     quick.dataset.state = s.paused ? 'paused' : (active ? 'playing' : 'idle');
+  }
+
+  function syncFavoriteState() {
+    const bar = ensureBar();
+    const fav = bar.querySelector('[data-reader-quick="favorite"]');
+    const icon = fav?.querySelector('.readerQuickFavIcon');
+    const label = fav?.querySelector('b');
+    if (!fav || !icon) return;
+    const src = favoriteSource();
+    const text = String(src?.textContent || '');
+    const on = /已收藏|★/.test(text);
+    icon.textContent = on ? '★' : '☆';
+    if (label) label.textContent = on ? '已藏' : '收藏';
+    fav.dataset.on = on ? '1' : '0';
+    fav.setAttribute('aria-label', on ? '取消收藏' : '收藏');
   }
 
   function refresh() {
@@ -62,22 +86,8 @@
     bar.hidden = !show;
     detail.classList.toggle('hasReaderQuickBar', show);
     if (!show) return;
-
-    const prev = findChapterButton('prev');
-    const next = findChapterButton('next');
-    const prevQuick = bar.querySelector('[data-reader-quick="prev"]');
-    const nextQuick = bar.querySelector('[data-reader-quick="next"]');
-    if (prevQuick) {
-      prevQuick.disabled = !prev;
-      prevQuick.hidden = false;
-      prevQuick.setAttribute('aria-disabled', prev ? 'false' : 'true');
-    }
-    if (nextQuick) {
-      nextQuick.disabled = !next;
-      nextQuick.hidden = false;
-      nextQuick.setAttribute('aria-disabled', next ? 'false' : 'true');
-    }
     syncPlayState();
+    syncFavoriteState();
   }
 
   detail.addEventListener('click', event => {
@@ -92,6 +102,14 @@
     }
     if (action === 'toc') {
       detail.querySelector('#back')?.click();
+      return;
+    }
+    if (action === 'favorite') {
+      const src = favoriteSource();
+      if (src) {
+        src.click();
+        queueMicrotask(syncFavoriteState);
+      }
       return;
     }
     const target = findChapterButton(action);
@@ -119,31 +137,33 @@
     window.jgRefreshReadAloud = wrapped;
   }
 
+  const mo = new MutationObserver(() => {
+    if (detail.classList.contains('hasReaderQuickBar')) syncFavoriteState();
+  });
+  mo.observe(detail, { childList: true, subtree: true, characterData: true });
+
   const style = document.createElement('style');
   style.textContent = `
     .readerQuickBar[hidden]{display:none!important}
-    .readerQuickBar{position:fixed;z-index:30;left:50%;bottom:0;transform:translateX(-50%);width:min(720px,100%);display:grid;grid-template-columns:1fr 72px 1fr;align-items:center;gap:8px;padding:8px 18px calc(8px + env(safe-area-inset-bottom));border-top:1px solid color-mix(in srgb,var(--line) 72%,transparent);background:color-mix(in srgb,var(--surface) 96%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
-    .readerQuickBar button{border:0!important;background:transparent!important;box-shadow:none!important;color:var(--accent)!important;-webkit-tap-highlight-color:transparent}
-    .readerQuickToc{min-height:44px!important;display:flex;align-items:center;justify-content:flex-start;gap:7px;padding:4px 0!important;font-size:13px!important;font-weight:750!important}
-    .readerQuickTocIcon{font-size:17px;line-height:1;color:var(--muted)}
-    .readerQuickPlay{width:58px;height:58px;min-height:58px!important;justify-self:center;display:flex;align-items:center;justify-content:center;padding:0!important;border-radius:50%!important;background:var(--accent)!important;color:var(--surface)!important;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 25%,transparent)!important;transition:transform .16s ease,background .16s ease}
+    .readerQuickBar{position:fixed;z-index:30;left:50%;bottom:0;transform:translateX(-50%);width:min(720px,100%);display:grid;grid-template-columns:1fr 72px 1fr;align-items:end;gap:8px;padding:6px 18px calc(6px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:color-mix(in srgb,var(--surface) 96%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+    .readerQuickBar button{border:0!important;background:transparent!important;box-shadow:none!important;color:var(--muted)!important;-webkit-tap-highlight-color:transparent}
+    .readerQuickToc,.readerQuickFav{min-height:48px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 0!important;font-size:11px!important;font-weight:600!important;color:var(--muted)!important}
+    .readerQuickToc b,.readerQuickFav b{font-weight:600;color:var(--muted)}
+    .readerQuickTocIcon,.readerQuickFavIcon{font-size:18px;line-height:1;color:var(--text)}
+    .readerQuickFav[data-on="1"] .readerQuickFavIcon{color:var(--accent)}
+    .readerQuickBar button.readerQuickPlay{position:relative;width:58px;height:58px;min-height:58px!important;justify-self:center;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0!important;margin:0 0 14px;border-radius:50%!important;background:var(--accent)!important;color:#fff!important;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 28%,transparent)!important;transition:transform .16s ease,background .16s ease}
     .readerQuickPlay:active{transform:scale(.94)}
-    .readerQuickPlayIcon{font-size:19px;line-height:1;font-weight:800;transform:translateX(1px)}
-    .readerQuickPlay[data-state="playing"] .readerQuickPlayIcon{font-size:17px;transform:none}
+    .readerQuickBar button.readerQuickPlay .readerQuickPlayIcon{font-size:18px;line-height:1;font-weight:800;transform:translateX(1px);color:#fff!important}
+    .readerQuickBar button.readerQuickPlay .readerQuickPlayLabel{position:absolute;left:50%;bottom:-18px;transform:translateX(-50%);font-size:10px;font-weight:600;color:var(--muted)!important;white-space:nowrap}
+    .readerQuickPlay[data-state="playing"] .readerQuickPlayIcon{font-size:16px;transform:none}
     .readerQuickPlay[data-state="paused"]{background:color-mix(in srgb,var(--accent) 86%,black)!important}
-    .readerQuickBalance{display:block;min-height:44px}
-    @media(max-width:390px){.readerQuickBar{grid-template-columns:1fr 64px 1fr;padding-left:14px;padding-right:14px}.readerQuickPlay{width:54px;height:54px;min-height:54px!important}.readerQuickToc{font-size:12px!important}}
-    #detail.hasReaderQuickBar #detailBody{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
-    #detail.hasReaderQuickBar #readerBottomNav{display:none!important}
+    @media(max-width:390px){.readerQuickBar{grid-template-columns:1fr 64px 1fr;padding-left:12px;padding-right:12px}.readerQuickPlay{width:54px;height:54px;min-height:54px!important}}
+    #detail.hasReaderQuickBar #detailBody{padding-bottom:calc(88px + env(safe-area-inset-bottom))!important}
+    #detail.hasReaderQuickBar #readerBottomNav,
+    #detail.hasReaderQuickBar #detailActions,
     #detail.hasReaderQuickBar .readerNav,
-    #detail.hasReaderQuickBar .egwChapterPager{display:none!important}
-    @media(max-width:720px){
-      #detail.hasReaderQuickBar .readAloudBar{display:none!important}
-      #detail.hasReaderQuickBar #detailActions{position:fixed;z-index:29;left:50%;bottom:calc(62px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(720px,100%);margin:0;padding:5px 12px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--surface) 95%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
-      #detail.hasReaderQuickBar #detailBody{padding-bottom:calc(132px + env(safe-area-inset-bottom))!important}
-    }
-    @media(max-width:390px){.readerQuickBar{grid-template-columns:minmax(0,1fr) 58px minmax(0,1fr);padding-left:10px;padding-right:10px}.readerQuickChapter{font-size:12px!important}.readerQuickChapterLabel{font-size:9px}}
-    @media(min-width:721px){#detail.hasReaderQuickBar #detailActions{position:fixed;z-index:29;left:50%;bottom:calc(62px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(720px,100%);margin:0;padding:5px 12px;background:color-mix(in srgb,var(--surface) 95%,transparent)}}
+    #detail.hasReaderQuickBar .egwChapterPager,
+    #detail.hasReaderQuickBar .readAloudBar{display:none!important}
   `;
   document.head.appendChild(style);
   ensureBar();
