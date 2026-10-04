@@ -50,11 +50,21 @@
   }
 
   function setCrossButton() {
-    // Hide floating ↔ while association sheet is open; cross-index restores on close.
+    // Keep the cross-reference feature visible and self-explanatory.
     crossButton.hidden = !isReaderOpen() || sheetIsOpen();
     if (!crossButton.hidden) {
-      crossButton.setAttribute('aria-label', '打开关联');
-      crossButton.querySelector('b').textContent = '关联';
+      const bible = readerKind() === 'bible-reader';
+      const title = bible ? '经文 × 怀著对照' : '怀著 × 经文对照';
+      const note = bible ? '查看本章相关怀著与关联依据' : '查看本段相关经文与引用依据';
+      crossButton.setAttribute('aria-label', title);
+      if (!crossButton.querySelector('.readerCrossCopy')) {
+        crossButton.innerHTML = `<span class="readerCrossIcon" aria-hidden="true">↔</span><span class="readerCrossCopy"><b>${title}</b><small>${note}</small></span><em>查看 ›</em>`;
+      } else {
+        const b = crossButton.querySelector('b');
+        const small = crossButton.querySelector('small');
+        if (b) b.textContent = title;
+        if (small) small.textContent = note;
+      }
     }
   }
 
@@ -291,27 +301,35 @@
   style.textContent = `
     #readerCrossIndex[hidden],#readerBottomNav[hidden]{display:none!important}
     #readerCrossIndex{
-      position:fixed!important;
-      top:50%!important;
-      right:max(7px,env(safe-area-inset-right))!important;
+      position:sticky!important;
+      top:56px!important;
+      right:auto!important;
       bottom:auto!important;
-      transform:translateY(-50%)!important;
-      z-index:80!important;
-      display:flex!important;
+      transform:none!important;
+      z-index:32!important;
+      width:min(680px,calc(100% - 24px))!important;
+      min-height:52px!important;
+      margin:8px auto 6px!important;
+      padding:7px 10px!important;
+      display:grid!important;
+      grid-template-columns:26px minmax(0,1fr) auto!important;
       align-items:center!important;
-      gap:4px!important;
-      min-height:40px!important;
-      padding:0 10px!important;
-      border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line))!important;
-      border-radius:999px!important;
-      background:color-mix(in srgb,var(--surface) 94%,transparent)!important;
-      color:var(--accent)!important;
-      font-size:10px!important;
-      box-shadow:0 4px 18px #00000018!important;
-      backdrop-filter:blur(12px)!important;
+      gap:8px!important;
+      border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line))!important;
+      border-radius:12px!important;
+      background:color-mix(in srgb,var(--surface) 96%,transparent)!important;
+      color:var(--text)!important;
+      box-shadow:0 5px 18px #00000010!important;
+      backdrop-filter:blur(14px)!important;
+      -webkit-backdrop-filter:blur(14px)!important;
       pointer-events:auto!important;
+      text-align:left!important;
     }
-    #readerCrossIndex b{font-size:10px!important;font-weight:700!important}
+    #readerCrossIndex .readerCrossIcon{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;background:color-mix(in srgb,var(--accent) 12%,var(--surface));color:var(--accent);font-size:15px;font-weight:800}
+    #readerCrossIndex .readerCrossCopy{min-width:0;display:flex;flex-direction:column;gap:2px}
+    #readerCrossIndex b{font-size:12.5px!important;font-weight:780!important;line-height:1.2;color:var(--text)!important}
+    #readerCrossIndex small{font-size:9.5px!important;line-height:1.35;color:var(--muted)!important;font-weight:560!important}
+    #readerCrossIndex em{font-size:10px!important;line-height:1;color:var(--accent)!important;font-style:normal!important;font-weight:760!important;white-space:nowrap}
     #detail .crossIndexHandle{display:none!important}
     #detail .egwParagraphWrap.crossLinked,
     #detail .reading>.verse.crossLinked{cursor:pointer;-webkit-tap-highlight-color:transparent}
