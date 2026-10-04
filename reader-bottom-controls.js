@@ -37,27 +37,20 @@
         <input type="range" min="0" max="0" value="0" step="1" data-reader-progress aria-label="朗读进度">
       </div>
       <div class="readerQuickMainRow">
-        <button type="button" class="readerQuickPrev" data-reader-quick="prev" aria-label="上一章">上一章</button>
-        <div class="readerQuickAudio">
-          <button type="button" class="readerQuickStep" data-reader-audio-step="-1" aria-label="上一句">‹ 句</button>
-          <button type="button" class="readerQuickPlay" data-reader-quick="tts" aria-label="开始朗读">
-            <span class="readerQuickPlayLabel">朗读</span>
-          </button>
-          <button type="button" class="readerQuickStep" data-reader-audio-step="1" aria-label="下一句">句 ›</button>
-        </div>
-        <button type="button" class="readerQuickNext" data-reader-quick="next" aria-label="下一章">下一章</button>
-      </div>
-      <div class="readerQuickOptions">
-        <select data-reader-voice aria-label="选择朗读男声"></select>
-        <button type="button" data-reader-voice-preview aria-label="试听当前声音">试听</button>
-        <select data-reader-quick-rate aria-label="朗读速度">
+        <select class="readerQuickVoice" data-reader-voice aria-label="选择朗读男声"></select>
+        <button type="button" class="readerQuickStep" data-reader-audio-step="-1" aria-label="上一句">‹ 句</button>
+        <button type="button" class="readerQuickPlay" data-reader-quick="tts" aria-label="开始朗读">
+          <span class="readerQuickPlayLabel">朗读</span>
+        </button>
+        <button type="button" class="readerQuickStep" data-reader-audio-step="1" aria-label="下一句">句 ›</button>
+        <select class="readerQuickRate" data-reader-quick-rate aria-label="朗读速度">
           <option value="0.8">0.8x</option>
           <option value="1">1x</option>
           <option value="1.2">1.2x</option>
           <option value="1.5">1.5x</option>
           <option value="2">2x</option>
         </select>
-      </div>`;
+      </div>`
     detail.appendChild(bar);
     return bar;
   }
@@ -98,17 +91,7 @@
     }
   }
 
-  function syncChapterState() {
-    const bar = ensureBar();
-    ['prev', 'next'].forEach(direction => {
-      const btn = bar.querySelector(`[data-reader-quick="${direction}"]`);
-      if (!btn) return;
-      const target = findChapterButton(direction);
-      const disabled = !target || !!target.disabled || target.hidden;
-      btn.disabled = disabled;
-      btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
-    });
-  }
+  function syncChapterState() {}
 
   function refresh() {
     const bar = ensureBar();
@@ -154,12 +137,6 @@
       syncPlayState();
       return;
     }
-    const preview = event.target.closest?.('#readerQuickBar [data-reader-voice-preview]');
-    if (preview) {
-      const voice = ensureBar().querySelector('[data-reader-voice]');
-      window.jgPreviewReadAloudVoice?.(voice?.value || '');
-      return;
-    }
     const control = event.target.closest?.('[data-reader-quick]');
     if (!control || control.disabled) return;
     const action = control.dataset.readerQuick;
@@ -169,8 +146,7 @@
       syncPlayState();
       return;
     }
-    const target = findChapterButton(action);
-    if (target && !target.disabled) target.click();
+
   });
 
   detail.addEventListener('jg-read-aloud-state', syncPlayState);
@@ -202,29 +178,26 @@
   const style = document.createElement('style');
   style.textContent = `
     .readerQuickBar[hidden]{display:none!important}
-    .readerQuickBar{position:fixed;z-index:30;left:50%;bottom:0;transform:translateX(-50%);width:min(720px,100%);display:block;padding:7px 12px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:color-mix(in srgb,var(--surface) 97%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
-    .readerQuickProgress{display:grid;grid-template-columns:46px minmax(0,1fr);align-items:center;gap:8px;margin:0 2px 3px}
-    .readerQuickProgressLabel{font-size:10px;font-weight:700;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
-    .readerQuickProgress input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:99px;background:var(--line);outline:none}
-    .readerQuickProgress input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;border:0;background:var(--accent);box-shadow:0 1px 6px color-mix(in srgb,var(--accent) 30%,transparent)}
-    .readerQuickMainRow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px}
-    .readerQuickAudio{display:flex;align-items:center;justify-content:center;gap:4px}
-    .readerQuickBar button{border:0!important;background:transparent!important;box-shadow:none!important;color:var(--text)!important;-webkit-tap-highlight-color:transparent;min-height:42px!important;padding:5px 5px!important;font-size:13px!important;font-weight:650!important}
-    .readerQuickBar button:disabled{opacity:.28!important;color:var(--muted)!important}
-    .readerQuickPrev{justify-self:start;text-align:left;color:var(--muted)!important}
-    .readerQuickNext{justify-self:end;text-align:right;color:var(--muted)!important}
-    .readerQuickStep{min-width:44px!important;color:var(--muted)!important;font-size:11px!important}
-    .readerQuickBar button.readerQuickPlay{min-width:78px;border-radius:999px!important;background:color-mix(in srgb,var(--accent) 12%,var(--surface))!important;color:var(--accent)!important;font-weight:750!important}
+    .readerQuickBar{position:fixed;z-index:35;left:50%;bottom:0;transform:translateX(-50%);width:min(720px,100%);display:block;padding:7px 10px calc(7px + env(safe-area-inset-bottom));border-top:1px solid color-mix(in srgb,var(--line) 88%,transparent);background:color-mix(in srgb,var(--surface) 97%,transparent);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 -6px 22px #0000000c}
+    .readerQuickProgress{display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:8px;margin:0 3px 4px}
+    .readerQuickProgressLabel{font-size:9.5px;font-weight:750;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+    .readerQuickProgress input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:99px;background:var(--line);outline:none}
+    .readerQuickProgress input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;border:0;background:var(--accent);box-shadow:0 1px 6px color-mix(in srgb,var(--accent) 28%,transparent)}
+    .readerQuickMainRow{display:grid;grid-template-columns:minmax(88px,1fr) 42px 78px 42px 58px;align-items:center;gap:4px}
+    .readerQuickMainRow button,.readerQuickMainRow select{min-width:0;min-height:38px!important;border:0!important;border-radius:9px!important;box-shadow:none!important;font-family:var(--font-ui)!important}
+    .readerQuickMainRow select{padding:0 6px!important;background:var(--soft)!important;color:var(--text)!important;font-size:10.5px!important;font-weight:650!important}
+    .readerQuickStep{padding:0!important;background:transparent!important;color:var(--muted)!important;font-size:11px!important;font-weight:700!important}
+    .readerQuickPlay{padding:0 8px!important;background:color-mix(in srgb,var(--accent) 11%,var(--surface))!important;color:var(--accent)!important;font-size:12px!important;font-weight:780!important}
     .readerQuickPlay[data-state="playing"],.readerQuickPlay[data-state="paused"]{background:var(--accent)!important;color:#fff!important}
-    .readerQuickPlay .readerQuickPlayLabel{font-size:13px;font-weight:750;letter-spacing:.01em}
-    .readerQuickOptions{display:grid;grid-template-columns:minmax(0,1fr) 52px 66px;gap:6px;align-items:center;margin-top:3px}
-    .readerQuickOptions select,.readerQuickOptions button{min-height:34px!important;border:1px solid var(--line)!important;border-radius:9px!important;background:var(--surface)!important;color:var(--text)!important;font-size:11px!important;font-weight:650!important;padding:0 8px!important;box-shadow:none!important}
-    .readerQuickOptions button{color:var(--accent)!important}
-    @media(max-width:390px){.readerQuickBar{padding-left:9px;padding-right:9px}.readerQuickBar button{font-size:12px!important}.readerQuickStep{min-width:40px!important}.readerQuickOptions{grid-template-columns:minmax(0,1fr) 48px 62px}}
-    #detail.hasReaderQuickBar #readerBottomNav,
-    #detail.hasReaderQuickBar #detailActions,
-    #detail.hasReaderQuickBar .readerNav,
-    #detail.hasReaderQuickBar .egwChapterPager,
+    .readerQuickPlay .readerQuickPlayLabel{font-size:12px!important;font-weight:780!important;white-space:nowrap}
+    .readerQuickMainRow button:active{transform:scale(.97)}
+    @media(max-width:390px){
+      .readerQuickBar{padding-left:8px;padding-right:8px}
+      .readerQuickMainRow{grid-template-columns:minmax(78px,1fr) 38px 72px 38px 54px;gap:3px}
+      .readerQuickMainRow select{font-size:10px!important;padding-left:5px!important;padding-right:4px!important}
+      .readerQuickStep{font-size:10.5px!important}
+      .readerQuickPlay .readerQuickPlayLabel{font-size:11.5px!important}
+    }
     #detail.hasReaderQuickBar .readAloudBar{display:none!important}
   `;
   document.head.appendChild(style);
