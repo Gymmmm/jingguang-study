@@ -66,7 +66,7 @@
     backdrop.innerHTML = `
       <section class="readerSettingsSheet" role="dialog" aria-modal="true" aria-label="阅读设置">
         <div class="readerSettingsHandle" aria-hidden="true"></div>
-        <header class="readerSettingsHead"><h2>阅读设置</h2><button type="button" data-reader-settings-close aria-label="关闭">×</button></header>
+        <header class="readerSettingsHead"><h2>显示设置</h2><button type="button" data-reader-settings-close aria-label="关闭">×</button></header>
 
         <div class="readerSettingsGroup readerSettingsFontGroup">
           <h3>字号</h3>
@@ -74,29 +74,6 @@
             <span aria-hidden="true">A−</span>
             <input type="range" min="14" max="28" step="1" value="19" data-reader-font-slider aria-label="字号">
             <span aria-hidden="true">A+</span>
-          </div>
-        </div>
-
-        <div class="readerSettingsGroup">
-          <h3>朗读</h3>
-          <div class="readerAudioControl">
-            <button type="button" data-reader-audio-step="-1" aria-label="上一段">
-              <span class="readerSkipIcon">上一段</span>
-            </button>
-            <button type="button" class="readerSheetPlay" data-reader-sheet-tts aria-label="朗读">
-              <span>▶</span>
-            </button>
-            <button type="button" data-reader-audio-step="1" aria-label="下一段">
-              <span class="readerSkipIcon">下一段</span>
-            </button>
-          </div>
-          <div class="readerVoiceRow">
-            <label for="readerVoiceSelect">男声</label>
-            <select id="readerVoiceSelect" data-reader-voice aria-label="选择朗读男声"></select>
-            <button type="button" data-reader-voice-preview>试听</button>
-          </div>
-          <div class="readerRateRow" aria-label="朗读速度">
-            ${[0.8,1,1.2,1.5,2].map(v => `<button type="button" data-reader-rate="${v}">${v}x</button>`).join('')}
           </div>
         </div>
 
@@ -247,11 +224,6 @@
     if (slider) slider.value = String(size);
   }
 
-  detail.addEventListener('change', event => {
-    const voice = event.target.closest?.('[data-reader-voice]');
-    if (voice) window.jgSetReadAloudVoice?.(voice.value);
-  });
-
   detail.addEventListener('click', event => {
     const open = event.target.closest?.('[data-reader-settings-open]');
     if (open) {
@@ -261,27 +233,6 @@
     }
     if (event.target.id === 'readerSettingsBackdrop' || event.target.closest?.('[data-reader-settings-close]')) {
       ensureSheet().hidden = true;
-      return;
-    }
-    if (event.target.closest?.('[data-reader-sheet-tts]')) {
-      if (typeof window.jgReadAloudToggle === 'function') window.jgReadAloudToggle();
-      else ttsMain()?.click();
-      return;
-    }
-    const step = event.target.closest?.('[data-reader-audio-step]');
-    if (step) {
-      window.jgReadAloudStep?.(Number(step.dataset.readerAudioStep));
-      return;
-    }
-    const preview = event.target.closest?.('[data-reader-voice-preview]');
-    if (preview) {
-      const select = q('[data-reader-voice]', ensureSheet());
-      window.jgPreviewReadAloudVoice?.(select?.value || '');
-      return;
-    }
-    const rate = event.target.closest?.('[data-reader-rate]');
-    if (rate) {
-      window.jgSetReadAloudRate?.(Number(rate.dataset.readerRate));
       return;
     }
     const nav = event.target.closest?.('[data-reader-sheet-nav]');
