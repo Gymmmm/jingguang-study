@@ -222,44 +222,25 @@
 
   function splitSentenceText(text) {
     const raw = String(text || '');
-    const clauses = raw.match(/[^。！？!?；;，,:：]+[。！？!?；;，,:：]?/g) || [raw];
+    // Keep each TTS request as a complete natural sentence. Commas, colons and
+    // enumeration punctuation stay inside the same audio clip so the neural
+    // voice controls its own prosody instead of restarting at every phrase.
+    const parts = raw.match(/[^。！？!?；;]+[。！？!?；;]?/g) || [raw];
     const out = [];
     let buf = '';
-    const flush = () => {
-      if (buf) out.push(buf);
-      buf = '';
-    };
-    for (const clause of clauses) {
-      const candidate = buf + clause;
-      if (!buf || cleanText(candidate).length <= 30) {
+    for (const part of parts) {
+      const candidate = buf + part;
+      // Very short sentences can share one clip; long sentences stay intact.
+      if (buf && cleanText(candidate).length > 86) {
+        out.push(buf);
+        buf = part;
+      } else {
         buf = candidate;
-        continue;
       }
-      flush();
-      if (cleanText(clause).length <= 34) {
-        buf = clause;
-        continue;
-      }
-      let rest = clause;
-      while (cleanText(rest).length > 34) {
-        let cut = Math.min(28, rest.length);
-        const natural = Math.max(
-          rest.lastIndexOf('，', cut),
-          rest.lastIndexOf('、', cut),
-          rest.lastIndexOf('：', cut),
-          rest.lastIndexOf(',', cut),
-          rest.lastIndexOf(':', cut)
-        );
-        if (natural >= 12) cut = natural + 1;
-        out.push(rest.slice(0, cut));
-        rest = rest.slice(cut);
-      }
-      buf = rest;
     }
-    flush();
+    if (buf) out.push(buf);
     return out.filter(part => cleanText(part).length);
   }
-
   function prepareSentenceUnits() {
     body.querySelectorAll('.egwReading .egwParagraph, .egw-original p, .detailSection p').forEach(p => {
       if (p.dataset.ttsSentenceReady === '1') return;
