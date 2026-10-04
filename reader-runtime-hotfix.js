@@ -66,7 +66,19 @@
         if (small) small.textContent = note;
       }
     }
+    syncCrossCompact();
   }
+
+  let crossScrollFrame = 0;
+  function syncCrossCompact() {
+    if (crossScrollFrame) return;
+    crossScrollFrame = requestAnimationFrame(() => {
+      crossScrollFrame = 0;
+      const compact = isReaderOpen() && detail.scrollTop > 180;
+      crossButton.classList.toggle('readerCrossCompact', compact);
+    });
+  }
+  detail.addEventListener('scroll', syncCrossCompact, {passive:true});
 
   function openCrossIndex(focus) {
     try { window.jgRefreshCrossIndex?.(); } catch (_) {}
@@ -330,6 +342,11 @@
     #readerCrossIndex b{font-size:12.5px!important;font-weight:780!important;line-height:1.2;color:var(--text)!important}
     #readerCrossIndex small{font-size:9.5px!important;line-height:1.35;color:var(--muted)!important;font-weight:560!important}
     #readerCrossIndex em{font-size:10px!important;line-height:1;color:var(--accent)!important;font-style:normal!important;font-weight:760!important;white-space:nowrap}
+    #readerCrossIndex.readerCrossCompact{min-height:40px!important;padding:5px 9px!important;border-radius:10px!important;box-shadow:0 3px 12px #0000000c!important}
+    #readerCrossIndex.readerCrossCompact .readerCrossIcon{width:23px;height:23px;font-size:13px}
+    #readerCrossIndex.readerCrossCompact small{display:none!important}
+    #readerCrossIndex.readerCrossCompact b{font-size:11.5px!important}
+    #readerCrossIndex.readerCrossCompact em{font-size:9.5px!important}
     #detail .crossIndexHandle{display:none!important}
     #detail .egwParagraphWrap.crossLinked,
     #detail .reading>.verse.crossLinked{cursor:pointer;-webkit-tap-highlight-color:transparent}
