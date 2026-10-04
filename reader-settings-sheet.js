@@ -192,7 +192,7 @@
     if (voiceSelect && typeof window.jgReadAloudVoices === 'function') {
       const available = window.jgReadAloudVoices();
       if (!voiceSelect.options.length && available.length) {
-        voiceSelect.innerHTML = available.map(v => `<option value="${v.name.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}">${v.name}</option>`).join('');
+        voiceSelect.innerHTML = available.map(v => `<option value="${v.name}">${v.label || v.name}</option>`).join('');
       }
       const currentVoice = window.jgReadAloudVoiceName?.();
       if (currentVoice && [...voiceSelect.options].some(o => o.value === currentVoice)) voiceSelect.value = currentVoice;
