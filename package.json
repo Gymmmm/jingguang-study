@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "edge-tts-universal": "^1.4.3"
+    "edge-tts-universal": "1.4.0"
   }
 }
