@@ -1,0 +1,8 @@
+{
+  "name": "jingguang-study",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "edge-tts.js": "^1.2.7"
+  }
+}
