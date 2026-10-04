@@ -30,7 +30,7 @@
     bar.id = 'readerQuickBar';
     bar.className = 'readerQuickBar';
     bar.setAttribute('aria-label', '阅读章节与朗读');
-    bar.hidden = true;
+    bar.hidden = !readable();
     bar.innerHTML = `
       <button type="button" class="readerQuickPrev" data-reader-quick="prev" aria-label="上一章">上一章</button>
       <button type="button" class="readerQuickPlay" data-reader-quick="tts" aria-label="开始朗读">
@@ -71,7 +71,7 @@
 
   function refresh() {
     const bar = ensureBar();
-    const show = detail.open && readable();
+    const show = readable() && (detail.open || detail.hasAttribute('open'));
     bar.hidden = !show;
     detail.classList.toggle('hasReaderQuickBar', show);
     if (!show) return;
@@ -142,4 +142,8 @@
   `;
   document.head.appendChild(style);
   ensureBar();
+  const boot = () => { if (readable()) refresh(); };
+  requestAnimationFrame(boot);
+  setTimeout(boot, 250);
+  setTimeout(boot, 900);
 })();
