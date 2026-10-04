@@ -26,7 +26,7 @@
       btn.type = 'button';
       btn.className = 'readerSettingsTrigger';
       btn.dataset.readerSettingsOpen = '1';
-      btn.setAttribute('aria-label', '阅读设置');
+      btn.setAttribute('aria-label', '显示设置：字号与主题');
       btn.textContent = 'Aa';
       tools.prepend(btn);
     }
@@ -64,9 +64,9 @@
     backdrop.className = 'readerSettingsBackdrop';
     backdrop.hidden = true;
     backdrop.innerHTML = `
-      <section class="readerSettingsSheet" role="dialog" aria-modal="true" aria-label="阅读设置">
+      <section class="readerSettingsSheet" role="dialog" aria-modal="true" aria-label="显示设置">
         <div class="readerSettingsHandle" aria-hidden="true"></div>
-        <header class="readerSettingsHead"><h2>显示设置</h2><button type="button" data-reader-settings-close aria-label="关闭">×</button></header>
+        <header class="readerSettingsHead"><div><h2>显示设置</h2><small>字号与阅读主题</small></div><button type="button" data-reader-settings-close aria-label="关闭">×</button></header>
 
         <div class="readerSettingsGroup readerSettingsFontGroup">
           <h3>字号</h3>
@@ -80,24 +80,14 @@
         <div class="readerSettingsGroup readerSettingsCompactGroup">
           <h3>主题</h3>
           <div class="readerThemeRow">
-            <button type="button" data-reader-theme="system"><i class="readerThemeIcon" aria-hidden="true">☼⚙</i><span>跟随系统</span></button>
-            <button type="button" data-reader-theme="paper"><i class="readerThemeIcon" aria-hidden="true">☀</i><span>浅色</span></button>
-            <button type="button" data-reader-theme="sepia"><i class="readerThemeIcon" aria-hidden="true">◉</i><span>护眼</span></button>
-            <button type="button" data-reader-theme="dark"><i class="readerThemeIcon" aria-hidden="true">☾</i><span>深色</span></button>
+            <button type="button" data-reader-theme="system"><i class="readerThemeIcon" aria-hidden="true"></i><span>跟随系统</span></button>
+            <button type="button" data-reader-theme="paper"><i class="readerThemeIcon" aria-hidden="true"></i><span>浅色</span></button>
+            <button type="button" data-reader-theme="sepia"><i class="readerThemeIcon" aria-hidden="true"></i><span>护眼</span></button>
+            <button type="button" data-reader-theme="dark"><i class="readerThemeIcon" aria-hidden="true"></i><span>深色</span></button>
           </div>
         </div>
 
-        <div class="readerSettingsGroup readerSettingsCompactGroup readerSettingsExtra" hidden>
-          <h3>更多</h3>
-          <div class="readerExtraActions">
-            <button type="button" data-reader-sheet-toc>目录</button>
-            <button type="button" data-reader-sheet-favorite>收藏</button>
-            <button type="button" data-reader-sheet-nav="prev">‹ 上一章</button>
-            <button type="button" data-reader-sheet-nav="next">下一章 ›</button>
-            <button type="button" data-reader-verify hidden>核验官方原始出处</button>
-          </div>
-        </div>
-      </section>`;
+              </section>`;
     detail.appendChild(backdrop);
     return backdrop;
   }
@@ -156,34 +146,6 @@
     if (!show) sheet.hidden = true;
 
     const s = state();
-    const play = q('[data-reader-sheet-tts]', sheet);
-    if (play) {
-      const span = q('span', play);
-      const label = s.speaking && !s.paused ? '暂停' : (s.paused ? '继续' : '朗读');
-      if (span) span.textContent = s.speaking && !s.paused ? 'Ⅱ' : (s.paused ? '▶' : '▶');
-      play.setAttribute('aria-label', label);
-      play.title = label;
-    }
-
-    const voiceSelect = q('[data-reader-voice]', sheet);
-    if (voiceSelect && typeof window.jgReadAloudVoices === 'function') {
-      const available = window.jgReadAloudVoices();
-      if (!voiceSelect.options.length && available.length) {
-        voiceSelect.innerHTML = available.map(v => `<option value="${v.name}">${v.label || v.name}</option>`).join('');
-      }
-      const currentVoice = window.jgReadAloudVoiceName?.();
-      if (currentVoice && [...voiceSelect.options].some(o => o.value === currentVoice)) voiceSelect.value = currentVoice;
-    }
-
-    sheet.querySelectorAll('[data-reader-rate]').forEach(btn => {
-      btn.classList.toggle('active', Math.abs(Number(btn.dataset.readerRate) - Number(s.rate || 1)) < .01);
-    });
-
-    const prevStep = q('[data-reader-audio-step="-1"]', sheet);
-    const nextStep = q('[data-reader-audio-step="1"]', sheet);
-    if (prevStep) prevStep.disabled = !s.count || s.index <= 0;
-    if (nextStep) nextStep.disabled = !s.count || s.index >= s.count - 1;
-
     const slider = q('[data-reader-font-slider]', sheet);
     if (slider) slider.value = String(currentFont());
 
@@ -191,29 +153,6 @@
     const theme = pref === 'system' ? 'system' : (document.documentElement.dataset.theme || 'paper');
     sheet.querySelectorAll('[data-reader-theme]').forEach(btn => btn.classList.toggle('active', btn.dataset.readerTheme === theme));
 
-    const prev = quick('prev') || detail.querySelector('.readerNav button,.egwChapterPager button');
-    const next = detail.querySelectorAll('.readerNav button,.egwChapterPager button');
-    // Keep chapter nav available in sheet extras
-    const extra = q('.readerSettingsExtra', sheet);
-    if (extra) extra.hidden = false;
-    const verify = q('[data-reader-verify]', sheet);
-    const official = detail.querySelector('[data-official-source]');
-    if (verify) {
-      verify.hidden = !official;
-    }
-
-    const favBtn = q('[data-reader-sheet-favorite]', sheet);
-    if (favBtn) {
-      const src = favoriteSource();
-      const on = /已收藏|★/.test(String(src?.textContent || ''));
-      favBtn.textContent = on ? '★ 已收藏' : '☆ 收藏';
-      favBtn.setAttribute('aria-label', on ? '取消收藏' : '收藏本章');
-      favBtn.disabled = !src;
-    }
-    const tocBtn = q('[data-reader-sheet-toc]', sheet);
-    if (tocBtn) {
-      tocBtn.setAttribute('aria-label', detail.dataset.readerKind === 'egw-reader' ? '本书目录' : '本章目录');
-    }
   }
 
   function setFontSize(n) {
@@ -235,21 +174,7 @@
       ensureSheet().hidden = true;
       return;
     }
-    const nav = event.target.closest?.('[data-reader-sheet-nav]');
-    if (nav) {
-      const dir = nav.dataset.readerSheetNav;
-      const label = dir === 'prev' ? '上一章' : '下一章';
-      const candidates = [
-        ...detail.querySelectorAll('#readerBottomNav button,.readerNav button,.egwChapterPager button')
-      ];
-      const target = candidates.find(btn => String(btn.textContent || '').includes(label));
-      if (target && !target.disabled && !target.hidden) {
-        ensureSheet().hidden = true;
-        target.click();
-      }
-      return;
-    }
-    if (event.target.closest?.('[data-reader-sheet-toc], [data-reader-header-toc]')) {
+    if (event.target.closest?.('[data-reader-header-toc]')) {
       ensureSheet().hidden = true;
       const kind = detail.dataset.readerKind || '';
       if (kind === 'egw-reader') {
@@ -265,17 +190,12 @@
       }
       return;
     }
-    if (event.target.closest?.('[data-reader-sheet-favorite], [data-reader-header-favorite]')) {
+    if (event.target.closest?.('[data-reader-header-favorite]')) {
       const src = favoriteSource();
       if (src) {
         src.click();
         queueMicrotask(sync);
       }
-      return;
-    }
-    const verify = event.target.closest?.('[data-reader-verify]');
-    if (verify) {
-      detail.querySelector('[data-official-source]')?.click();
       return;
     }
     const theme = event.target.closest?.('[data-reader-theme]');
@@ -325,7 +245,7 @@
     .readerSettingsSheet{width:min(720px,100%);max-height:86%;margin:0 auto;padding:8px 18px calc(22px + env(safe-area-inset-bottom));overflow:auto;border-radius:22px 22px 0 0;background:var(--surface);color:var(--text);box-shadow:0 -18px 48px rgba(20,24,21,.13)}
     .readerSettingsHandle{width:36px;height:4px;margin:0 auto 8px;border-radius:99px;background:var(--line)}
     .readerSettingsHead{position:static!important;display:flex!important;align-items:center!important;justify-content:space-between!important;padding:0 0 7px!important;border:0!important;background:transparent!important}
-    .readerSettingsHead h2{margin:0;font-size:17px;font-weight:700}.readerSettingsHead button{width:40px;min-width:40px!important;min-height:40px!important;border:0!important;background:transparent!important;color:var(--muted)!important;font-size:25px!important;font-weight:300!important}
+    .readerSettingsHead>div{display:flex;flex-direction:column;gap:2px}.readerSettingsHead h2{margin:0;font-size:17px;font-weight:700}.readerSettingsHead small{font-size:10.5px;color:var(--muted)}.readerSettingsHead button{width:40px;min-width:40px!important;min-height:40px!important;border:0!important;background:transparent!important;color:var(--muted)!important;font-size:25px!important;font-weight:300!important}
     .readerSettingsGroup{padding:14px 0;border-top:1px solid var(--line)}.readerSettingsGroup:first-of-type{border-top:0}
     .readerSettingsGroup h3{margin:0 0 10px;font-size:13px;font-weight:700;color:var(--text)}
     .readerFontSliderRow{display:grid;grid-template-columns:28px 1fr 28px;align-items:center;gap:10px}
@@ -344,7 +264,11 @@
     .readerThemeRow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
     .readerThemeRow button{min-height:72px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1.5px solid var(--line)!important;border-radius:12px!important;background:var(--surface)!important;color:var(--muted)!important;font-size:11px!important;padding:8px 4px!important}
     .readerThemeRow button.active{border-color:var(--accent)!important;background:var(--accent-soft)!important;color:var(--accent)!important;font-weight:700!important}
-    .readerThemeIcon{font-size:18px;line-height:1;font-style:normal}
+    .readerThemeIcon{display:block;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);box-shadow:inset 0 0 0 1px #ffffff55}
+    [data-reader-theme="system"] .readerThemeIcon{background:linear-gradient(90deg,#f6f2ea 0 50%,#2b2d29 50% 100%)}
+    [data-reader-theme="paper"] .readerThemeIcon{background:#fff}
+    [data-reader-theme="sepia"] .readerThemeIcon{background:#e9dfc8}
+    [data-reader-theme="dark"] .readerThemeIcon{background:#2b2d29}
     .readerExtraActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .readerExtraActions button{min-height:42px!important;border:1px solid var(--line)!important;border-radius:10px!important;background:transparent!important;color:var(--text)!important;font-size:12px!important}
     .readerExtraActions [data-reader-sheet-toc],
