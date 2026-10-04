@@ -498,7 +498,7 @@
       handle.className = 'crossIndexHandle';
       handle.dataset.crossIndexOpen = '1';
       handle.hidden = true;
-      handle.innerHTML = '<span aria-hidden="true">↔</span><b>关联</b>';
+      handle.innerHTML = '<span aria-hidden="true">↔</span><b>对照资料</b>';
       detail.appendChild(handle);
     }
     let sheet = detail.querySelector('.crossIndexSheet');
@@ -506,7 +506,7 @@
       sheet = document.createElement('div');
       sheet.className = 'crossIndexSheet';
       sheet.hidden = true;
-      sheet.innerHTML = `<button class="crossIndexBackdrop" type="button" data-cross-index-close aria-label="关闭关联"></button><section class="crossIndexPanel" aria-label="关联"><header><div><b>关联</b><small>只显示可核验关联，并附依据</small></div><button type="button" data-cross-index-close aria-label="关闭">×</button></header><div class="crossIndexReturn"></div><div class="crossIndexList"></div></section>`;
+      sheet.innerHTML = `<button class="crossIndexBackdrop" type="button" data-cross-index-close aria-label="关闭对照资料"></button><section class="crossIndexPanel" aria-label="经文与怀著对照"><header><div><b>经文 × 怀著对照</b><small>查看相关资料，并保留出处与关联依据</small></div><button type="button" data-cross-index-close aria-label="关闭">×</button></header><div class="crossIndexReturn"></div><div class="crossIndexList"></div></section>`;
       detail.appendChild(sheet);
     }
     return {handle, sheet};
@@ -535,9 +535,11 @@
     handle.setAttribute('aria-label', count ? `打开关联，共 ${count} 条` : '返回关联位置');
     if (persistent) {
       persistent.hidden = false;
-      persistent.setAttribute('aria-label', count ? `打开关联，共 ${count} 条` : '打开关联');
-      const label = persistent.querySelector('b');
-      if (label) label.textContent = count ? `关联 ${count}` : '关联';
+      const bible = kind === 'bible-reader';
+      const title = bible ? '经文 × 怀著对照' : '怀著 × 经文对照';
+      const note = bible ? '查看本章相关怀著与关联依据' : '查看本段相关经文与引用依据';
+      persistent.setAttribute('aria-label', count ? `${title}，共 ${count} 条` : title);
+      persistent.innerHTML = `<span class="readerCrossIcon" aria-hidden="true">↔</span><span class="readerCrossCopy"><b>${title}</b><small>${note}</small></span><em>${count ? count + ' 条' : '查看'} ›</em>`;
     }
   }
 
