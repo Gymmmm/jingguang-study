@@ -337,6 +337,35 @@
     return true;
   }
 
+  function seekTo(value) {
+    if (!units.length) collectUnits();
+    if (!units.length || !readablePage()) return false;
+    const next = Math.max(0, Math.min(units.length - 1, Math.round(Number(value) || 0)));
+    const wasSpeaking = speaking;
+    const wasPaused = paused;
+    session += 1;
+    if (cloudAudio) {
+      cloudAudio.pause();
+      cloudAudio.removeAttribute('src');
+      cloudAudio.load();
+      clearCloudSource();
+    }
+    synth.cancel();
+    index = next;
+    savePosition();
+    highlightCurrent();
+    speaking = wasSpeaking;
+    paused = wasPaused;
+    if (wasSpeaking && !wasPaused) {
+      speaking = true;
+      paused = false;
+      speakCurrent(session);
+    } else {
+      updateToolbar();
+    }
+    return true;
+  }
+
   function ensureToolbar() {
     let bar = detail.querySelector('.readAloudBar');
     if (bar) return bar;
@@ -403,6 +432,7 @@
   window.jgSetReadAloudVoice = setVoice;
   window.jgPreviewReadAloudVoice = previewVoice;
   window.jgReadAloudStep = step;
+  window.jgReadAloudSeek = seekTo;
   window.jgSetReadAloudRate = setRate;
   window.jgReadAloudState = () => ({ speaking, paused, rate, index, count: units.length });
 
