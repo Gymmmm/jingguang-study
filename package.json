@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@bestcodes/edge-tts": "3.0.1"
+    "edge-tts-universal": "^1.4.3"
   }
 }
