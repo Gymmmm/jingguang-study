@@ -36,5 +36,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/tts.js": {
+      "includeFiles": "node_modules/@bestcodes/edge-tts/**"
+    }
+  }
 }
