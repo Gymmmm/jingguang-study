@@ -157,7 +157,6 @@
     clearHighlight();
     const el = units[index]?.el;
     if (!el) return;
-    el.classList.add('ttsSpeaking');
     const anchor = el.closest?.('.verse,.egwParagraphWrap') || el;
     anchor.classList.add('ttsSpeaking');
     // Keep reading position stable while the current segment is still visible.
@@ -386,7 +385,8 @@
     .readAloudBar .ttsMain{color:var(--accent)!important}
     .readAloudBar[data-active="1"] .ttsMain{font-weight:800!important}
     .readAloudBar .ttsRate{min-width:34px!important;color:color-mix(in srgb,var(--muted) 78%,transparent)!important;font-weight:550!important}
-    .ttsSpeaking{border-left:3px solid var(--accent)!important;background:color-mix(in srgb,var(--accent) 8%,transparent)!important;box-shadow:none!important;border-radius:4px;transition:border-color .18s ease,background .18s ease}
+    .ttsSpeaking{position:relative!important;background:color-mix(in srgb,var(--accent) 3.5%,transparent)!important;box-shadow:none!important;border-radius:4px;transition:background .18s ease}
+    .ttsSpeaking::before{content:"";position:absolute;left:-7px;top:.9em;width:4px;height:4px;border-radius:999px;background:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 14%,transparent);pointer-events:none}
     @media(max-width:560px){.readAloudBar{padding:4px 12px 0}.readAloudBar button{font-size:10px!important}}
   `;
   document.head.appendChild(style);
