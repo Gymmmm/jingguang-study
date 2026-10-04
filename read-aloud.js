@@ -24,50 +24,63 @@
   if (!detail || !body) return;
 
   const cleanText = value => String(value || '').replace(/\s+/g, ' ').trim();
-  const chineseVoice = v => /^zh(?:-|_)/i.test(v.lang || '') || /Chinese|中文|Mandarin|普通话/i.test(v.name || '');
-  const maleHint = v => /male|男|yunxi|yunyang|yunjian|yunfeng|yunhao|yunze|kangkang|li-mu|li mu|sin-ji|sin ji/i.test(v.name || '');
+  const CLOUD_VOICES = [
+    { id:'yunjian', name:'云健 · 新闻播音', desc:'沉稳、字正腔圆' },
+    { id:'yunyang', name:'云扬 · 纪录解说', desc:'成熟、清晰' },
+    { id:'yunxi', name:'云希 · 青年男声', desc:'自然、年轻' },
+    { id:'yunxia', name:'云夏 · 清亮男声', desc:'清晰、轻快' },
+    { id:'yunjhe', name:'云哲 · 台湾男声', desc:'温和、自然' },
+    { id:'wanlung', name:'云龙 · 粤语男声', desc:'粤语、沉稳' }
+  ];
+  let cloudVoice = localStorage.getItem(VOICE_KEY) || 'yunjian';
+  let cloudAudio = null;
 
-  function loadVoices() {
-    voices = synth.getVoices().filter(chineseVoice);
-    if (!selectedVoiceName || !voices.some(v => v.name === selectedVoiceName)) {
-      selectedVoiceName = (voices.find(maleHint) || voices[0] || {}).name || '';
-    }
-    updateVoiceSelect();
-  }
-
-  function selectedVoice() {
-    return voices.find(v => v.name === selectedVoiceName) || voices.find(maleHint) || voices[0] || null;
+  function updateVoiceSelect() {
+    document.querySelectorAll('[data-reader-voice]').forEach(select => {
+      select.innerHTML = CLOUD_VOICES.map(v => `<option value="${v.id}">${v.name}</option>`).join('');
+      select.value = CLOUD_VOICES.some(v => v.id === cloudVoice) ? cloudVoice : 'yunjian';
+      select.disabled = false;
+    });
   }
 
   function setVoice(name) {
-    if (!voices.some(v => v.name === name)) return false;
-    selectedVoiceName = name;
+    if (!CLOUD_VOICES.some(v => v.id === name)) return false;
+    cloudVoice = name;
     localStorage.setItem(VOICE_KEY, name);
-    if (speaking && !paused) { session += 1; speakCurrent(session); }
     updateToolbar();
     return true;
   }
 
-  function updateVoiceSelect() {
-    document.querySelectorAll('[data-reader-voice]').forEach(select => {
-      const current = selectedVoice();
-      select.innerHTML = voices.map(v => `<option value="${v.name.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}">${v.name}</option>`).join('');
-      if (current) select.value = current.name;
-      select.disabled = !voices.length;
+  async function cloudSpeak(text, token, preview = false) {
+    if (cloudAudio) { cloudAudio.pause(); cloudAudio = null; }
+    const response = await fetch('/api/tts', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text, voice:cloudVoice, rate})
     });
+    if (!response.ok) throw new Error('cloud_tts_failed');
+    const blob = await response.blob();
+    if (token !== session && !preview) return;
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    cloudAudio = audio;
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      if (preview) return;
+      if (token !== session || !speaking) return;
+      index += 1;
+      speakCurrent(token);
+    };
+    audio.onerror = () => URL.revokeObjectURL(url);
+    await audio.play();
   }
 
   function previewVoice(name) {
-    const voice = voices.find(v => v.name === name) || selectedVoice();
-    if (!voice) return false;
-    synth.cancel();
-    const u = new SpeechSynthesisUtterance('这是当前男声的朗读效果。');
-    u.lang = voice.lang || 'zh-CN';
-    u.voice = voice;
-    u.rate = rate;
-    synth.speak(u);
+    if (name) setVoice(name);
+    cloudSpeak('这是当前男声的朗读效果。愿你在阅读中有清晰安静的思考。', session, true).catch(() => {});
     return true;
   }
+
   const readablePage = () => detail.dataset.readerKind === 'bible-reader' || detail.dataset.readerKind === 'egw-reader';
 
   function titleKey() {
@@ -157,22 +170,18 @@
     paused = false;
     highlightCurrent();
     savePosition();
-    const u = new SpeechSynthesisUtterance(units[index].text);
-    u.lang = 'zh-CN';
-    const voice = selectedVoice();
-    if (voice) { u.voice = voice; u.lang = voice.lang || 'zh-CN'; }
-    u.rate = rate;
-    u.onend = () => {
-      if (token !== session || !speaking) return;
-      index += 1;
-      speakCurrent(token);
-    };
-    u.onerror = () => {
-      if (token !== session) return;
-      speaking = false;
-      paused = false;
-      clearHighlight();
-      updateToolbar();
+    cloudSpeak(units[index].text, token).catch(() => {
+      const u = new SpeechSynthesisUtterance(units[index].text);
+      u.lang = 'zh-CN';
+      u.rate = rate;
+      u.onend = () => {
+        if (token !== session || !speaking) return;
+        index += 1;
+        speakCurrent(token);
+      };
+      synth.speak(u);
+    });
+    updateToolbar();
     };
     synth.speak(u);
     updateToolbar();
@@ -291,7 +300,7 @@
     const main = bar.querySelector('[data-tts="toggle"]');
     if (main) {
       main.textContent = paused ? '继续朗读' : (speaking ? '暂停朗读' : '朗读');
-      const voiceName = selectedVoice()?.name || '中文语音';
+      const voiceName = CLOUD_VOICES.find(v => v.id === cloudVoice)?.name || '云健 · 新闻播音';
       main.setAttribute('aria-label', `${main.textContent}，${voiceName}`);
       main.title = voiceName;
     }
@@ -327,8 +336,8 @@
 
   window.jgRefreshReadAloud = refresh;
   window.jgReadAloudToggle = toggle;
-  window.jgReadAloudVoiceName = () => selectedVoice()?.name || '中文语音';
-  window.jgReadAloudVoices = () => voices.map(v => ({name:v.name, lang:v.lang, male:maleHint(v)}));
+  window.jgReadAloudVoiceName = () => cloudVoice;
+  window.jgReadAloudVoices = () => CLOUD_VOICES.map(v => ({name:v.id, label:v.name, desc:v.desc, male:true}));
   window.jgSetReadAloudVoice = setVoice;
   window.jgPreviewReadAloudVoice = previewVoice;
   window.jgReadAloudStep = step;
@@ -348,6 +357,5 @@
   `;
   document.head.appendChild(style);
   ensureToolbar();
-  loadVoices();
-  if ('onvoiceschanged' in synth) synth.addEventListener('voiceschanged', loadVoices);
+  updateVoiceSelect();
 })();
