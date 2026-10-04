@@ -87,6 +87,15 @@
     if (progressLabel) progressLabel.textContent = s.count ? `${Math.min((s.index || 0) + 1, s.count)} / ${s.count}` : '0 / 0';
     const rate = bar.querySelector('[data-reader-quick-rate]');
     if (rate) rate.value = String(s.rate || 1);
+    const voice = bar.querySelector('[data-reader-voice]');
+    if (voice && typeof window.jgReadAloudVoices === 'function') {
+      const available = window.jgReadAloudVoices();
+      if (!voice.options.length && available.length) {
+        voice.innerHTML = available.map(v => `<option value="${v.name}">${v.label || v.name}</option>`).join('');
+      }
+      const current = window.jgReadAloudVoiceName?.();
+      if (current && [...voice.options].some(o => o.value === current)) voice.value = current;
+    }
   }
 
   function syncChapterState() {
@@ -129,22 +138,34 @@
     if (rate) {
       window.jgSetReadAloudRate?.(Number(rate.value));
       syncPlayState();
+      return;
+    }
+    const voice = event.target.closest?.('#readerQuickBar [data-reader-voice]');
+    if (voice) {
+      window.jgSetReadAloudVoice?.(voice.value);
+      syncPlayState();
     }
   });
 
   detail.addEventListener('click', event => {
+    const sentenceStep = event.target.closest?.('#readerQuickBar [data-reader-audio-step]');
+    if (sentenceStep) {
+      window.jgReadAloudStep?.(Number(sentenceStep.dataset.readerAudioStep));
+      syncPlayState();
+      return;
+    }
+    const preview = event.target.closest?.('#readerQuickBar [data-reader-voice-preview]');
+    if (preview) {
+      const voice = ensureBar().querySelector('[data-reader-voice]');
+      window.jgPreviewReadAloudVoice?.(voice?.value || '');
+      return;
+    }
     const control = event.target.closest?.('[data-reader-quick]');
     if (!control || control.disabled) return;
     const action = control.dataset.readerQuick;
     if (action === 'tts') {
       if (typeof window.jgReadAloudToggle === 'function') window.jgReadAloudToggle();
       else ttsButton()?.click();
-      syncPlayState();
-      return;
-    }
-    const sentenceStep = event.target.closest?.('[data-reader-audio-step]');
-    if (sentenceStep) {
-      window.jgReadAloudStep?.(Number(sentenceStep.dataset.readerAudioStep));
       syncPlayState();
       return;
     }
