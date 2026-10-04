@@ -50,9 +50,10 @@
       ? window.jgReadAloudState()
       : { speaking:false, paused:false };
     const active = !!s.speaking && !s.paused;
-    const text = active ? '暂停' : (s.paused ? '继续' : '朗读');
+    const progress = s.count ? ` ${Math.min((s.index || 0) + 1, s.count)}/${s.count}` : '';
+    const text = active ? `暂停${progress}` : (s.paused ? `继续${progress}` : '朗读');
     label.textContent = text;
-    quick.setAttribute('aria-label', active ? '暂停朗读' : (s.paused ? '继续朗读' : '开始朗读'));
+    quick.setAttribute('aria-label', active ? `暂停朗读${progress}` : (s.paused ? `继续朗读${progress}` : '开始朗读'));
     quick.dataset.playing = active ? '1' : (s.paused ? 'paused' : 'idle');
     quick.dataset.state = s.paused ? 'paused' : (active ? 'playing' : 'idle');
   }
