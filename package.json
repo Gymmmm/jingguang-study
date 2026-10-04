@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "edge-tts.js": "^1.2.7"
+    "@bestcodes/edge-tts": "3.0.1"
   }
 }
