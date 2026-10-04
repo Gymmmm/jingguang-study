@@ -34,6 +34,24 @@
   ];
   let cloudVoice = localStorage.getItem(VOICE_KEY) || 'yunjian';
   let cloudAudio = null;
+  let cloudObjectUrl = '';
+
+  function ensureCloudAudio() {
+    if (cloudAudio) return cloudAudio;
+    cloudAudio = document.createElement('audio');
+    cloudAudio.preload = 'auto';
+    cloudAudio.setAttribute('playsinline', '');
+    cloudAudio.style.display = 'none';
+    document.body.appendChild(cloudAudio);
+    return cloudAudio;
+  }
+
+  function clearCloudSource() {
+    if (cloudObjectUrl) {
+      try { URL.revokeObjectURL(cloudObjectUrl); } catch (_) {}
+      cloudObjectUrl = '';
+    }
+  }
 
   function updateVoiceSelect() {
     document.querySelectorAll('[data-reader-voice]').forEach(select => {
@@ -52,7 +70,8 @@
   }
 
   async function cloudSpeak(text, token, preview = false) {
-    if (cloudAudio) { cloudAudio.pause(); cloudAudio = null; }
+    const audio = ensureCloudAudio();
+    audio.pause();
     const response = await fetch('/api/tts', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -61,17 +80,18 @@
     if (!response.ok) throw new Error('cloud_tts_failed');
     const blob = await response.blob();
     if (token !== session && !preview) return;
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    cloudAudio = audio;
+    clearCloudSource();
+    cloudObjectUrl = URL.createObjectURL(blob);
+    audio.src = cloudObjectUrl;
+    audio.currentTime = 0;
     audio.onended = () => {
-      URL.revokeObjectURL(url);
+      clearCloudSource();
       if (preview) return;
       if (token !== session || !speaking) return;
       index += 1;
       speakCurrent(token);
     };
-    audio.onerror = () => URL.revokeObjectURL(url);
+    audio.onerror = () => clearCloudSource();
     await audio.play();
   }
 
@@ -187,8 +207,12 @@
   function start() {
     if (!units.length) collectUnits();
     if (!units.length || !readablePage()) return;
-    if (paused && synth.paused) {
-      synth.resume();
+    if (paused) {
+      if (cloudAudio && cloudAudio.src && cloudAudio.paused) {
+        cloudAudio.play().catch(() => {});
+      } else if (synth.paused) {
+        synth.resume();
+      }
       paused = false;
       speaking = true;
       updateToolbar();
@@ -202,6 +226,7 @@
 
   function pause() {
     if (!speaking) return;
+    if (cloudAudio && !cloudAudio.paused) cloudAudio.pause();
     synth.pause();
     paused = true;
     updateToolbar();
@@ -210,6 +235,12 @@
   function stop(reset = false) {
     savePosition();
     session += 1;
+    if (cloudAudio) {
+      cloudAudio.pause();
+      cloudAudio.removeAttribute('src');
+      cloudAudio.load();
+      clearCloudSource();
+    }
     synth.cancel();
     speaking = false;
     paused = false;
@@ -221,6 +252,12 @@
   function refresh() {
     savePosition();
     session += 1;
+    if (cloudAudio) {
+      cloudAudio.pause();
+      cloudAudio.removeAttribute('src');
+      cloudAudio.load();
+      clearCloudSource();
+    }
     synth.cancel();
     speaking = false;
     paused = false;
