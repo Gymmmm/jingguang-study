@@ -471,20 +471,6 @@
   document.addEventListener('click', () => queueMicrotask(syncHeaderContextFromRoute), true);
   syncHeaderContextFromRoute();
 
-  /* Keep narration simple: browser/system default Chinese voice only. */
-  function forceSystemVoice() {
-    localStorage.setItem('jg_read_aloud_voice_mode', 'system');
-    const selector = document.querySelector('.readAloudBar [data-tts-voice]');
-    if (!selector) return;
-    if (selector.value !== 'system') {
-      selector.value = 'system';
-      selector.dispatchEvent(new Event('change', {bubbles:true}));
-    }
-    selector.remove();
-  }
-  forceSystemVoice();
-  requestAnimationFrame(forceSystemVoice);
-
   const style = document.createElement('style');
   style.textContent = `
     .searchLoading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:150px;color:var(--muted);text-align:center}
@@ -502,7 +488,10 @@
     .crossIndexBlockBody{min-width:0;color:var(--text)!important;font-size:12.5px!important;line-height:1.5!important}
     .crossIndexContent .crossIndexBlockBody{color:var(--muted)!important;font-size:12px!important}
     .crossIndexLimited{padding:10px 2px;color:var(--muted);font-size:9.5px;text-align:center}
-    .readAloudBar .ttsVoice,[data-tts-voice]{display:none!important}
+    .readerVoiceRow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;margin:10px 0 4px}
+    .readerVoiceRow label{font-size:12px;font-weight:700;color:var(--text)}
+    .readerVoiceRow select{min-width:0;height:38px;padding:0 9px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--text);font:inherit;font-size:12px}
+    .readerVoiceRow button{min-height:38px!important;padding:0 12px!important;border:1px solid var(--line)!important;border-radius:9px!important;background:var(--surface)!important;color:var(--accent)!important;font-weight:700!important}
     .app.hasHeaderContext>header{justify-content:space-between}
     .app.hasHeaderContext>#headerContextTitle,.app.hasHeaderContext>header #headerContextTitle{display:inline-block}
     .detailSecondaryLink{border:0!important;background:transparent!important;color:var(--muted)!important;font-size:12px!important;font-weight:500!important;text-decoration:underline;text-underline-offset:3px;min-height:36px!important;box-shadow:none!important}
