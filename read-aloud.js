@@ -98,10 +98,20 @@
     }
   }
 
-  function mediaTitle() {
-    const book = cleanText(body.querySelector('.egwBookName,.bibleBookName,h1')?.textContent || '');
-    const chapter = cleanText(document.getElementById('detailType')?.textContent || body.querySelector('h2')?.textContent || '');
-    return [book, chapter].filter(Boolean).join(' · ') || '朗读';
+  function mediaContext() {
+    const book = cleanText(
+      body.querySelector('.egwBookName,.bibleBookName,.bookName')?.textContent ||
+      body.querySelector('.egwReading')?.previousElementSibling?.textContent ||
+      ''
+    );
+    const chapter = cleanText(
+      document.getElementById('detailType')?.textContent ||
+      body.querySelector('.egwChapterTitle,h1,h2')?.textContent ||
+      ''
+    );
+    const progress = units.length ? `${Math.min(index + 1, units.length)}/${units.length}` : '';
+    const current = cleanText(units[index]?.text || '');
+    return { book, chapter, progress, current };
   }
 
   function syncMediaPosition() {
@@ -122,10 +132,11 @@
     if (!('mediaSession' in navigator)) return;
     try {
       const voiceName = CLOUD_VOICES.find(v => v.id === cloudVoice)?.name || '中文男声';
+      const ctx = mediaContext();
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: mediaTitle(),
-        artist: `朗读 · ${voiceName}`,
-        album: units.length ? `第 ${Math.min(index + 1, units.length)} / ${units.length} 句` : '阅读'
+        title: [ctx.chapter || ctx.book || '正在朗读', ctx.progress].filter(Boolean).join(' · '),
+        artist: [ctx.book, voiceName].filter(Boolean).join(' · '),
+        album: ctx.current ? `正在读：${ctx.current.slice(0, 52)}` : '经光研读 · 正在朗读'
       });
       navigator.mediaSession.playbackState = speaking && !paused ? 'playing' : (speaking || paused ? 'paused' : 'none');
     } catch (_) {}
@@ -301,6 +312,7 @@
     const el = units[index]?.el;
     if (!el) return;
     el.classList.add('ttsSpeaking');
+    syncMediaSession();
     const root = detail.getBoundingClientRect();
     const rect = el.getBoundingClientRect();
     const targetTop = root.top + Math.min(260, root.height * .34);
