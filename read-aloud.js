@@ -211,8 +211,42 @@
 
   function splitSentenceText(text) {
     const raw = String(text || '');
-    const parts = raw.match(/[^。！？!?；;]+[。！？!?；;]?/g) || [raw];
-    return parts.filter(part => part.length);
+    const clauses = raw.match(/[^。！？!?；;，,:：]+[。！？!?；;，,:：]?/g) || [raw];
+    const out = [];
+    let buf = '';
+    const flush = () => {
+      if (buf) out.push(buf);
+      buf = '';
+    };
+    for (const clause of clauses) {
+      const candidate = buf + clause;
+      if (!buf || cleanText(candidate).length <= 30) {
+        buf = candidate;
+        continue;
+      }
+      flush();
+      if (cleanText(clause).length <= 34) {
+        buf = clause;
+        continue;
+      }
+      let rest = clause;
+      while (cleanText(rest).length > 34) {
+        let cut = Math.min(28, rest.length);
+        const natural = Math.max(
+          rest.lastIndexOf('，', cut),
+          rest.lastIndexOf('、', cut),
+          rest.lastIndexOf('：', cut),
+          rest.lastIndexOf(',', cut),
+          rest.lastIndexOf(':', cut)
+        );
+        if (natural >= 12) cut = natural + 1;
+        out.push(rest.slice(0, cut));
+        rest = rest.slice(cut);
+      }
+      buf = rest;
+    }
+    flush();
+    return out.filter(part => cleanText(part).length);
   }
 
   function prepareSentenceUnits() {
@@ -527,9 +561,9 @@
     .readAloudBar[data-active="1"] .ttsMain{font-weight:800!important}
     .readAloudBar .ttsRate{min-width:34px!important;color:color-mix(in srgb,var(--muted) 78%,transparent)!important;font-weight:550!important}
     .ttsSentenceUnit{box-decoration-break:clone;-webkit-box-decoration-break:clone}
-    .ttsSentenceUnit.ttsSpeaking{position:relative!important;padding:2px 1px!important;margin:0 -1px!important;border-radius:4px!important;background:color-mix(in srgb,var(--accent) 15%,transparent)!important;box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--accent) 68%,transparent)!important;color:var(--text)!important;transition:background .14s ease,box-shadow .14s ease}
-    .ttsSentenceUnit.ttsSpeaking::before{content:"▶";display:inline-block;margin-right:4px;color:var(--accent);font-family:system-ui,-apple-system,"PingFang SC",sans-serif;font-size:9px;font-weight:900;line-height:1;vertical-align:.12em}
-    .reading .verse span.ttsSpeaking{padding:2px 1px!important;margin:0 -1px!important;border-radius:4px!important;background:color-mix(in srgb,var(--accent) 15%,transparent)!important;box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--accent) 68%,transparent)!important}
+    .ttsSentenceUnit.ttsSpeaking{position:relative!important;padding:0!important;margin:0!important;border-radius:1px!important;background:linear-gradient(to bottom,transparent 62%,color-mix(in srgb,var(--accent) 18%,transparent) 62%)!important;box-shadow:none!important;text-decoration:underline 2px color-mix(in srgb,var(--accent) 72%,transparent)!important;text-underline-offset:4px;color:var(--text)!important;transition:background .14s ease}
+    .ttsSentenceUnit.ttsSpeaking::before{content:"▶";display:inline-block;margin-right:4px;color:var(--accent);font-family:system-ui,-apple-system,"PingFang SC",sans-serif;font-size:8px;font-weight:900;line-height:1;vertical-align:.12em}
+    .reading .verse span.ttsSpeaking{padding:0!important;margin:0!important;border-radius:1px!important;background:linear-gradient(to bottom,transparent 62%,color-mix(in srgb,var(--accent) 18%,transparent) 62%)!important;box-shadow:none!important;text-decoration:underline 2px color-mix(in srgb,var(--accent) 72%,transparent)!important;text-underline-offset:4px}
     @media(max-width:560px){.readAloudBar{padding:4px 12px 0}.readAloudBar button{font-size:10px!important}}
   `;
   document.head.appendChild(style);
