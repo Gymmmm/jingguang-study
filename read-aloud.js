@@ -35,13 +35,21 @@
   let cloudVoice = localStorage.getItem(VOICE_KEY) || 'yunjian';
   let cloudAudio = null;
   let cloudObjectUrl = '';
+  const audioCache = new Map();
+  const PREFETCH_AHEAD = 4;
 
   function ensureCloudAudio() {
     if (cloudAudio) return cloudAudio;
     cloudAudio = document.createElement('audio');
     cloudAudio.preload = 'auto';
     cloudAudio.setAttribute('playsinline', '');
+    cloudAudio.setAttribute('webkit-playsinline', '');
+    cloudAudio.controls = false;
     cloudAudio.style.display = 'none';
+    cloudAudio.addEventListener('play', () => syncMediaSession());
+    cloudAudio.addEventListener('pause', () => syncMediaSession());
+    cloudAudio.addEventListener('loadedmetadata', syncMediaPosition);
+    cloudAudio.addEventListener('timeupdate', syncMediaPosition);
     document.body.appendChild(cloudAudio);
     return cloudAudio;
   }
@@ -64,9 +72,77 @@
   function setVoice(name) {
     if (!CLOUD_VOICES.some(v => v.id === name)) return false;
     cloudVoice = name;
+    audioCache.clear();
     localStorage.setItem(VOICE_KEY, name);
     updateToolbar();
     return true;
+  }
+
+  const audioKey = text => `${cloudVoice}|${rate}|${text}`;
+
+  async function fetchSpeechBlob(text) {
+    const key = audioKey(text);
+    if (audioCache.has(key)) return audioCache.get(key);
+    const blob = await fetchSpeechBlob(text);
+    audioCache.set(key, blob);
+    while (audioCache.size > 14) audioCache.delete(audioCache.keys().next().value);
+    return blob;
+  }
+
+  function prefetchNext() {
+    if (!speaking || !units.length) return;
+    for (let i = index + 1; i <= Math.min(units.length - 1, index + PREFETCH_AHEAD); i += 1) {
+      const text = units[i]?.text;
+      if (!text || audioCache.has(audioKey(text))) continue;
+      fetchSpeechBlob(text).catch(() => {});
+    }
+  }
+
+  function mediaTitle() {
+    const book = cleanText(body.querySelector('.egwBookName,.bibleBookName,h1')?.textContent || '');
+    const chapter = cleanText(document.getElementById('detailType')?.textContent || body.querySelector('h2')?.textContent || '');
+    return [book, chapter].filter(Boolean).join(' · ') || '朗读';
+  }
+
+  function syncMediaPosition() {
+    if (!('mediaSession' in navigator) || !cloudAudio) return;
+    const duration = Number(cloudAudio.duration);
+    const position = Number(cloudAudio.currentTime);
+    if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(position)) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration,
+        playbackRate: cloudAudio.playbackRate || 1,
+        position: Math.min(position, duration)
+      });
+    } catch (_) {}
+  }
+
+  function syncMediaSession() {
+    if (!('mediaSession' in navigator)) return;
+    try {
+      const voiceName = CLOUD_VOICES.find(v => v.id === cloudVoice)?.name || '中文男声';
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: mediaTitle(),
+        artist: `朗读 · ${voiceName}`,
+        album: units.length ? `第 ${Math.min(index + 1, units.length)} / ${units.length} 句` : '阅读'
+      });
+      navigator.mediaSession.playbackState = speaking && !paused ? 'playing' : (speaking || paused ? 'paused' : 'none');
+    } catch (_) {}
+  }
+
+  function setupMediaSession() {
+    if (!('mediaSession' in navigator)) return;
+    const bind = (action, handler) => {
+      try { navigator.mediaSession.setActionHandler(action, handler); } catch (_) {}
+    };
+    bind('play', () => start());
+    bind('pause', () => pause());
+    bind('stop', () => stop(false));
+    bind('previoustrack', () => step(-1));
+    bind('nexttrack', () => step(1));
+    bind('seekbackward', () => step(-1));
+    bind('seekforward', () => step(1));
   }
 
   async function cloudSpeak(text, token, preview = false) {
@@ -93,6 +169,10 @@
     };
     audio.onerror = () => clearCloudSource();
     await audio.play();
+    if (!preview) {
+      syncMediaSession();
+      prefetchNext();
+    }
   }
 
   function previewVoice(name) {
@@ -301,6 +381,7 @@
     const matched = RATES.find(x => Math.abs(x - wanted) < .01);
     if (!matched) return false;
     rate = matched;
+    audioCache.clear();
     localStorage.setItem(RATE_KEY, String(rate));
     if (speaking && !paused) {
       session += 1;
@@ -399,6 +480,7 @@
     if (rateBtn) rateBtn.textContent = `${rate}×`;
     bar.dataset.active = speaking ? '1' : '0';
     emitState();
+    syncMediaSession();
   }
 
   function toggle() {
@@ -453,4 +535,5 @@
   document.head.appendChild(style);
   ensureToolbar();
   updateVoiceSelect();
+  setupMediaSession();
 })();
