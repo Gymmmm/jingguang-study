@@ -5,12 +5,15 @@
   if (!synth || typeof SpeechSynthesisUtterance === 'undefined') return;
 
   const RATE_KEY = 'jg_read_aloud_rate';
+  const VOICE_KEY = 'jg_read_aloud_voice';
   const POS_KEY = 'jg_read_aloud_position';
   const RATES = [0.8, 1, 1.2, 1.5, 2];
   let units = [];
   let index = 0;
   let rate = +(localStorage.getItem(RATE_KEY) || 1);
   if (!RATES.some(x => Math.abs(x - rate) < .01)) rate = 1;
+  let selectedVoiceName = localStorage.getItem(VOICE_KEY) || '';
+  let voices = [];
   let speaking = false;
   let paused = false;
   let session = 0;
@@ -21,6 +24,50 @@
   if (!detail || !body) return;
 
   const cleanText = value => String(value || '').replace(/\s+/g, ' ').trim();
+  const chineseVoice = v => /^zh(?:-|_)/i.test(v.lang || '') || /Chinese|中文|Mandarin|普通话/i.test(v.name || '');
+  const maleHint = v => /male|男|yunxi|yunyang|yunjian|yunfeng|yunhao|yunze|kangkang|li-mu|li mu|sin-ji|sin ji/i.test(v.name || '');
+
+  function loadVoices() {
+    voices = synth.getVoices().filter(chineseVoice);
+    if (!selectedVoiceName || !voices.some(v => v.name === selectedVoiceName)) {
+      selectedVoiceName = (voices.find(maleHint) || voices[0] || {}).name || '';
+    }
+    updateVoiceSelect();
+  }
+
+  function selectedVoice() {
+    return voices.find(v => v.name === selectedVoiceName) || voices.find(maleHint) || voices[0] || null;
+  }
+
+  function setVoice(name) {
+    if (!voices.some(v => v.name === name)) return false;
+    selectedVoiceName = name;
+    localStorage.setItem(VOICE_KEY, name);
+    if (speaking && !paused) { session += 1; speakCurrent(session); }
+    updateToolbar();
+    return true;
+  }
+
+  function updateVoiceSelect() {
+    document.querySelectorAll('[data-reader-voice]').forEach(select => {
+      const current = selectedVoice();
+      select.innerHTML = voices.map(v => `<option value="${v.name.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}">${v.name}</option>`).join('');
+      if (current) select.value = current.name;
+      select.disabled = !voices.length;
+    });
+  }
+
+  function previewVoice(name) {
+    const voice = voices.find(v => v.name === name) || selectedVoice();
+    if (!voice) return false;
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance('这是当前男声的朗读效果。');
+    u.lang = voice.lang || 'zh-CN';
+    u.voice = voice;
+    u.rate = rate;
+    synth.speak(u);
+    return true;
+  }
   const readablePage = () => detail.dataset.readerKind === 'bible-reader' || detail.dataset.readerKind === 'egw-reader';
 
   function titleKey() {
@@ -112,6 +159,8 @@
     savePosition();
     const u = new SpeechSynthesisUtterance(units[index].text);
     u.lang = 'zh-CN';
+    const voice = selectedVoice();
+    if (voice) { u.voice = voice; u.lang = voice.lang || 'zh-CN'; }
     u.rate = rate;
     u.onend = () => {
       if (token !== session || !speaking) return;
@@ -242,8 +291,9 @@
     const main = bar.querySelector('[data-tts="toggle"]');
     if (main) {
       main.textContent = paused ? '继续朗读' : (speaking ? '暂停朗读' : '朗读');
-      main.setAttribute('aria-label', `${main.textContent}，系统默认中文语音`);
-      main.title = '系统默认中文语音';
+      const voiceName = selectedVoice()?.name || '中文语音';
+      main.setAttribute('aria-label', `${main.textContent}，${voiceName}`);
+      main.title = voiceName;
     }
     const rateBtn = bar.querySelector('[data-tts="rate"]');
     if (rateBtn) rateBtn.textContent = `${rate}×`;
@@ -277,7 +327,10 @@
 
   window.jgRefreshReadAloud = refresh;
   window.jgReadAloudToggle = toggle;
-  window.jgReadAloudVoiceName = () => '系统默认中文语音';
+  window.jgReadAloudVoiceName = () => selectedVoice()?.name || '中文语音';
+  window.jgReadAloudVoices = () => voices.map(v => ({name:v.name, lang:v.lang, male:maleHint(v)}));
+  window.jgSetReadAloudVoice = setVoice;
+  window.jgPreviewReadAloudVoice = previewVoice;
   window.jgReadAloudStep = step;
   window.jgSetReadAloudRate = setRate;
   window.jgReadAloudState = () => ({ speaking, paused, rate, index, count: units.length });
@@ -295,4 +348,6 @@
   `;
   document.head.appendChild(style);
   ensureToolbar();
+  loadVoices();
+  if ('onvoiceschanged' in synth) synth.addEventListener('voiceschanged', loadVoices);
 })();
