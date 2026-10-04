@@ -182,9 +182,6 @@
       synth.speak(u);
     });
     updateToolbar();
-    };
-    synth.speak(u);
-    updateToolbar();
   }
 
   function start() {
