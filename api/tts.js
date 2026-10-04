@@ -1,4 +1,4 @@
-import { Communicate } from 'edge-tts.js';
+import { generateSpeech } from '@bestcodes/edge-tts';
 
 const VOICES = {
   yunjian: 'zh-CN-YunjianNeural',
@@ -18,15 +18,15 @@ export default async function handler(req, res) {
   const speed = Math.max(.75, Math.min(1.5, Number(rate) || 1));
   const ratePct = Math.round((speed - 1) * 100);
   try {
-    const tts = new Communicate(input, voiceId, { rate: `${ratePct >= 0 ? '+' : ''}${ratePct}%` });
-    const chunks = [];
-    for await (const chunk of tts.stream()) {
-      if (chunk.type === 'audio' && chunk.data) chunks.push(Buffer.from(chunk.data));
-    }
-    if (!chunks.length) throw new Error('empty_audio');
+    const audio = await generateSpeech({
+      text: input,
+      voice: voiceId,
+      rate: `${ratePct >= 0 ? '+' : ''}${ratePct}%`
+    });
+    if (!audio || !audio.length) throw new Error('empty_audio');
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Cache-Control', 'private, max-age=3600');
-    return res.status(200).send(Buffer.concat(chunks));
+    return res.status(200).send(Buffer.from(audio));
   } catch (error) {
     return res.status(502).json({ error: 'tts_unavailable' });
   }
