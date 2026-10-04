@@ -90,6 +90,11 @@
               <span class="readerSkipIcon">下一段</span>
             </button>
           </div>
+          <div class="readerVoiceRow">
+            <label for="readerVoiceSelect">男声</label>
+            <select id="readerVoiceSelect" data-reader-voice aria-label="选择朗读男声"></select>
+            <button type="button" data-reader-voice-preview>试听</button>
+          </div>
           <div class="readerRateRow" aria-label="朗读速度">
             ${[0.8,1,1.2,1.5,2].map(v => `<button type="button" data-reader-rate="${v}">${v}x</button>`).join('')}
           </div>
@@ -183,6 +188,16 @@
       play.title = label;
     }
 
+    const voiceSelect = q('[data-reader-voice]', sheet);
+    if (voiceSelect && typeof window.jgReadAloudVoices === 'function') {
+      const available = window.jgReadAloudVoices();
+      if (!voiceSelect.options.length && available.length) {
+        voiceSelect.innerHTML = available.map(v => `<option value="${v.name.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}">${v.name}</option>`).join('');
+      }
+      const currentVoice = window.jgReadAloudVoiceName?.();
+      if (currentVoice && [...voiceSelect.options].some(o => o.value === currentVoice)) voiceSelect.value = currentVoice;
+    }
+
     sheet.querySelectorAll('[data-reader-rate]').forEach(btn => {
       btn.classList.toggle('active', Math.abs(Number(btn.dataset.readerRate) - Number(s.rate || 1)) < .01);
     });
@@ -232,6 +247,11 @@
     if (slider) slider.value = String(size);
   }
 
+  detail.addEventListener('change', event => {
+    const voice = event.target.closest?.('[data-reader-voice]');
+    if (voice) window.jgSetReadAloudVoice?.(voice.value);
+  });
+
   detail.addEventListener('click', event => {
     const open = event.target.closest?.('[data-reader-settings-open]');
     if (open) {
@@ -251,6 +271,12 @@
     const step = event.target.closest?.('[data-reader-audio-step]');
     if (step) {
       window.jgReadAloudStep?.(Number(step.dataset.readerAudioStep));
+      return;
+    }
+    const preview = event.target.closest?.('[data-reader-voice-preview]');
+    if (preview) {
+      const select = q('[data-reader-voice]', ensureSheet());
+      window.jgPreviewReadAloudVoice?.(select?.value || '');
       return;
     }
     const rate = event.target.closest?.('[data-reader-rate]');
