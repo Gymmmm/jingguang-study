@@ -151,6 +151,7 @@
 
   function clearHighlight() {
     body.querySelectorAll('.ttsSpeaking').forEach(el => el.classList.remove('ttsSpeaking'));
+    body.querySelectorAll('.ttsCursorTag').forEach(el => el.remove());
   }
 
   function highlightCurrent() {
@@ -159,12 +160,17 @@
     if (!el) return;
     const anchor = el.closest?.('.verse,.egwParagraphWrap') || el;
     anchor.classList.add('ttsSpeaking');
-    // Keep reading position stable while the current segment is still visible.
+    const tag = document.createElement('span');
+    tag.className = 'ttsCursorTag';
+    tag.textContent = `正在朗读 · ${index + 1}/${units.length}`;
+    anchor.appendChild(tag);
+    // Keep the current passage inside the comfortable reading zone.
     const root = detail.getBoundingClientRect();
     const rect = anchor.getBoundingClientRect();
-    const intersecting = rect.bottom > root.top && rect.top < root.bottom;
-    if (!intersecting) {
-      anchor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const topGuard = root.top + 92;
+    const bottomGuard = root.bottom - 130;
+    if (rect.top < topGuard || rect.bottom > bottomGuard) {
+      anchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }
 
@@ -385,8 +391,8 @@
     .readAloudBar .ttsMain{color:var(--accent)!important}
     .readAloudBar[data-active="1"] .ttsMain{font-weight:800!important}
     .readAloudBar .ttsRate{min-width:34px!important;color:color-mix(in srgb,var(--muted) 78%,transparent)!important;font-weight:550!important}
-    .ttsSpeaking{position:relative!important;background:color-mix(in srgb,var(--accent) 3.5%,transparent)!important;box-shadow:none!important;border-radius:4px;transition:background .18s ease}
-    .ttsSpeaking::before{content:"";position:absolute;left:-7px;top:.9em;width:4px;height:4px;border-radius:999px;background:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 14%,transparent);pointer-events:none}
+    .ttsSpeaking{position:relative!important;background:color-mix(in srgb,var(--accent) 7%,transparent)!important;box-shadow:inset 2px 0 0 color-mix(in srgb,var(--accent) 74%,transparent)!important;border-radius:5px;transition:background .18s ease,box-shadow .18s ease}
+    .ttsCursorTag{position:absolute;right:6px;top:5px;z-index:2;display:inline-flex;align-items:center;min-height:20px;padding:0 7px;border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));border-radius:999px;background:color-mix(in srgb,var(--surface) 92%,transparent);color:var(--accent);font-family:system-ui,-apple-system,"PingFang SC",sans-serif;font-size:9px;font-weight:750;letter-spacing:.01em;line-height:1;box-shadow:0 2px 8px #0000000b;pointer-events:none}
     @media(max-width:560px){.readAloudBar{padding:4px 12px 0}.readAloudBar button{font-size:10px!important}}
   `;
   document.head.appendChild(style);
