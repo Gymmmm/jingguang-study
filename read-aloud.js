@@ -36,7 +36,7 @@
   let cloudAudio = null;
   let cloudObjectUrl = '';
   const audioCache = new Map();
-  const PREFETCH_AHEAD = 4;
+  const PREFETCH_AHEAD = 6;
 
   function ensureCloudAudio() {
     if (cloudAudio) return cloudAudio;
@@ -159,13 +159,7 @@
   async function cloudSpeak(text, token, preview = false) {
     const audio = ensureCloudAudio();
     audio.pause();
-    const response = await fetch('/api/tts', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text, voice:cloudVoice, rate})
-    });
-    if (!response.ok) throw new Error('cloud_tts_failed');
-    const blob = await response.blob();
+    const blob = await fetchSpeechBlob(text);
     if (token !== session && !preview) return;
     clearCloudSource();
     cloudObjectUrl = URL.createObjectURL(blob);
@@ -231,7 +225,7 @@
       const candidate = buf + sentence;
       // Aim for a continuous 2–4 sentence clip; only split when it becomes
       // genuinely long. Never split at commas or colons.
-      if (buf && cleanText(candidate).length > 170) {
+      if (buf && cleanText(candidate).length > 220) {
         out.push(buf);
         buf = sentence;
       } else {
