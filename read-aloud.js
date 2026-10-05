@@ -222,18 +222,18 @@
 
   function splitSentenceText(text) {
     const raw = String(text || '');
-    // Keep each TTS request as a complete natural sentence. Commas, colons and
-    // enumeration punctuation stay inside the same audio clip so the neural
-    // voice controls its own prosody instead of restarting at every phrase.
-    const parts = raw.match(/[^。！？!?；;]+[。！？!?；;]?/g) || [raw];
+    // Generate several natural sentences in one audio clip. This removes the
+    // extra file-to-file gap after 。！？ while preserving neural prosody.
+    const sentences = raw.match(/[^。！？!?；;]+[。！？!?；;]?/g) || [raw];
     const out = [];
     let buf = '';
-    for (const part of parts) {
-      const candidate = buf + part;
-      // Very short sentences can share one clip; long sentences stay intact.
-      if (buf && cleanText(candidate).length > 86) {
+    for (const sentence of sentences) {
+      const candidate = buf + sentence;
+      // Aim for a continuous 2–4 sentence clip; only split when it becomes
+      // genuinely long. Never split at commas or colons.
+      if (buf && cleanText(candidate).length > 170) {
         out.push(buf);
-        buf = part;
+        buf = sentence;
       } else {
         buf = candidate;
       }
